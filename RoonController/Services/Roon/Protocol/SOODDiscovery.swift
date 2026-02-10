@@ -198,10 +198,11 @@ actor SOODDiscovery {
         dst.sin_port = port.bigEndian
         dst.sin_addr.s_addr = inet_addr(ip)
 
+        let fd = sendFd
         packet.withUnsafeBytes { buf in
-            withUnsafePointer(to: &dst) { addrPtr in
+            withUnsafePointer(to: dst) { addrPtr in
                 addrPtr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sa in
-                    _ = Darwin.sendto(sendFd, buf.baseAddress, buf.count, 0,
+                    _ = Darwin.sendto(fd, buf.baseAddress, buf.count, 0,
                                       sa, socklen_t(MemoryLayout<sockaddr_in>.size))
                 }
             }

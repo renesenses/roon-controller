@@ -1,3 +1,5 @@
+[![CI](https://github.com/renesenses/roon-controller/actions/workflows/ci.yml/badge.svg)](https://github.com/renesenses/roon-controller/actions/workflows/ci.yml)
+
 # Roon Controller
 
 Application macOS native (SwiftUI) pour controler un systeme audio [Roon](https://roon.app). L'app se connecte directement au Roon Core via les protocoles natifs SOOD et MOO, sans intermediaire.
@@ -118,6 +120,7 @@ Roon client/
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture technique et protocoles |
 | [docs/TESTING.md](docs/TESTING.md) | Procedures de test et checklist |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Depannage |
+| [docs/CICD.md](docs/CICD.md) | Chaine CI/CD (GitHub Actions + Claude Code) |
 
 ## Licence
 

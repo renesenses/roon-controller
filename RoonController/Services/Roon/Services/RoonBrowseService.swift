@@ -16,7 +16,7 @@ struct RoonBrowseService: Sendable {
 
     // MARK: - Browse
 
-    struct BrowseResponse {
+    struct BrowseResponse: @unchecked Sendable {
         let action: String?
         let list: [String: Any]?
         let items: [[String: Any]]
@@ -81,7 +81,7 @@ struct RoonBrowseService: Sendable {
 
     // MARK: - Load
 
-    struct LoadResponse {
+    struct LoadResponse: @unchecked Sendable {
         let list: [String: Any]?
         let items: [[String: Any]]
         let offset: Int

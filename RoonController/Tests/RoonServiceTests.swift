@@ -6,8 +6,7 @@ final class RoonServiceTests: XCTestCase {
 
     var service: RoonService!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         service = RoonService()
     }
 
