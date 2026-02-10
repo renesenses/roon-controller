@@ -13,6 +13,7 @@ struct SidebarView: View {
         case zones = "Zones"
         case browse = "Bibliotheque"
         case queue = "File d'attente"
+        case history = "Historique"
     }
 
     var body: some View {
@@ -36,6 +37,9 @@ struct SidebarView: View {
                 browseSection
             case .queue:
                 QueueView()
+                    .environmentObject(roonService)
+            case .history:
+                HistoryView()
                     .environmentObject(roonService)
             }
         }
@@ -182,9 +186,14 @@ struct SidebarView: View {
     // MARK: - Browse Section
 
     private var filteredBrowseItems: [BrowseItem] {
-        guard let items = roonService.browseResult?.items else { return [] }
+        guard let result = roonService.browseResult else { return [] }
+        let items = result.items
         let query = searchText.trimmingCharacters(in: .whitespaces)
         if query.isEmpty { return items }
+        // Load all remaining items when searching
+        if let total = result.list?.count, items.count < total {
+            roonService.browseLoad(offset: items.count)
+        }
         return items.filter { item in
             (item.title ?? "").localizedCaseInsensitiveContains(query) ||
             (item.subtitle ?? "").localizedCaseInsensitiveContains(query)

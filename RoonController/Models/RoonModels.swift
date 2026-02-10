@@ -81,6 +81,19 @@ struct ZoneSettings: Codable, Equatable {
     let auto_radio: Bool?
 }
 
+// MARK: - Playback History
+
+struct PlaybackHistoryItem: Codable, Identifiable, Equatable {
+    let id: UUID
+    let title: String
+    let artist: String
+    let album: String
+    let image_key: String?
+    let length: Int?
+    let zone_name: String
+    let playedAt: Date
+}
+
 // MARK: - Queue
 
 struct QueueItem: Codable, Identifiable, Equatable {

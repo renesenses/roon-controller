@@ -18,6 +18,7 @@
 		F1A2B3C4D5E6A7B8C9D0E1F3 /* RoonColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */; };
 		A1B2C3D4E5F60718293A4B5C /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* QueueView.swift */; };
 		B2C3D4E5F607182A3B4C5D6E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F607182A3B4C5D6F /* Assets.xcassets */; };
+		D4E5F607182A3B4C5D6E7F80 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F607182A3B4C5D6E7F81 /* HistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonColors.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5D /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
 		B2C3D4E5F607182A3B4C5D6F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D4E5F607182A3B4C5D6E7F81 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -52,6 +54,7 @@
 				13E5A3B5B194123E7D9AE567 /* ContentView.swift */,
 				D2E3F4A5B6C7D8E9F0A1B2C3 /* Helpers */,
 				6208159EBB6F3E199BC08686 /* PlayerView.swift */,
+				D4E5F607182A3B4C5D6E7F81 /* HistoryView.swift */,
 				A1B2C3D4E5F60718293A4B5D /* QueueView.swift */,
 				4FCEE5B31B68C21920E308DD /* SettingsView.swift */,
 				EEE5C81111DFF879D58805C8 /* SidebarView.swift */,
@@ -184,6 +187,7 @@
 				C959637010EB96B877AB45F6 /* SettingsView.swift in Sources */,
 				F1A2B3C4D5E6A7B8C9D0E1F3 /* RoonColors.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* QueueView.swift in Sources */,
+				D4E5F607182A3B4C5D6E7F80 /* HistoryView.swift in Sources */,
 			0206ACCC748F3AC269561DEE /* SidebarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

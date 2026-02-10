@@ -31,6 +31,7 @@ class RoonService: ObservableObject {
     @Published var browseResult: BrowseResult?
     @Published var browseStack: [String] = []
     @Published var queueItems: [QueueItem] = []
+    @Published var playbackHistory: [PlaybackHistoryItem] = []
     @Published var lastError: String?
 
     // MARK: - Configuration
@@ -42,6 +43,7 @@ class RoonService: ObservableObject {
 
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession = .shared
+    private var lastTrackPerZone: [String: String] = [:]  // zone_id -> track title
     private var isConnected = false
     private var reconnectAttempt = 0
     private let maxReconnectDelay: Double = 30
@@ -53,6 +55,7 @@ class RoonService: ObservableObject {
     func connect() {
         guard webSocketTask == nil else { return }
         connectionState = .connecting
+        if playbackHistory.isEmpty { loadHistory() }
 
         let urlString = "ws://\(backendHost):\(backendPort)"
         guard let url = URL(string: urlString) else {
@@ -131,6 +134,10 @@ class RoonService: ObservableObject {
         case "zones", "zones_changed":
             if let msg = try? decoder.decode(WSZonesMessage.self, from: data) {
                 let newZones = msg.zones
+                // Track now_playing changes for history
+                for zone in newZones {
+                    trackPlaybackHistory(zone: zone)
+                }
                 // Only update if zones actually changed
                 if newZones != zones {
                     zones = newZones
@@ -384,6 +391,63 @@ class RoonService: ObservableObject {
     func imageURL(key: String?, width: Int = 300, height: Int = 300) -> URL? {
         guard let key = key else { return nil }
         return URL(string: "http://\(backendHost):\(backendPort)/api/image/\(key)?scale=fit&width=\(width)&height=\(height)")
+    }
+
+    // MARK: - Playback History
+
+    private func trackPlaybackHistory(zone: RoonZone) {
+        guard zone.state == "playing",
+              let np = zone.now_playing,
+              let title = np.three_line?.line1 ?? np.one_line?.line1,
+              !title.isEmpty else { return }
+
+        let trackKey = "\(zone.zone_id):\(title)"
+        if lastTrackPerZone[zone.zone_id] == trackKey { return }
+        lastTrackPerZone[zone.zone_id] = trackKey
+
+        let item = PlaybackHistoryItem(
+            id: UUID(),
+            title: title,
+            artist: np.three_line?.line2 ?? np.two_line?.line1 ?? "",
+            album: np.three_line?.line3 ?? "",
+            image_key: np.image_key,
+            length: np.length,
+            zone_name: zone.display_name,
+            playedAt: Date()
+        )
+        playbackHistory.insert(item, at: 0)
+        // Keep last 500 items
+        if playbackHistory.count > 500 {
+            playbackHistory = Array(playbackHistory.prefix(500))
+        }
+        saveHistory()
+    }
+
+    func loadHistory() {
+        guard let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        let path = dir.appendingPathComponent("playback_history.json")
+        guard let data = try? Data(contentsOf: path) else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        if let items = try? decoder.decode([PlaybackHistoryItem].self, from: data) {
+            playbackHistory = items
+        }
+    }
+
+    private func saveHistory() {
+        guard let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        let path = dir.appendingPathComponent("playback_history.json")
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let data = try? encoder.encode(playbackHistory) {
+            try? data.write(to: path)
+        }
+    }
+
+    func clearHistory() {
+        playbackHistory.removeAll()
+        lastTrackPerZone.removeAll()
+        saveHistory()
     }
 
     // MARK: - Send Helper
