@@ -58,13 +58,14 @@ struct RoonRegistration {
             "publisher": publisher,
             "email": email,
             "required_services": [
-                ["name": "com.roonlabs.transport:2"],
-                ["name": "com.roonlabs.browse:1"],
-                ["name": "com.roonlabs.image:1"]
+                "com.roonlabs.transport:2",
+                "com.roonlabs.browse:1",
+                "com.roonlabs.image:1"
             ],
+            "optional_services": [] as [String],
             "provided_services": [
-                ["name": "com.roonlabs.ping:1"],
-                ["name": "com.roonlabs.status:1"]
+                "com.roonlabs.ping:1",
+                "com.roonlabs.status:1"
             ],
             "website": ""
         ]

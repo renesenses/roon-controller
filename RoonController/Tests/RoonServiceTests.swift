@@ -202,4 +202,117 @@ final class RoonServiceTests: XCTestCase {
         XCTAssertEqual(id2, 2)
         XCTAssertEqual(id3, 3)
     }
+
+    // MARK: - MOO Message Content-Length consistency
+
+    func testMOOMessageContentLengthMatchesBody() {
+        let body: [String: Any] = [
+            "extension_id": "com.bertrand.rooncontroller",
+            "display_name": "Roon Controller macOS",
+            "required_services": ["com.roonlabs.transport:2", "com.roonlabs.browse:1"]
+        ]
+        let data = MOOMessage.request(name: "com.roonlabs.registry:1/register", requestId: 1, jsonBody: body)
+        let msg = MOOMessage.parse(data)
+
+        XCTAssertNotNil(msg)
+        XCTAssertNotNil(msg?.body)
+
+        // Content-Length header must match actual body size
+        if let contentLength = msg?.headers["Content-Length"],
+           let clValue = Int(contentLength),
+           let body = msg?.body {
+            XCTAssertEqual(clValue, body.count, "Content-Length must match actual body size")
+        }
+    }
+
+    func testMOOMessageDataBodyNotReEncoded() {
+        // Regression test: Data body must not be Base64-re-encoded via JSONEncoder
+        let jsonBody: [String: Any] = ["key": "value"]
+        let jsonData = try! JSONSerialization.data(withJSONObject: jsonBody)
+        let data = MOOMessage.request(name: "test/method", requestId: 1, body: jsonData)
+        let msg = MOOMessage.parse(data)
+
+        XCTAssertNotNil(msg)
+        // Body should be valid JSON, not a Base64 string
+        let parsed = msg?.bodyJSON
+        XCTAssertNotNil(parsed)
+        XCTAssertEqual(parsed?["key"] as? String, "value")
+    }
+
+    // MARK: - Registration body format
+
+    func testRegistrationBodyServicesAreStringArrays() {
+        let body = RoonRegistration.registerRequestBody()
+
+        // required_services must be an array of strings, not objects
+        let required = body["required_services"] as? [String]
+        XCTAssertNotNil(required, "required_services must be [String]")
+        XCTAssertTrue(required?.contains("com.roonlabs.transport:2") ?? false)
+        XCTAssertTrue(required?.contains("com.roonlabs.browse:1") ?? false)
+        XCTAssertTrue(required?.contains("com.roonlabs.image:1") ?? false)
+
+        // provided_services must be an array of strings
+        let provided = body["provided_services"] as? [String]
+        XCTAssertNotNil(provided, "provided_services must be [String]")
+        XCTAssertTrue(provided?.contains("com.roonlabs.ping:1") ?? false)
+        XCTAssertTrue(provided?.contains("com.roonlabs.status:1") ?? false)
+
+        // optional_services must be present
+        let optional = body["optional_services"] as? [String]
+        XCTAssertNotNil(optional, "optional_services must be [String]")
+    }
+
+    func testRegistrationBodyContainsRequiredFields() {
+        let body = RoonRegistration.registerRequestBody()
+
+        XCTAssertNotNil(body["extension_id"] as? String)
+        XCTAssertNotNil(body["display_name"] as? String)
+        XCTAssertNotNil(body["display_version"] as? String)
+        XCTAssertNotNil(body["publisher"] as? String)
+    }
+
+    func testRegistrationBodyIsValidJSON() {
+        let body = RoonRegistration.registerRequestBody()
+        // Must be serializable to JSON without error
+        let data = try? JSONSerialization.data(withJSONObject: body)
+        XCTAssertNotNil(data, "Registration body must be valid JSON")
+
+        // Round-trip: deserialize and check it's still a dictionary
+        if let data = data {
+            let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            XCTAssertNotNil(parsed)
+        }
+    }
+
+    func testRegistrationResponseParsing() {
+        // Registered response
+        let registered = RoonRegistration.parseRegistrationResponse([
+            "token": "abc123",
+            "core_id": "core-001",
+            "display_name": "My Roon Core"
+        ])
+        if case .registered(let token, let coreId, let coreName) = registered {
+            XCTAssertEqual(token, "abc123")
+            XCTAssertEqual(coreId, "core-001")
+            XCTAssertEqual(coreName, "My Roon Core")
+        } else {
+            XCTFail("Expected .registered")
+        }
+
+        // Not registered (no token)
+        let notRegistered = RoonRegistration.parseRegistrationResponse(["status": "waiting"])
+        if case .notRegistered = notRegistered {
+            // OK
+        } else {
+            XCTFail("Expected .notRegistered")
+        }
+
+        // Nil body
+        let nilBody = RoonRegistration.parseRegistrationResponse(nil)
+        if case .notRegistered = nilBody {
+            // OK
+        } else {
+            XCTFail("Expected .notRegistered for nil body")
+        }
+    }
 }

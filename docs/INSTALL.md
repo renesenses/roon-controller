@@ -6,81 +6,11 @@
 |-----------|-----------------|
 | macOS | 15.0 (Sequoia) |
 | Xcode | 16.0 |
-| Node.js | 18.x |
-| npm | 9.x |
 | Roon Core | 2.x |
 
-## 1. Backend Node.js
+> Aucun backend externe n'est necessaire. L'app se connecte directement au Roon Core via les protocoles natifs SOOD et MOO.
 
-### Installation
-
-```bash
-cd "Roon client/node-backend"
-npm install
-```
-
-Les dependances installees :
-- `node-roon-api` — API Roon principale (decouverte, pairing)
-- `node-roon-api-transport` — Controle transport (play, pause, seek, queue...)
-- `node-roon-api-browse` — Navigation bibliotheque
-- `node-roon-api-image` — Proxy images (pochettes)
-- `node-roon-api-status` — Status de l'extension
-- `express` — Serveur HTTP (proxy image)
-- `ws` — Serveur WebSocket
-
-### Lancement
-
-```bash
-node server.js
-```
-
-Sortie attendue :
-```
-[Server] HTTP + WebSocket listening on port 3333
-[Server] Image proxy: http://localhost:3333/api/image/:key
-[Server] Status:      http://localhost:3333/api/status
-[Server] WebSocket:   ws://localhost:3333
-
-[Roon] Starting discovery...
-```
-
-### Configuration du port
-
-Par defaut, le serveur ecoute sur le port **3333**. Pour changer :
-
-```bash
-PORT=4444 node server.js
-```
-
-### Autorisation dans Roon
-
-Au premier lancement, l'extension apparait dans **Roon > Parametres > Extensions** comme "Roon Controller macOS". Cliquez sur **Autoriser** pour activer le pairing.
-
-L'etat de pairing est sauvegarde dans `node-backend/config/roon-state.json` et persiste entre les redemarrages.
-
-### Verification
-
-Ouvrez dans un navigateur :
-
-```
-http://localhost:3333/api/status
-```
-
-Reponse attendue (une fois paire) :
-```json
-{
-  "connected": true,
-  "core_name": "NomDeVotreCore",
-  "core_version": "2.x.x",
-  "zone_count": 3,
-  "zones": [...],
-  "version": "1.0.0"
-}
-```
-
-## 2. App macOS (Swift)
-
-### Build avec Xcode
+## 1. Build avec Xcode
 
 ```bash
 cd "Roon client/RoonController"
@@ -98,35 +28,36 @@ cd "Roon client/RoonController"
 xcodebuild -scheme RoonController -configuration Debug build
 ```
 
-### Configuration du backend
+## 2. Autorisation dans Roon
 
-Par defaut, l'app se connecte a `ws://localhost:3333`. Pour modifier :
+Au premier lancement, l'extension apparait dans **Roon > Parametres > Extensions** comme "Roon Controller macOS". Cliquez sur **Autoriser** pour activer le pairing.
 
-1. Lancez l'app
-2. Allez dans **Roon Controller > Parametres** (ou Cmd+,)
-3. Modifiez l'hote et/ou le port
-4. Cliquez "Appliquer et reconnecter"
-
-Les parametres sont stockes dans `UserDefaults` (`backendHost`, `backendPort`).
+Le token d'autorisation est sauvegarde dans `UserDefaults` et persiste entre les redemarrages. L'extension est re-autorisee automatiquement aux lancements suivants.
 
 ## 3. Topologie reseau
 
 ```
 ┌──────────────────┐
-│    Mac (dev)     │
-│                  │
-│  ┌────────────┐  │       reseau local       ┌──────────────┐
-│  │ App macOS  │──┼──── ws://localhost:3333 ──│              │
-│  └────────────┘  │                           │  Backend     │
-│                  │                           │  Node.js     │──── SOOD/TCP ──── Roon Core
-│  ou bien :       │                           │  (port 3333) │
-│  ┌────────────┐  │                           └──────────────┘
-│  │ App macOS  │──┼── ws://192.168.x.x:3333 ─────────┘
-│  └────────────┘  │
-└──────────────────┘
+│    Mac (dev)      │
+│                   │      reseau local        ┌──────────────┐
+│  ┌─────────────┐  │                          │              │
+│  │  App macOS  │──┼── SOOD (239.255.90.90) ──│  Roon Core   │
+│  │  (SwiftUI)  │──┼── WebSocket :9330 ───────│  (serveur)   │
+│  └─────────────┘  │                          │              │
+│                   │                          └──────────────┘
+└───────────────────┘
 ```
 
-L'app et le backend peuvent tourner sur la meme machine ou sur des machines differentes du reseau local. Le backend doit pouvoir joindre le Roon Core via le reseau.
+L'app et le Roon Core doivent etre sur le meme reseau local pour que la decouverte SOOD fonctionne. Si le Core est sur un sous-reseau different, utilisez la connexion manuelle par IP.
+
+## 4. Connexion manuelle
+
+Si la decouverte automatique echoue :
+
+1. Lancez l'app
+2. Ouvrez **Roon Controller > Parametres** (Cmd+,)
+3. Entrez l'adresse IP du Roon Core
+4. Cliquez "Connecter a ce Core"
 
 ## Depannage
 
@@ -134,7 +65,6 @@ Pour une liste complete des problemes connus et solutions, consultez **[TROUBLES
 
 Quelques verifications rapides :
 
-- **Le backend ne trouve pas le Core** : verifiez le reseau et le port 9330, ou utilisez la connexion manuelle par IP
-- **L'app ne se connecte pas** : verifiez que le backend tourne (`curl http://localhost:3333/api/status`)
-- **L'extension n'apparait pas dans Roon** : supprimez `config/roon-state.json` et relancez le backend
-- **Erreur de build Xcode** : target macOS, deployment target 15.0, Swift 6.0
+- **L'app ne trouve pas le Core** : verifiez le reseau local et le port 9330, ou utilisez la connexion manuelle par IP
+- **L'extension n'apparait pas dans Roon** : attendez 10-20 secondes, puis verifiez dans Roon > Parametres > Extensions
+- **Erreur de build Xcode** : verifiez la target macOS, deployment target 15.0, Swift 6.0

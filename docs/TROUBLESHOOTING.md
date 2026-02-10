@@ -1,100 +1,58 @@
 # Troubleshooting
 
-## 1. Backend Node.js
+## 1. Decouverte du Core (SOOD)
 
-### Le backend ne demarre pas
+### L'app ne trouve pas le Roon Core
 
-**Symptome** : `node server.js` ne produit aucune sortie ou plante immediatement.
-
-**Solutions** :
-- Verifiez que Node.js est installe : `node --version` (minimum 18.x)
-- Verifiez que les dependances sont installees : `cd node-backend && npm install`
-- Si l'erreur mentionne un module manquant : supprimez `node_modules` et relancez `npm install`
-
-### Port 3333 deja utilise
-
-**Symptome** : `Error: listen EADDRINUSE :::3333`
-
-**Solutions** :
-- Identifiez le processus qui occupe le port : `lsof -i :3333`
-- Arretez-le : `kill <PID>`
-- Ou utilisez un autre port : `PORT=4444 node server.js` (pensez a mettre a jour le port dans les Parametres de l'app)
-
-### Le backend ne trouve pas le Core Roon
-
-**Symptome** : Le backend affiche `[Roon] Starting discovery...` mais jamais `Core paired`.
+**Symptome** : L'app reste sur l'ecran de connexion, aucune zone n'apparait.
 
 **Solutions** :
 - Verifiez que le Roon Core est allume et sur le meme reseau local
-- Verifiez qu'aucun pare-feu ne bloque le port **9330** (protocole SOOD/Roon)
-- Tentez une connexion manuelle depuis l'app : **Parametres > Adresse IP du Core** (ex: `192.168.1.29`)
-- Si le Core est sur un sous-reseau different, la decouverte SOOD ne fonctionnera pas — utilisez la connexion manuelle
+- Verifiez qu'aucun pare-feu ne bloque le port UDP **9003** (protocole SOOD) et le port TCP **9330** (WebSocket Roon)
+- La decouverte SOOD utilise le multicast UDP sur `239.255.90.90:9003` — certains routeurs bloquent le multicast entre VLANs
+- Tentez une connexion manuelle : **Parametres** (Cmd+,) > entrez l'adresse IP du Core
 - Attendez 10 a 30 secondes : la decouverte peut prendre du temps au premier lancement
 
 ### L'extension n'apparait pas dans Roon
 
-**Symptome** : Le backend tourne mais "Roon Controller macOS" n'est pas visible dans Roon > Parametres > Extensions.
+**Symptome** : L'app tourne mais "Roon Controller macOS" n'est pas visible dans Roon > Parametres > Extensions.
 
 **Solutions** :
-- Attendez 10-20 secondes apres le demarrage du backend
-- Redemarrez le backend
-- Supprimez le fichier `node-backend/config/roon-state.json` pour forcer un nouveau pairing
-- Relancez le backend et verifiez dans Roon > Parametres > Extensions
-- Cliquez sur **Autoriser** pour activer l'extension
+- Attendez 10-20 secondes apres le demarrage de l'app
+- Relancez l'app
+- Verifiez la console systeme (Console.app) pour des messages `RoonController`
+- L'extension doit etre autorisee dans **Roon > Parametres > Extensions** — cliquez sur **Autoriser**
 
-### Le backend se deconnecte du Core de maniere intermittente
+### La connexion se coupe de maniere intermittente
 
-**Symptome** : Les zones disparaissent puis reapparaissent, messages `core_unpaired` dans la console.
+**Symptome** : Les zones disparaissent puis reapparaissent periodiquement.
 
 **Solutions** :
 - Verifiez la stabilite de votre reseau local (Wi-Fi vs Ethernet)
-- Connectez le backend en filaire si possible
-- Le backend tente automatiquement de se reconnecter toutes les 5 secondes
+- L'app reconnecte automatiquement avec un backoff exponentiel (jusqu'a 30s)
+- Si le Core a change d'adresse IP, l'app relance la decouverte SOOD automatiquement
 
 ---
 
-## 2. App macOS
+## 2. Enregistrement et autorisation
 
-### L'app ne se connecte pas au backend
+### L'app affiche "Connexion en cours" indefiniment
 
-**Symptome** : L'app reste bloquee sur l'ecran de connexion "Deconnecte du backend".
-
-**Solutions** :
-- Verifiez que le backend est lance : `curl http://localhost:3333/api/status`
-- Verifiez le host et le port dans **Parametres** (Cmd+,) — par defaut `localhost:3333`
-- Si le backend est sur une autre machine, utilisez son adresse IP (ex: `192.168.1.10`)
-- L'app reconnecte automatiquement avec un backoff exponentiel — attendez quelques secondes
-
-### Le demarrage automatique du backend ne fonctionne pas
-
-**Symptome** : L'app se lance mais le backend ne demarre pas automatiquement.
+**Symptome** : L'app decouvre le Core mais ne passe jamais a l'etat "Connecte".
 
 **Solutions** :
-- Verifiez que Node.js est installe a l'un de ces emplacements :
-  - `/opt/homebrew/bin/node` (Homebrew Apple Silicon)
-  - `/usr/local/bin/node` (Homebrew Intel)
-  - `/usr/bin/node`
-- Verifiez le chemin du backend dans **Parametres > Dossier backend** — il doit pointer vers le dossier contenant `server.js`
-- Si le champ est vide, l'app tente une detection automatique basee sur l'emplacement du bundle. Si ca echoue, renseignez le chemin manuellement (ex: `/Users/votrenom/DEV/Roon client/node-backend`)
-- Verifiez que le fichier `server.js` existe dans le dossier indique
+- Verifiez dans **Roon > Parametres > Extensions** si "Roon Controller macOS" attend une autorisation
+- Cliquez sur **Autoriser** pour activer l'extension
+- Si l'extension n'apparait pas du tout, consultez la section "L'extension n'apparait pas dans Roon" ci-dessus
 
-### Les zones n'apparaissent pas
+### Re-autorisation apres mise a jour du Core
 
-**Symptome** : L'app est connectee au backend mais la liste des zones est vide.
+**Symptome** : L'app etait connectee mais ne se reconnecte plus apres une mise a jour du Core.
 
 **Solutions** :
-- Verifiez que le backend est bien paire avec le Core Roon : `curl http://localhost:3333/api/status` doit afficher `"connected": true`
-- Verifiez que des zones existent dans Roon (au moins un endpoint audio configure)
-- Si vous venez de pairer l'extension, attendez quelques secondes pour que les zones soient transmises
-
-### L'app ne repond plus / freeze
-
-**Symptome** : L'interface se fige ou les controles ne reagissent plus.
-
-**Solutions** :
-- Fermez et relancez l'app
-- Verifiez que le backend repond toujours (`curl http://localhost:3333/api/status`)
-- Si le probleme persiste, redemarrez le backend
+- Le token d'autorisation peut avoir ete invalide par la mise a jour
+- L'app va automatiquement se re-enregistrer — verifiez dans Roon > Extensions si une nouvelle autorisation est requise
+- Si le probleme persiste, effacez le token sauvegarde : dans Terminal, lancez `defaults delete com.bertrand.RoonController roon_core_token`
 
 ---
 
@@ -115,7 +73,7 @@
 
 **Solutions** :
 - Verifiez que `is_seek_allowed` est `true` pour la zone (certaines sources comme les radios ne supportent pas le seek)
-- Les radios en streaming (FIP, Radio Classique...) n'ont pas de seek
+- Les radios en streaming n'ont pas de seek
 
 ### Le volume ne change pas
 
@@ -131,8 +89,8 @@
 
 **Solutions** :
 - Changez de zone puis revenez — cela force une re-souscription a la queue
-- La queue n'est envoyee qu'au client qui s'y est abonne — si la connexion WS a ete coupee et retablie, la souscription doit etre renouvelee
-- Le backend limite la queue a 100 items
+- Si la connexion WebSocket a ete coupee et retablie, la souscription est renouvelee automatiquement
+- La queue est limitee a 100 items
 
 ---
 
@@ -143,26 +101,17 @@
 **Symptome** : Cliquer sur Albums, Artists, etc. dans la bibliotheque n'affiche rien.
 
 **Solutions** :
-- Verifiez que le backend tourne et repond (le message `browse/browse` est envoye via WebSocket)
 - Si la bibliotheque est tres volumineuse (>10 000 items), le chargement peut prendre quelques secondes
 - Essayez de revenir a l'accueil (icone maison) puis de re-naviguer
-- Verifiez la console du backend pour des erreurs `Browse error`
+- Un mecanisme anti-doublon empeche les clics multiples sur le meme item — attendez la reponse
 
 ### La recherche ne trouve pas de resultats
 
-**Symptome** : Le champ de recherche local (en haut de la bibliotheque) ne filtre rien.
+**Symptome** : Le champ de recherche ne filtre rien.
 
 **Solutions** :
-- La recherche locale filtre uniquement les elements deja charges. Si la liste est longue, les items supplementaires sont charges automatiquement en arriere-plan lors de la saisie
-- Pour une recherche dans toute la bibliotheque Roon, utilisez l'item **Recherche** (avec l'icone loupe) en haut de la liste Library — un dialogue de recherche Roon s'ouvre
-
-### Le defilement de la bibliotheque est lent
-
-**Symptome** : La liste est longue et le scroll est saccade.
-
-**Solutions** :
-- Les elements sont charges par pages de 100. Le chargement de la page suivante se declenche automatiquement quand vous approchez de la fin de la liste
-- Pour des bibliotheques tres volumineuses, utilisez la recherche pour reduire le nombre de resultats
+- La recherche locale filtre uniquement les elements deja charges
+- Pour une recherche dans toute la bibliotheque Roon, utilisez l'item **Recherche** (avec l'icone loupe) en haut de la liste — un dialogue de recherche Roon s'ouvre
 
 ---
 
@@ -175,16 +124,7 @@
 **Solutions** :
 - L'historique ne se remplit qu'avec les morceaux joues pendant que l'app est ouverte
 - L'historique ne suit que les zones en etat "playing" avec des informations de piste valides
-- Les radios (FIP, etc.) sont aussi tracees si elles fournissent les metadonnees du morceau en cours
-
-### Des doublons apparaissent dans l'historique
-
-**Symptome** : Le meme morceau apparait plusieurs fois de suite.
-
-**Solutions** :
-- Un mecanisme de deduplication empeche les doublons consecutifs pour la meme zone
-- Si le meme morceau est joue sur deux zones differentes, il apparaitra deux fois (comportement normal)
-- Le bouton **Effacer** supprime tout l'historique
+- L'historique est persiste dans `~/Library/Caches/playback_history.json`
 
 ### Cliquer sur un morceau de l'historique ne le relance pas
 
@@ -192,21 +132,35 @@
 
 **Solutions** :
 - Verifiez qu'une zone est selectionnee (la lecture se lance sur la zone courante)
-- Le morceau est recherche dans la bibliotheque Roon par son titre — si le titre exact n'existe plus (morceau supprime, radio), la lecture ne pourra pas etre lancee
-- Les morceaux de radio en direct ne peuvent pas etre rejoues (ils n'existent pas dans la bibliotheque)
+- Le morceau est recherche dans la bibliotheque Roon par son titre — si le titre exact n'existe plus, la lecture ne pourra pas etre lancee
+- Les morceaux de radio en direct ne peuvent pas etre rejoues
 
 ---
 
-## 6. Peripheriques audio
+## 6. Images et pochettes
+
+### Les pochettes d'album ne s'affichent pas
+
+**Symptome** : Les pochettes sont grises/vides dans l'app.
+
+**Solutions** :
+- Les pochettes sont recuperees directement depuis le Roon Core via le protocole MOO et servies localement sur le port 9150
+- Testez dans un navigateur : `http://localhost:9150/image/<une_image_key>?width=300&height=300`
+- Verifiez que l'app est bien connectee au Core
+- Les pochettes sont mises en cache en memoire (LRU). Un redemarrage de l'app vide le cache
+
+---
+
+## 7. Peripheriques audio
 
 ### Un DAC USB n'apparait pas comme zone
 
 **Symptome** : Un DAC branche en USB sur le Mac n'est pas visible dans les zones Roon.
 
 **Solutions** :
-- Le DAC doit etre gere par **Roon** pour apparaitre comme zone. Deux options :
-  1. Installer et lancer **Roon** (le client lourd) sur le Mac ou est branche le DAC — il devient alors un endpoint
-  2. Installer **Roon Bridge** sur le Mac — il expose les sorties audio du Mac au Core Roon
+- Le DAC doit etre gere par **Roon** pour apparaitre comme zone :
+  1. Installer et lancer **Roon** (le client lourd) sur le Mac ou est branche le DAC
+  2. Ou installer **Roon Bridge** sur le Mac
 - Verifiez que le DAC est reconnu par macOS : **Reglages Systeme > Son > Sortie**
 - Dans Roon, allez dans **Parametres > Audio** pour activer la sortie correspondante
 
@@ -218,12 +172,12 @@
 - Certains DAC gerent le volume en interne et ne l'exposent pas a Roon
 - Dans Roon, verifiez **Parametres > Audio > (votre DAC) > Volume Control Mode** :
   - "Device Volume" utilise le volume du DAC
-  - "DSP Volume" utilise le traitement numerique de Roon (perte de qualite)
+  - "DSP Volume" utilise le traitement numerique de Roon
   - "Fixed Volume" desactive le controle de volume
 
 ---
 
-## 7. Build et developpement
+## 8. Build et developpement
 
 ### Erreur de compilation Xcode
 
@@ -240,9 +194,8 @@
 **Symptome** : Les tests ne compilent pas avec une erreur d'import.
 
 **Solutions** :
-- Le module s'appelle `Roon_Controller` (avec underscore) car le PRODUCT_NAME contient un espace ("Roon Controller")
+- Le module s'appelle `Roon_Controller` (avec underscore) car le PRODUCT_NAME contient un espace
 - Les fichiers de test doivent utiliser : `@testable import Roon_Controller`
-- Si vous regenerez le projet avec xcodegen, verifiez que `project.yml` contient bien la target `RoonControllerTests`
 
 ### Les tests echouent
 
@@ -250,61 +203,31 @@
 
 **Solutions** :
 - Lancez les tests : `xcodebuild test -project RoonController.xcodeproj -scheme RoonControllerTests -destination 'platform=macOS'`
-- Les tests unitaires ne necessitent pas de backend en fonctionnement — ils testent les modeles et la logique du service en isolation
-- Verifiez que vous n'avez pas modifie les structures de donnees (RoonModels) sans mettre a jour les tests
-
----
-
-## 8. Problemes reseau
-
-### L'app fonctionne en local mais pas a distance
-
-**Symptome** : L'app se connecte quand le backend est sur la meme machine, mais pas depuis une autre machine.
-
-**Solutions** :
-- Le backend ecoute sur toutes les interfaces (port 3333 par defaut)
-- Verifiez que le pare-feu macOS autorise les connexions entrantes sur le port 3333
-- Dans l'app, remplacez `localhost` par l'adresse IP du Mac qui fait tourner le backend (ex: `192.168.1.10`)
-- Verifiez que les deux machines sont sur le meme sous-reseau
-
-### Les pochettes d'album ne s'affichent pas
-
-**Symptome** : Les pochettes sont grises/vides dans l'app.
-
-**Solutions** :
-- Les pochettes sont servies par le proxy image du backend : `http://<host>:3333/api/image/<key>`
-- Testez dans un navigateur : `http://localhost:3333/api/image/<une_image_key>` (l'image_key est visible dans les logs ou le JSON des zones)
-- Verifiez que le backend est connecte au Core Roon (`"connected": true` dans `/api/status`)
-- Les pochettes sont mises en cache cote navigateur/app (Cache-Control: 86400s). Un redemarrage de l'app peut etre necessaire si le Core a change
+- Les tests unitaires ne necessitent pas de Core Roon — ils testent les modeles et la logique du service en isolation
+- Verifiez que vous n'avez pas modifie les structures de donnees sans mettre a jour les tests
 
 ---
 
 ## Commandes de diagnostic utiles
 
 ```bash
-# Verifier que le backend tourne
-curl -s http://localhost:3333/api/status | python3 -m json.tool
+# Verifier que l'app peut joindre le Core (port 9330)
+nc -zv <ip_du_core> 9330
 
-# Verifier le port 3333
-lsof -i :3333
+# Verifier le multicast SOOD (port 9003)
+sudo tcpdump -i any udp port 9003
 
-# Voir les processus backend
-pgrep -fl "node server.js"
+# Voir les logs de l'app
+log stream --process "Roon Controller" --level debug
 
-# Arreter tous les backends
-pkill -f "node server.js"
-
-# Tester une image
-curl -o /dev/null -w "%{http_code}" http://localhost:3333/api/image/test_key
+# Effacer le token d'autorisation
+defaults delete com.bertrand.RoonController roon_core_token
 
 # Lancer les tests Swift
 cd RoonController && xcodebuild test -project RoonController.xcodeproj \
   -scheme RoonControllerTests -destination 'platform=macOS' 2>&1 | \
   grep -E "(Test Case|TEST)"
 
-# Verifier la version de Node.js
-node --version
-
-# Reinstaller les dependances du backend
-cd node-backend && rm -rf node_modules && npm install
+# Verifier le serveur image local
+curl -o /dev/null -w "%{http_code}" http://localhost:9150/image/test_key?width=100\&height=100
 ```

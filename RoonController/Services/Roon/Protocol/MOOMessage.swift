@@ -99,12 +99,6 @@ struct MOOMessage {
         build(verb: .request, name: name, requestId: requestId, body: body)
     }
 
-    /// Build a MOO REQUEST message with a JSON-encodable body.
-    static func request<T: Encodable>(name: String, requestId: Int, body: T) -> Data {
-        let jsonData = try? JSONEncoder().encode(body)
-        return build(verb: .request, name: name, requestId: requestId, body: jsonData)
-    }
-
     /// Build a MOO REQUEST message with a JSON dictionary body.
     static func request(name: String, requestId: Int, jsonBody: [String: Any]) -> Data {
         let jsonData = try? JSONSerialization.data(withJSONObject: jsonBody)

@@ -2,7 +2,6 @@
 
 ## Prerequis
 
-- Backend Node.js lance (`node server.js`)
 - Roon Core actif et paire avec l'extension
 - App macOS buildee et lancee
 
@@ -12,12 +11,12 @@
 
 | # | Test | Resultat attendu |
 |---|------|-------------------|
-| 1.1 | Lancer le backend puis l'app | L'app affiche "Connecte", les zones apparaissent |
-| 1.2 | Lancer l'app SANS backend | Ecran de connexion, "Deconnecte du backend" |
-| 1.3 | Lancer l'app puis le backend | Reconnexion automatique, zones apparaissent |
-| 1.4 | Arreter le backend pendant l'utilisation | Reconnexion automatique avec backoff |
-| 1.5 | Connexion manuelle par IP | Le Core se paire, les zones apparaissent |
-| 1.6 | Modifier host/port dans Parametres | Reconnexion au nouveau backend |
+| 1.1 | Lancer l'app avec un Core sur le reseau | Decouverte SOOD, connexion automatique, zones apparaissent |
+| 1.2 | Lancer l'app sans Core sur le reseau | Ecran de connexion, tentatives de decouverte periodiques |
+| 1.3 | Eteindre le Core pendant l'utilisation | Reconnexion automatique avec backoff exponentiel |
+| 1.4 | Rallumer le Core | Reconnexion automatique, zones reapparaissent |
+| 1.5 | Connexion manuelle par IP (Parametres) | Le Core se paire, les zones apparaissent |
+| 1.6 | Premier lancement (pas de token) | L'extension apparait dans Roon > Extensions, attente d'autorisation |
 
 ### 2. Zones
 
@@ -70,13 +69,22 @@
 | 5.6 | Recherche | Filtre les resultats affiche |
 | 5.7 | Action sur un item | Lecture ou sous-navigation selon le hint |
 
-### 6. Parametres
+### 6. Historique
 
 | # | Test | Resultat attendu |
 |---|------|-------------------|
-| 6.1 | Ouvrir Parametres (Cmd+,) | Fenetre de parametres |
-| 6.2 | Modifier le port | Apres "Appliquer", reconnexion sur le nouveau port |
-| 6.3 | Connexion manuelle Core | Le Core se paire |
+| 6.1 | Lecture d'un morceau | Apparait en haut de l'historique |
+| 6.2 | Clic sur un morceau | Recherche et lecture dans la bibliotheque Roon |
+| 6.3 | Bouton effacer | L'historique est vide |
+| 6.4 | Redemarrage de l'app | L'historique est restaure (persistence fichier) |
+
+### 7. Parametres
+
+| # | Test | Resultat attendu |
+|---|------|-------------------|
+| 7.1 | Ouvrir Parametres (Cmd+,) | Fenetre de parametres |
+| 7.2 | Connexion manuelle Core | Le Core se paire |
+| 7.3 | Bouton Reconnecter | Deconnexion puis reconnexion SOOD |
 
 ## Verification du build
 
@@ -90,21 +98,9 @@ Resultat attendu :
 ** BUILD SUCCEEDED **
 ```
 
-## Verification du backend
-
-```bash
-cd "Roon client/node-backend"
-node -e "require('./server.js')" &
-sleep 3
-curl -s http://localhost:3333/api/status | python3 -m json.tool
-kill %1
-```
-
-Le endpoint `/api/status` doit repondre avec un JSON valide.
-
 ## Tests automatises (Swift / XCTest)
 
-Le projet inclut 20 tests unitaires dans la target `RoonControllerTests`.
+Le projet inclut des tests unitaires dans la target `RoonControllerTests`.
 
 ### Lancer les tests
 
@@ -119,15 +115,15 @@ Ou depuis Xcode : **Product > Test** (Cmd+U).
 
 ### Fichiers de tests
 
-| Fichier | Tests | Description |
-|---------|-------|-------------|
-| `Tests/RoonModelsTests.swift` | 11 tests | Decodage JSON des modeles (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
-| `Tests/RoonServiceTests.swift` | 9 tests | Logique du service (garde anti-doublon browse, historique, selection de zone, generation d'URL image) |
+| Fichier | Description |
+|---------|-------------|
+| `Tests/RoonModelsTests.swift` | Decodage JSON des modeles (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
+| `Tests/RoonServiceTests.swift` | Logique du service (browse guard, historique, selection de zone, URL image) et protocole MOO (parsing, construction, request ID) |
 
 ### Detail des tests
 
 **RoonModelsTests** :
-- `testBrowseItemDecodesInputPromptAsObject` — input_prompt decode comme objet (pas String)
+- `testBrowseItemDecodesInputPromptAsObject` — input_prompt decode comme objet
 - `testBrowseItemDecodesWithoutInputPrompt` — input_prompt optionnel
 - `testBrowseItemIdUsesItemKey` / `testBrowseItemIdFallsBackToTitle` — logique Identifiable
 - `testWSBrowseResultDecodesWithInputPromptItems` — decodage complet d'un browse_result mixte
@@ -146,6 +142,10 @@ Ou depuis Xcode : **Product > Test** (Cmd+U).
 - `testHistoryDeduplicationPreventsConsecutiveSameTrack` — pas de doublon consecutif
 - `testSelectZoneClearsQueue` — changer de zone vide la queue
 - `testImageURLGeneration` / `testImageURLReturnsNilForNilKey` — construction d'URL image
+- `testMOOMessageParseRequest` / `ParseContinue` / `ParseComplete` — parsing des 3 verbes MOO
+- `testMOOMessageBuildRequest` / `BuildComplete` — construction et round-trip
+- `testMOOMessageParseInvalidReturnsNil` / `ParseMissingRequestIdReturnsNil` — cas d'erreur
+- `testMOORequestIdGeneratorIncrementsAtomically` — generateur d'IDs atomique
 
 ### Note sur le nom du module
 
@@ -153,7 +153,7 @@ Le module Swift s'appelle `Roon_Controller` (avec underscore) car le PRODUCT_NAM
 
 ### Pistes d'amelioration
 
-- **Tests backend** : ajouter des tests Jest pour `server.js` (necessite un refactoring pour exporter les handlers)
-- **Tests d'integration** : simuler un serveur WS mock pour tester `RoonService` end-to-end
+- **Tests d'integration** : simuler un serveur WebSocket mock pour tester `RoonService` end-to-end
+- **Tests SOOD** : paquet SOOD mock pour valider le parsing des reponses
 - **Tests UI** : XCUITest pour les parcours utilisateur critiques
 - **CI** : `xcodebuild test` dans une GitHub Action

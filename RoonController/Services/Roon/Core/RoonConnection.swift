@@ -199,7 +199,7 @@ actor RoonConnection {
                 handleQueueSubscriptionUpdate(message, zoneId: zoneId)
                 return
             }
-            // Could be a delayed registration response
+            // Could be a delayed registration response (or the initial one as Continue)
             if message.name.contains("register") || message.name == "Registered" {
                 let result = RoonRegistration.parseRegistrationResponse(message.bodyJSON)
                 if case .registered(let token, let coreId, let name) = result {
@@ -208,7 +208,7 @@ actor RoonConnection {
                     updateState(.connected(coreName: coreName ?? "Roon Core"))
                     Task { await self.subscribeZones() }
                 }
-                return
+                // Fall through to also resume pending continuation (prevents 30s timeout)
             }
         }
 
@@ -348,9 +348,6 @@ actor RoonConnection {
     }
 
     private func handleTransportDisconnect() {
-        let wasConnected: Bool
-        if case .connected = state { wasConnected = true } else { wasConnected = false }
-
         pendingRequests.values.forEach { $0.resume(throwing: MOOTransportError.notConnected) }
         pendingRequests.removeAll()
         zoneSubscriptionRequestId = nil
@@ -358,7 +355,7 @@ actor RoonConnection {
 
         updateState(.disconnected)
 
-        if wasConnected && shouldReconnect {
+        if shouldReconnect {
             scheduleReconnect()
         }
     }

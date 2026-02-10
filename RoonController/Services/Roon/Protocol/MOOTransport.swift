@@ -37,7 +37,13 @@ actor MOOTransport {
     // MARK: - Connect / Disconnect
 
     func connect(host: String, port: Int) {
-        disconnect()
+        // Clean up previous connection without firing disconnect state change
+        pingTask?.cancel()
+        pingTask = nil
+        receiveTask?.cancel()
+        receiveTask = nil
+        webSocket?.cancel(with: .goingAway, reason: nil)
+        webSocket = nil
 
         let urlString = "ws://\(host):\(port)/api"
         guard let url = URL(string: urlString) else {
