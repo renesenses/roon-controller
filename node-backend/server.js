@@ -481,7 +481,6 @@ function handlePlaySearch(ws, msg) {
     const title = msg.title;
     if (!zone_id || !title) return sendError(ws, "Missing zone_id or title");
 
-    // Use a separate session key so we don't disrupt the user's browse state
     const sessionKey = "play_" + ws.__session_key;
     const hierarchy = "browse";
     const base = { hierarchy, multi_session_key: sessionKey, zone_or_output_id: zone_id };
@@ -491,57 +490,79 @@ function handlePlaySearch(ws, msg) {
         if (err) return sendError(ws, "Play search error: " + err);
         browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, loaded) => {
             if (err) return;
-            const searchItem = (loaded.items || []).find(i => i.input_prompt);
-            if (!searchItem) return sendError(ws, "Search not available");
+            const rootItems = loaded.items || [];
 
-            // Step 2: Submit search query
-            browse.browse({ ...base, item_key: searchItem.item_key, input: title }, (err, searchResult) => {
+            // Search might be at root level or inside Library
+            let searchItem = rootItems.find(i => i.input_prompt);
+            if (searchItem) { doSearch(searchItem); return; }
+
+            const libraryItem = rootItems.find(i => i.title === "Library" || i.title === "Bibliothèque");
+            if (!libraryItem) return;
+
+            browse.browse({ ...base, item_key: libraryItem.item_key }, (err) => {
                 if (err) return;
-                if (!searchResult.list || searchResult.list.count === 0) return;
-                browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 50 }, (err, searchLoaded) => {
+                browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, libLoaded) => {
                     if (err) return;
-                    const items = searchLoaded.items || [];
-
-                    // Look for a direct action_list item (playable track)
-                    const actionItem = items.find(i => i.hint === "action_list");
-                    if (actionItem) {
-                        playBrowseItem(hierarchy, sessionKey, zone_id, actionItem);
-                        return;
-                    }
-
-                    // Otherwise drill into "Tracks" or first list category
-                    const category = items.find(i => i.hint === "list" && i.title && /track/i.test(i.title))
-                                  || items.find(i => i.hint === "list");
-                    if (!category) return;
-
-                    browse.browse({ ...base, item_key: category.item_key }, (err) => {
-                        if (err) return;
-                        browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, catLoaded) => {
-                            if (err) return;
-                            const trackItem = (catLoaded.items || []).find(i => i.hint === "action_list");
-                            if (trackItem) {
-                                playBrowseItem(hierarchy, sessionKey, zone_id, trackItem);
-                            }
-                        });
-                    });
+                    searchItem = (libLoaded.items || []).find(i => i.input_prompt);
+                    if (searchItem) doSearch(searchItem);
                 });
             });
         });
     });
+
+    function doSearch(searchItem) {
+        browse.browse({ ...base, item_key: searchItem.item_key, input: title }, (err, searchResult) => {
+            if (err) return;
+            if (!searchResult.list || searchResult.list.count === 0) return;
+            browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 50 }, (err, searchLoaded) => {
+                if (err) return;
+                const items = searchLoaded.items || [];
+
+                const actionItem = items.find(i => i.hint === "action_list");
+                if (actionItem) { playBrowseItem(hierarchy, sessionKey, zone_id, actionItem); return; }
+
+                const category = items.find(i => i.hint === "list" && i.title && /track/i.test(i.title))
+                              || items.find(i => i.hint === "list");
+                if (!category) return;
+
+                browse.browse({ ...base, item_key: category.item_key }, (err) => {
+                    if (err) return;
+                    browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, catLoaded) => {
+                        if (err) return;
+                        const trackItem = (catLoaded.items || []).find(i => i.hint === "action_list");
+                        if (trackItem) playBrowseItem(hierarchy, sessionKey, zone_id, trackItem);
+                    });
+                });
+            });
+        });
+    }
 }
 
-function playBrowseItem(hierarchy, sessionKey, zone_id, item) {
+function playBrowseItem(hierarchy, sessionKey, zone_id, item, depth) {
+    depth = depth || 0;
+    if (depth > 3) return;
+
     const base = { hierarchy, multi_session_key: sessionKey, zone_or_output_id: zone_id };
-    // Browse into the track to get action list (Play Now, etc.)
-    browse.browse({ ...base, item_key: item.item_key }, (err) => {
+
+    browse.browse({ ...base, item_key: item.item_key }, (err, result) => {
         if (err) return;
+        if (result.action === "message") return; // action executed
+        if (!result.list || result.list.count === 0) return;
+
         browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 10 }, (err, loaded) => {
             if (err) return;
             const actions = loaded.items || [];
-            // First action is typically "Play Now" / "Lire"
-            if (actions.length > 0) {
-                browse.browse({ ...base, item_key: actions[0].item_key }, () => {});
+
+            // Execute a direct action (Play Now, etc.)
+            const directAction = actions.find(a => a.hint === "action");
+            if (directAction) {
+                browse.browse({ ...base, item_key: directAction.item_key }, () => {});
+                return;
             }
+
+            // Recurse into nested action_list
+            const nextItem = actions.find(a => a.hint === "action_list") || actions[0];
+            if (nextItem) playBrowseItem(hierarchy, sessionKey, zone_id, nextItem, depth + 1);
         });
     });
 }
