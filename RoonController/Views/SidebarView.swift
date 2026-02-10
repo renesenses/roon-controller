@@ -5,6 +5,9 @@ struct SidebarView: View {
     @State private var selectedSection: SidebarSection = .zones
     @State private var searchText: String = ""
     @State private var browseListId: UUID = UUID()
+    @State private var showSearchPrompt: Bool = false
+    @State private var roonSearchText: String = ""
+    @State private var searchItemKey: String?
 
     enum SidebarSection: String, CaseIterable {
         case zones = "Zones"
@@ -38,6 +41,14 @@ struct SidebarView: View {
         }
         .frame(minWidth: 250)
         .background(Color.roonSidebar)
+        .alert("Recherche", isPresented: $showSearchPrompt) {
+            TextField("Rechercher...", text: $roonSearchText)
+            Button("Rechercher") { submitSearch() }
+            Button("Annuler", role: .cancel) {
+                roonSearchText = ""
+                searchItemKey = nil
+            }
+        }
     }
 
     // MARK: - Zones Section
@@ -359,13 +370,23 @@ struct SidebarView: View {
     }
 
     private func handleBrowseItemTap(_ item: BrowseItem) {
-        print("[TAP] Tapped item: \(item.title ?? "nil"), key: \(item.item_key ?? "nil")")
-        guard let itemKey = item.item_key else {
-            print("[TAP] item_key is nil, returning")
-            return
+        guard let itemKey = item.item_key else { return }
+        if item.input_prompt != nil {
+            searchItemKey = itemKey
+            roonSearchText = ""
+            showSearchPrompt = true
+        } else {
+            browseListId = UUID()
+            roonService.browse(itemKey: itemKey)
         }
+    }
+
+    private func submitSearch() {
+        guard let itemKey = searchItemKey,
+              !roonSearchText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         browseListId = UUID()
-        print("[TAP] Calling browse with itemKey: \(itemKey)")
-        roonService.browse(itemKey: itemKey)
+        roonService.browse(itemKey: itemKey, input: roonSearchText)
+        roonSearchText = ""
+        searchItemKey = nil
     }
 }
