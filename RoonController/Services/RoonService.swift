@@ -15,299 +15,200 @@ class RoonService: ObservableObject {
     @Published var playbackHistory: [PlaybackHistoryItem] = []
     @Published var lastError: String?
 
-    // MARK: - Configuration
-
-    var backendHost: String = "localhost"
-    var backendPort: Int = 3333
-
     // MARK: - Private
 
-    private var webSocketTask: URLSessionWebSocketTask?
-    private var urlSession: URLSession = .shared
-    private var lastTrackPerZone: [String: String] = [:]  // zone_id -> track title
+    private let connection = RoonConnection()
+    private var transportService: RoonTransportService?
+    private var browseService: RoonBrowseService?
+    private var imageService: RoonImageService?
+
+    private var lastTrackPerZone: [String: String] = [:]
     private var isConnected = false
-    private var reconnectAttempt = 0
-    private let maxReconnectDelay: Double = 30
-    private var reconnectTask: Task<Void, Never>?
-    private var receiveTask: Task<Void, Never>?
-    private var backendProcess: Process?
-    private var historyPlaybackIndex: Int?  // non-nil when playing from history
-
-    // MARK: - Backend Auto-Start
-
-    func ensureBackendRunning() async {
-        if await isBackendReachable() { return }
-
-        let backendDir = UserDefaults.standard.string(forKey: "backendDir") ?? autoDetectBackendDir()
-        let serverPath = (backendDir as NSString).appendingPathComponent("server.js")
-
-        guard FileManager.default.fileExists(atPath: serverPath) else { return }
-
-        let nodePath = findNodeBinary()
-        guard let nodePath else { return }
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: nodePath)
-        process.arguments = [serverPath]
-        process.currentDirectoryURL = URL(fileURLWithPath: backendDir)
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            backendProcess = process
-            // Wait for the server to start
-            for _ in 0..<10 {
-                try await Task.sleep(nanoseconds: 500_000_000)
-                if await isBackendReachable() { return }
-            }
-        } catch { }
-    }
-
-    private nonisolated func isBackendReachable() async -> Bool {
-        guard let url = URL(string: "http://localhost:3333/api/status") else { return false }
-        do {
-            let (_, response) = try await URLSession.shared.data(from: url)
-            return (response as? HTTPURLResponse)?.statusCode == 200
-        } catch {
-            return false
-        }
-    }
-
-    private func autoDetectBackendDir() -> String {
-        // Try relative to the app bundle (development layout)
-        let bundlePath = Bundle.main.bundlePath
-        let candidates = [
-            (bundlePath as NSString).deletingLastPathComponent + "/node-backend",
-            NSString(string: "~/DEV/Roon client/node-backend").expandingTildeInPath
-        ]
-        for dir in candidates {
-            let serverPath = (dir as NSString).appendingPathComponent("server.js")
-            if FileManager.default.fileExists(atPath: serverPath) {
-                UserDefaults.standard.set(dir, forKey: "backendDir")
-                return dir
-            }
-        }
-        return ""
-    }
-
-    private func findNodeBinary() -> String? {
-        let candidates = [
-            "/opt/homebrew/bin/node",
-            "/usr/local/bin/node",
-            "/usr/bin/node"
-        ]
-        for path in candidates {
-            if FileManager.default.fileExists(atPath: path) {
-                return path
-            }
-        }
-        return nil
-    }
-
-    func stopBackend() {
-        backendProcess?.terminate()
-        backendProcess = nil
-    }
+    private var historyPlaybackIndex: Int?
+    private var zonesById: [String: RoonZone] = [:]
 
     // MARK: - Connection
 
     func connect() {
-        guard webSocketTask == nil else { return }
+        guard !isConnected else { return }
+        isConnected = true
         connectionState = .connecting
         if playbackHistory.isEmpty { loadHistory() }
 
-        let urlString = "ws://\(backendHost):\(backendPort)"
-        guard let url = URL(string: urlString) else {
-            lastError = "Invalid WebSocket URL"
-            connectionState = .disconnected
-            return
+        // Initialize services
+        transportService = RoonTransportService(connection: connection)
+        browseService = RoonBrowseService(connection: connection)
+        imageService = RoonImageService(connection: connection)
+
+        // Configure image provider
+        Task {
+            await RoonImageProvider.shared.setImageService(imageService)
+            await LocalImageServer.shared.start()
         }
 
-        webSocketTask = urlSession.webSocketTask(with: url)
-        webSocketTask?.resume()
-        isConnected = true
-        reconnectAttempt = 0
-        startReceiveLoop()
+        // Setup callbacks
+        Task {
+            await connection.setOnStateChange { [weak self] state in
+                Task { @MainActor [weak self] in
+                    self?.handleConnectionStateChange(state)
+                }
+            }
+
+            await connection.setOnZonesData { [weak self] data in
+                Task { @MainActor [weak self] in
+                    self?.handleZonesData(data)
+                }
+            }
+
+            await connection.setOnQueueData { [weak self] zoneId, data in
+                Task { @MainActor [weak self] in
+                    self?.handleQueueData(zoneId: zoneId, data: data)
+                }
+            }
+
+            // Start connection (discovery + registration)
+            await connection.connect()
+        }
     }
 
     func disconnect() {
-        reconnectTask?.cancel()
-        reconnectTask = nil
-        receiveTask?.cancel()
-        receiveTask = nil
         isConnected = false
-        webSocketTask?.cancel(with: .goingAway, reason: nil)
-        webSocketTask = nil
+        Task {
+            await connection.disconnect()
+        }
         connectionState = .disconnected
+        zones = []
+        currentZone = nil
+        zonesById = [:]
     }
 
-    // MARK: - Receive Loop (async)
+    // MARK: - Connection State Handling
 
-    private func startReceiveLoop() {
-        receiveTask?.cancel()
-        let ws = webSocketTask
-        receiveTask = Task.detached { [weak self] in
-            guard let ws = ws else { return }
-            while !Task.isCancelled {
-                do {
-                    let message = try await ws.receive()
-                    let text: String?
-                    switch message {
-                    case .string(let s):
-                        text = s
-                    case .data(let d):
-                        text = String(data: d, encoding: .utf8)
-                    @unknown default:
-                        text = nil
-                    }
-                    if let text = text {
-                        await self?.handleMessage(text)
-                    }
-                } catch {
-                    await self?.handleDisconnect()
-                    break
-                }
+    private func handleConnectionStateChange(_ state: RoonConnection.ConnectionState) {
+        switch state {
+        case .disconnected:
+            if isConnected {
+                connectionState = .disconnected
             }
+        case .discovering, .connecting, .registering:
+            connectionState = .connecting
+        case .connected(let coreName):
+            connectionState = .connected
+            lastError = nil
+            _ = coreName
+        case .failed(let error):
+            connectionState = .disconnected
+            lastError = error
         }
     }
 
-    // MARK: - Message Handling
+    // MARK: - Zone Handling
 
-    private func handleMessage(_ text: String) {
-        guard let data = text.data(using: .utf8) else { return }
+    private func handleZonesData(_ data: Data) {
+        guard let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+
+        if let zonesArray = body["zones"] as? [[String: Any]] {
+            zonesById.removeAll()
+            for zoneDict in zonesArray {
+                if let zone = decodeZone(zoneDict) {
+                    zonesById[zone.zone_id] = zone
+                }
+            }
+        }
+
+        if let changed = body["zones_changed"] as? [[String: Any]] {
+            for zoneDict in changed {
+                if let zone = decodeZone(zoneDict) {
+                    zonesById[zone.zone_id] = zone
+                }
+            }
+        }
+
+        if let added = body["zones_added"] as? [[String: Any]] {
+            for zoneDict in added {
+                if let zone = decodeZone(zoneDict) {
+                    zonesById[zone.zone_id] = zone
+                }
+            }
+        }
+
+        if let removed = body["zones_removed"] as? [String] {
+            for id in removed {
+                zonesById.removeValue(forKey: id)
+            }
+        }
+
+        if let seekChanged = body["zones_seek_changed"] as? [[String: Any]] {
+            for seekInfo in seekChanged {
+                if let zoneId = seekInfo["zone_id"] as? String,
+                   let _ = zonesById[zoneId] {
+                    var zoneDict = encodeZone(zonesById[zoneId]!)
+                    if let seekPos = seekInfo["seek_position"] as? Int {
+                        zoneDict["seek_position"] = seekPos
+                    }
+                    if let decoded = decodeZone(zoneDict) {
+                        zonesById[zoneId] = decoded
+                    }
+                }
+            }
+        }
+
+        let allZones = Array(zonesById.values)
+        for zone in allZones {
+            trackPlaybackHistory(zone: zone)
+        }
+
+        if allZones != zones {
+            zones = allZones
+        }
+
+        if let current = currentZone {
+            let updated = zonesById[current.zone_id]
+            if updated != currentZone {
+                currentZone = updated
+            }
+        }
+
+        if currentZone == nil, let first = zones.first {
+            selectZone(first)
+        }
+    }
+
+    // MARK: - Queue Handling
+
+    private func handleQueueData(zoneId: String, data: Data) {
+        guard zoneId == currentZone?.zone_id else { return }
+        guard let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let itemsArray = body["items"] as? [[String: Any]] else { return }
 
         let decoder = JSONDecoder()
-
-        guard let base = try? decoder.decode(WSMessage.self, from: data) else { return }
-
-        switch base.type {
-        case "state":
-            if let msg = try? decoder.decode(WSStateMessage.self, from: data) {
-                connectionState = RoonState(rawValue: msg.state) ?? .disconnected
-            }
-
-        case "zones", "zones_changed":
-            if let msg = try? decoder.decode(WSZonesMessage.self, from: data) {
-                let newZones = msg.zones
-                // Track now_playing changes for history
-                for zone in newZones {
-                    trackPlaybackHistory(zone: zone)
-                }
-                // Only update if zones actually changed
-                if newZones != zones {
-                    zones = newZones
-                }
-                // Update currentZone if it still exists
-                if let current = currentZone {
-                    let updated = zones.first(where: { $0.zone_id == current.zone_id })
-                    if updated != currentZone {
-                        currentZone = updated
-                    }
-                }
-                // Auto-select first zone if none selected
-                if currentZone == nil, let first = zones.first {
-                    selectZone(first)
-                }
-            }
-
-        case "browse_result":
-            do {
-                let msg = try decoder.decode(WSBrowseResultMessage.self, from: data)
-                let newItems = msg.items ?? []
-                let offset = msg.offset ?? 0
-
-                if offset > 0, var existing = browseResult {
-                    // Pagination: append items
-                    existing.items.append(contentsOf: newItems)
-                    existing.offset = offset
-                    browseResult = existing
-                } else {
-                    // New browse result
-                    browseResult = BrowseResult(
-                        action: msg.action,
-                        list: msg.list,
-                        items: newItems,
-                        offset: 0
-                    )
-                    if let title = msg.list?.title {
-                        if let level = msg.list?.level, level > 0 {
-                            while browseStack.count >= level {
-                                browseStack.removeLast()
-                            }
-                            browseStack.append(title)
-                        } else {
-                            browseStack = [title]
-                        }
-                    }
-                }
-            } catch {
-            }
-
-        case "queue":
-            if let msg = try? decoder.decode(WSQueueMessage.self, from: data) {
-                if msg.zone_id == currentZone?.zone_id {
-                    queueItems = msg.items
-                }
-            }
-
-        case "error":
-            if let msg = try? decoder.decode(WSErrorMessage.self, from: data) {
-                lastError = msg.message
-            }
-
-        default:
-            break
+        let decodedItems: [QueueItem] = itemsArray.compactMap { dict in
+            guard let itemData = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+            return try? decoder.decode(QueueItem.self, from: itemData)
         }
-    }
-
-    // MARK: - Reconnection
-
-    private func handleDisconnect() {
-        webSocketTask = nil
-        receiveTask = nil
-        if isConnected {
-            connectionState = .disconnected
-            scheduleReconnect()
-        }
-    }
-
-    private func scheduleReconnect() {
-        guard isConnected else { return }
-        reconnectTask?.cancel()
-
-        let delay = min(pow(2.0, Double(reconnectAttempt)), maxReconnectDelay)
-        reconnectAttempt += 1
-
-
-        reconnectTask = Task {
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            guard !Task.isCancelled, self.isConnected else { return }
-            self.webSocketTask = nil
-            self.connect()
-        }
+        queueItems = decodedItems
     }
 
     // MARK: - Transport Controls
 
     func play() {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/control", "zone_id": zoneId, "control": "play"])
+        Task { try? await transportService?.control(zoneId: zoneId, control: "play") }
     }
 
     func pause() {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/control", "zone_id": zoneId, "control": "pause"])
+        Task { try? await transportService?.control(zoneId: zoneId, control: "pause") }
     }
 
     func playPause() {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/control", "zone_id": zoneId, "control": "playpause"])
+        Task { try? await transportService?.control(zoneId: zoneId, control: "playpause") }
     }
 
     func stop() {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/control", "zone_id": zoneId, "control": "stop"])
+        Task { try? await transportService?.control(zoneId: zoneId, control: "stop") }
     }
 
     func next() {
@@ -317,10 +218,9 @@ class RoonService: ObservableObject {
             searchAndPlay(title: nextItem.title, artist: nextItem.artist, album: nextItem.album)
             return
         }
-        // If playing from queue with multiple items, use Roon transport
         historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/control", "zone_id": zoneId, "control": "next"])
+        Task { try? await transportService?.control(zoneId: zoneId, control: "next") }
     }
 
     func previous() {
@@ -330,57 +230,56 @@ class RoonService: ObservableObject {
             searchAndPlay(title: prevItem.title, artist: prevItem.artist, album: prevItem.album)
             return
         }
-        // If playing from queue, use Roon transport
         historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/control", "zone_id": zoneId, "control": "previous"])
+        Task { try? await transportService?.control(zoneId: zoneId, control: "previous") }
     }
 
     // MARK: - Seek
 
     func seek(position: Int) {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/seek", "zone_id": zoneId, "how": "absolute", "seconds": position])
+        Task { try? await transportService?.seek(zoneId: zoneId, how: "absolute", seconds: position) }
     }
 
     func seekRelative(seconds: Int) {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/seek", "zone_id": zoneId, "how": "relative", "seconds": seconds])
+        Task { try? await transportService?.seek(zoneId: zoneId, how: "relative", seconds: seconds) }
     }
 
     // MARK: - Volume
 
     func setVolume(outputId: String, value: Double) {
-        send(["type": "transport/volume", "output_id": outputId, "value": value, "how": "absolute"])
+        Task { try? await transportService?.changeVolume(outputId: outputId, how: "absolute", value: value) }
     }
 
     func mute(outputId: String) {
-        send(["type": "transport/mute", "output_id": outputId, "how": "mute"])
+        Task { try? await transportService?.mute(outputId: outputId, how: "mute") }
     }
 
     func unmute(outputId: String) {
-        send(["type": "transport/mute", "output_id": outputId, "how": "unmute"])
+        Task { try? await transportService?.mute(outputId: outputId, how: "unmute") }
     }
 
     func toggleMute(outputId: String) {
-        send(["type": "transport/mute", "output_id": outputId, "how": "toggle"])
+        Task { try? await transportService?.mute(outputId: outputId, how: "toggle") }
     }
 
     // MARK: - Settings
 
     func setShuffle(_ enabled: Bool) {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/settings", "zone_id": zoneId, "shuffle": enabled])
+        Task { try? await transportService?.changeSettings(zoneId: zoneId, settings: ["shuffle": enabled]) }
     }
 
     func setLoop(_ mode: String) {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/settings", "zone_id": zoneId, "loop": mode])
+        Task { try? await transportService?.changeSettings(zoneId: zoneId, settings: ["loop": mode]) }
     }
 
     func setAutoRadio(_ enabled: Bool) {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/settings", "zone_id": zoneId, "auto_radio": enabled])
+        Task { try? await transportService?.changeSettings(zoneId: zoneId, settings: ["auto_radio": enabled]) }
     }
 
     // MARK: - Zone Selection
@@ -396,13 +295,13 @@ class RoonService: ObservableObject {
 
     func subscribeQueue() {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/subscribe_queue", "zone_id": zoneId])
+        Task { await transportService?.subscribeQueue(zoneId: zoneId) }
     }
 
     func playFromHere(queueItemId: Int) {
         historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "transport/play_from_here", "zone_id": zoneId, "queue_item_id": queueItemId])
+        Task { try? await transportService?.playFromHere(zoneId: zoneId, queueItemId: queueItemId) }
     }
 
     // MARK: - Browse
@@ -410,26 +309,49 @@ class RoonService: ObservableObject {
     private var pendingBrowseKey: String?
 
     func browse(hierarchy: String = "browse", itemKey: String? = nil, input: String? = nil, popLevels: Int? = nil, popAll: Bool = false) {
-        // Prevent duplicate browse requests for the same item_key
         let browseKey = itemKey ?? "__root__"
         if itemKey != nil && browseKey == pendingBrowseKey {
             return
         }
         pendingBrowseKey = browseKey
 
-        var msg: [String: Any] = ["type": "browse/browse", "hierarchy": hierarchy]
-        if let zoneId = currentZone?.zone_id {
-            msg["zone_id"] = zoneId
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+
+        Task {
+            do {
+                let response = try await browseService.browse(
+                    hierarchy: hierarchy,
+                    zoneId: zoneId,
+                    itemKey: itemKey,
+                    input: input,
+                    popLevels: popLevels,
+                    popAll: popAll
+                )
+                await MainActor.run {
+                    self.handleBrowseResponse(response, isPageLoad: false)
+                }
+            } catch {
+                await MainActor.run {
+                    self.lastError = "Browse error: \(error.localizedDescription)"
+                }
+            }
         }
-        if let itemKey = itemKey { msg["item_key"] = itemKey }
-        if let input = input { msg["input"] = input }
-        if let popLevels = popLevels { msg["pop_levels"] = popLevels }
-        if popAll { msg["pop_all"] = true }
-        send(msg)
     }
 
     func browseLoad(hierarchy: String = "browse", offset: Int = 0, count: Int = 100) {
-        send(["type": "browse/load", "hierarchy": hierarchy, "offset": offset, "count": count])
+        guard let browseService = browseService else { return }
+
+        Task {
+            do {
+                let response = try await browseService.load(hierarchy: hierarchy, offset: offset, count: count)
+                await MainActor.run {
+                    self.handleBrowseLoadResponse(response)
+                }
+            } catch {
+                // Load failed silently
+            }
+        }
     }
 
     func browseBack() {
@@ -447,32 +369,277 @@ class RoonService: ObservableObject {
         browse(popAll: true)
     }
 
-    // MARK: - Play from History
+    private func handleBrowseResponse(_ response: RoonBrowseService.BrowseResponse, isPageLoad: Bool) {
+        let decoder = JSONDecoder()
+        let newItems: [BrowseItem] = response.items.compactMap { dict in
+            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+            return try? decoder.decode(BrowseItem.self, from: data)
+        }
 
-    func searchAndPlay(title: String, artist: String = "", album: String = "") {
-        guard let zoneId = currentZone?.zone_id else { return }
-        var msg: [String: Any] = ["type": "browse/play_search", "zone_id": zoneId, "title": title]
-        if !artist.isEmpty { msg["artist"] = artist }
-        if !album.isEmpty { msg["album"] = album }
-        send(msg)
+        var list: BrowseList?
+        if let listDict = response.list,
+           let listData = try? JSONSerialization.data(withJSONObject: listDict) {
+            list = try? decoder.decode(BrowseList.self, from: listData)
+        }
 
-        // Track history playback index for next/previous navigation
-        if let idx = playbackHistory.firstIndex(where: { $0.title == title }) {
-            historyPlaybackIndex = idx
+        browseResult = BrowseResult(
+            action: response.action,
+            list: list,
+            items: newItems,
+            offset: 0
+        )
+
+        if let title = list?.title {
+            if let level = list?.level, level > 0 {
+                while browseStack.count >= level {
+                    browseStack.removeLast()
+                }
+                browseStack.append(title)
+            } else {
+                browseStack = [title]
+            }
         }
     }
 
-    // MARK: - Core Connection
+    private func handleBrowseLoadResponse(_ response: RoonBrowseService.LoadResponse) {
+        let decoder = JSONDecoder()
+        let newItems: [BrowseItem] = response.items.compactMap { dict in
+            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+            return try? decoder.decode(BrowseItem.self, from: data)
+        }
+
+        let offset = response.offset
+
+        if offset > 0, var existing = browseResult {
+            existing.items.append(contentsOf: newItems)
+            existing.offset = offset
+            browseResult = existing
+        } else {
+            var list: BrowseList?
+            if let listDict = response.list,
+               let listData = try? JSONSerialization.data(withJSONObject: listDict) {
+                list = try? decoder.decode(BrowseList.self, from: listData)
+            }
+            browseResult = BrowseResult(
+                action: "list",
+                list: list,
+                items: newItems,
+                offset: 0
+            )
+        }
+    }
+
+    // MARK: - Play from History (searchAndPlay)
+
+    func searchAndPlay(title: String, artist: String = "", album: String = "") {
+        guard let zoneId = currentZone?.zone_id else { return }
+        guard let browseService = browseService else { return }
+
+        // Track history playback index
+        if let idx = playbackHistory.firstIndex(where: { $0.title == title }) {
+            historyPlaybackIndex = idx
+        }
+
+        let playSessionBrowse = RoonBrowseService(connection: connection, sessionKey: "play_search")
+
+        Task {
+            await performPlaySearch(
+                browseService: playSessionBrowse,
+                zoneId: zoneId,
+                title: title,
+                artist: artist,
+                album: album
+            )
+        }
+    }
+
+    private func performPlaySearch(
+        browseService: RoonBrowseService,
+        zoneId: String,
+        title: String,
+        artist: String,
+        album: String
+    ) async {
+        do {
+            // Step 1: Reset browse and find search
+            _ = try await browseService.browse(zoneId: zoneId, popAll: true)
+            let rootLoad = try await browseService.load(offset: 0, count: 20)
+            let rootItems = rootLoad.items
+
+            var searchItem = rootItems.first { ($0["input_prompt"] as? [String: Any]) != nil }
+
+            if searchItem == nil {
+                // Try Library submenu
+                let libraryItem = rootItems.first {
+                    let t = $0["title"] as? String ?? ""
+                    return t == "Library" || t == "Bibliothèque"
+                }
+                if let libraryItem = libraryItem, let itemKey = libraryItem["item_key"] as? String {
+                    _ = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
+                    let libLoad = try await browseService.load(offset: 0, count: 20)
+                    searchItem = libLoad.items.first { ($0["input_prompt"] as? [String: Any]) != nil }
+                }
+            }
+
+            guard let searchItem = searchItem, let searchItemKey = searchItem["item_key"] as? String else { return }
+
+            // Try album-based search first if album is provided
+            if !album.isEmpty {
+                let albumSuccess = try await doAlbumSearch(
+                    browseService: browseService, zoneId: zoneId,
+                    searchItemKey: searchItemKey, title: title, album: album
+                )
+                if albumSuccess { return }
+            }
+
+            // Fallback: search by track title
+            try await doTrackSearch(
+                browseService: browseService, zoneId: zoneId,
+                searchItemKey: searchItemKey, title: title
+            )
+        } catch {
+            // Search failed
+        }
+    }
+
+    private func doAlbumSearch(
+        browseService: RoonBrowseService,
+        zoneId: String,
+        searchItemKey: String,
+        title: String,
+        album: String
+    ) async throws -> Bool {
+        let searchResult = try await browseService.browse(zoneId: zoneId, itemKey: searchItemKey, input: album)
+        guard !searchResult.items.isEmpty else { return false }
+
+        let albumsCat = searchResult.items.first { item in
+            let hint = item["hint"] as? String ?? ""
+            let t = item["title"] as? String ?? ""
+            return hint == "list" && t.lowercased().contains("album")
+        }
+        guard let albumsCat = albumsCat, let albumsCatKey = albumsCat["item_key"] as? String else { return false }
+
+        let albumsResult = try await browseService.browse(zoneId: zoneId, itemKey: albumsCatKey)
+        guard let firstAlbum = albumsResult.items.first,
+              let firstAlbumKey = firstAlbum["item_key"] as? String else { return false }
+
+        let tracksResult = try await browseService.browse(zoneId: zoneId, itemKey: firstAlbumKey)
+        let titleLower = title.lowercased()
+        let matchTrack = tracksResult.items.first { item in
+            let hint = item["hint"] as? String ?? ""
+            let t = item["title"] as? String ?? ""
+            return hint == "action_list" && t.lowercased().contains(titleLower)
+        } ?? tracksResult.items.first { ($0["hint"] as? String) == "action_list" }
+
+        if let matchTrack = matchTrack, let trackKey = matchTrack["item_key"] as? String {
+            try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: trackKey)
+            return true
+        }
+
+        return false
+    }
+
+    private func doTrackSearch(
+        browseService: RoonBrowseService,
+        zoneId: String,
+        searchItemKey: String,
+        title: String
+    ) async throws {
+        // Reset browse first
+        _ = try await browseService.browse(zoneId: zoneId, popAll: true)
+        let rootLoad = try await browseService.load(offset: 0, count: 20)
+        let rootItems = rootLoad.items
+
+        var si = rootItems.first { ($0["input_prompt"] as? [String: Any]) != nil }
+        if si == nil {
+            let lib = rootItems.first {
+                let t = $0["title"] as? String ?? ""
+                return t == "Library" || t == "Bibliothèque"
+            }
+            if let lib = lib, let libKey = lib["item_key"] as? String {
+                _ = try await browseService.browse(zoneId: zoneId, itemKey: libKey)
+                let libLoad = try await browseService.load(offset: 0, count: 20)
+                si = libLoad.items.first { ($0["input_prompt"] as? [String: Any]) != nil }
+            }
+        }
+
+        guard let si = si, let siKey = si["item_key"] as? String else { return }
+
+        let searchResult = try await browseService.browse(zoneId: zoneId, itemKey: siKey, input: title)
+        guard !searchResult.items.isEmpty else { return }
+
+        // Look for direct action item
+        let actionItem = searchResult.items.first { ($0["hint"] as? String) == "action_list" }
+        if let actionItem = actionItem, let key = actionItem["item_key"] as? String {
+            try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key)
+            return
+        }
+
+        // Navigate into a category
+        let category = searchResult.items.first { item in
+            let hint = item["hint"] as? String ?? ""
+            let t = item["title"] as? String ?? ""
+            return hint == "list" && t.lowercased().contains("track")
+        } ?? searchResult.items.first { ($0["hint"] as? String) == "list" }
+
+        guard let category = category, let catKey = category["item_key"] as? String else { return }
+
+        let catResult = try await browseService.browse(zoneId: zoneId, itemKey: catKey)
+        if let trackItem = catResult.items.first(where: { ($0["hint"] as? String) == "action_list" }),
+           let trackKey = trackItem["item_key"] as? String {
+            try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: trackKey)
+        }
+    }
+
+    private func playBrowseItem(
+        browseService: RoonBrowseService,
+        zoneId: String,
+        itemKey: String,
+        depth: Int = 0
+    ) async throws {
+        guard depth <= 3 else { return }
+
+        let result = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
+        let action = result.action
+
+        if action == "message" { return } // Action executed
+
+        // Look for play actions
+        let playFromHere = result.items.first { item in
+            let hint = item["hint"] as? String ?? ""
+            let t = item["title"] as? String ?? ""
+            return hint == "action" && (t.lowercased().contains("play from here") || t.lowercased().contains("lire") && t.lowercased().contains("partir"))
+        }
+
+        let directAction = playFromHere ?? result.items.first { ($0["hint"] as? String) == "action" }
+
+        if let directAction = directAction, let key = directAction["item_key"] as? String {
+            _ = try await browseService.browse(zoneId: zoneId, itemKey: key)
+            return
+        }
+
+        // Recurse into nested action_list
+        let nextItem = result.items.first { ($0["hint"] as? String) == "action_list" } ?? result.items.first
+        if let nextItem = nextItem, let key = nextItem["item_key"] as? String {
+            try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, depth: depth + 1)
+        }
+    }
+
+    // MARK: - Core Connection (manual)
 
     func connectCore(ip: String) {
-        send(["type": "core/connect", "ip": ip])
+        connectionState = .connecting
+        Task {
+            await connection.disconnect()
+            await connection.connectDirect(host: ip, port: 9330)
+        }
     }
 
     // MARK: - Image URL
 
     func imageURL(key: String?, width: Int = 300, height: Int = 300) -> URL? {
         guard let key = key else { return nil }
-        return URL(string: "http://\(backendHost):\(backendPort)/api/image/\(key)?scale=fit&width=\(width)&height=\(height)")
+        return LocalImageServer.imageURL(key: key, width: width, height: height)
     }
 
     // MARK: - Playback History
@@ -487,7 +654,6 @@ class RoonService: ObservableObject {
         if lastTrackPerZone[zone.zone_id] == trackKey { return }
         lastTrackPerZone[zone.zone_id] = trackKey
 
-        // Skip if same track already in recent history for this zone
         if let last = playbackHistory.first(where: { $0.zone_name == zone.display_name }),
            last.title == title {
             return
@@ -504,7 +670,6 @@ class RoonService: ObservableObject {
             playedAt: Date()
         )
         playbackHistory.insert(item, at: 0)
-        // Keep last 500 items
         if playbackHistory.count > 500 {
             playbackHistory = Array(playbackHistory.prefix(500))
         }
@@ -538,16 +703,18 @@ class RoonService: ObservableObject {
         saveHistory()
     }
 
-    // MARK: - Send Helper
+    // MARK: - Zone Encoding/Decoding Helpers
 
-    private func send(_ dict: [String: Any]) {
-        guard let data = try? JSONSerialization.data(withJSONObject: dict),
-              let text = String(data: data, encoding: .utf8) else {
-            return
+    private func decodeZone(_ dict: [String: Any]) -> RoonZone? {
+        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+        return try? JSONDecoder().decode(RoonZone.self, from: data)
+    }
+
+    private func encodeZone(_ zone: RoonZone) -> [String: Any] {
+        guard let data = try? JSONEncoder().encode(zone),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return [:]
         }
-        webSocketTask?.send(.string(text)) { error in
-            if let error = error {
-            }
-        }
+        return dict
     }
 }

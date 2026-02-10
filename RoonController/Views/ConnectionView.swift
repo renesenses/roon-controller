@@ -21,7 +21,7 @@ struct ConnectionView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(Color.roonText)
 
-                Text("Assurez-vous que le backend Node.js est lance sur le port \(roonService.backendPort).")
+                Text("Recherche du Roon Core sur le reseau local via SOOD...")
                     .foregroundStyle(Color.roonSecondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 400)
@@ -34,11 +34,11 @@ struct ConnectionView: View {
                             ProgressView()
                                 .controlSize(.small)
                                 .tint(Color.roonSecondary)
-                            Text("Connexion au backend...")
+                            Text("Connexion au Roon Core...")
                                 .foregroundStyle(Color.roonSecondary)
                         }
                     case .disconnected:
-                        Label("Deconnecte du backend", systemImage: "xmark.circle")
+                        Label("Deconnecte du Roon Core", systemImage: "xmark.circle")
                             .foregroundStyle(.red)
                     case .connected:
                         Label("Connecte — en attente des zones...", systemImage: "checkmark.circle")
@@ -81,7 +81,7 @@ struct ConnectionView: View {
                     }
                 }
 
-                Button("Reconnecter au backend") {
+                Button("Reconnecter") {
                     roonService.disconnect()
                     roonService.connect()
                 }

@@ -2,41 +2,46 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var roonService: RoonService
-    @AppStorage("backendHost") private var backendHost: String = "localhost"
-    @AppStorage("backendPort") private var backendPort: Int = 3333
-    @AppStorage("backendDir") private var backendDir: String = ""
     @State private var coreIP: String = ""
 
     var body: some View {
         Form {
-            Section("Backend Node.js") {
-                TextField("Hôte", text: $backendHost)
-                TextField("Port", value: $backendPort, format: .number)
-                TextField("Dossier backend (server.js)", text: $backendDir)
-                    .help("Chemin vers le dossier contenant server.js. Laissez vide pour la détection automatique.")
-
+            Section("Connexion Roon Core") {
                 HStack {
-                    Button("Appliquer et reconnecter") {
-                        roonService.backendHost = backendHost
-                        roonService.backendPort = backendPort
-                        roonService.disconnect()
-                        roonService.connect()
-                    }
-
                     if roonService.connectionState == .connected {
-                        Label("Connecté", systemImage: "checkmark.circle.fill")
+                        Label("Connecte au Roon Core", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                             .font(.caption)
                     } else if roonService.connectionState == .connecting {
-                        ProgressView()
-                            .controlSize(.small)
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Connexion en cours...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Label("Deconnecte", systemImage: "xmark.circle")
+                            .foregroundStyle(.red)
+                            .font(.caption)
+                    }
+
+                    Spacer()
+
+                    Button("Reconnecter") {
+                        roonService.disconnect()
+                        roonService.connect()
                     }
                 }
+
+                Text("L'application decouvre automatiquement le Roon Core via le protocole SOOD sur le reseau local.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Core Roon (connexion manuelle)") {
                 TextField("Adresse IP du Core", text: $coreIP)
-                Button("Connecter à ce Core") {
+                Button("Connecter a ce Core") {
                     let ip = coreIP.trimmingCharacters(in: .whitespaces)
                     if !ip.isEmpty {
                         roonService.connectCore(ip: ip)
@@ -44,16 +49,12 @@ struct SettingsView: View {
                 }
                 .disabled(coreIP.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                Text("Le backend essaie automatiquement de découvrir le Core Roon via SOOD. Utilisez ce champ uniquement si la découverte automatique échoue.")
+                Text("Utilisez ce champ uniquement si la decouverte automatique echoue.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 300)
-        .onAppear {
-            backendHost = roonService.backendHost
-            backendPort = roonService.backendPort
-        }
+        .frame(width: 450, height: 280)
     }
 }
