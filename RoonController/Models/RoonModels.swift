@@ -122,8 +122,8 @@ struct BrowseList: Codable, Equatable {
 struct BrowseResult: Codable, Equatable {
     let action: String?
     let list: BrowseList?
-    let items: [BrowseItem]
-    let offset: Int?
+    var items: [BrowseItem]
+    var offset: Int?
 }
 
 // MARK: - WebSocket Messages

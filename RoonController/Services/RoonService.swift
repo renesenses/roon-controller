@@ -151,25 +151,37 @@ class RoonService: ObservableObject {
         case "browse_result":
             do {
                 let msg = try decoder.decode(WSBrowseResultMessage.self, from: data)
-                browseResult = BrowseResult(
-                    action: msg.action,
-                    list: msg.list,
-                    items: msg.items ?? [],
-                    offset: msg.offset
-                )
-                print("[Browse] Got \(msg.items?.count ?? 0) items, list: \(msg.list?.title ?? "nil"), level: \(msg.list?.level ?? -1)")
-                if let title = msg.list?.title {
-                    if let level = msg.list?.level, level > 0 {
-                        while browseStack.count >= level {
-                            browseStack.removeLast()
+                let newItems = msg.items ?? []
+                let offset = msg.offset ?? 0
+
+                if offset > 0, var existing = browseResult {
+                    // Pagination: append items
+                    existing.items.append(contentsOf: newItems)
+                    existing.offset = offset
+                    browseResult = existing
+                    debugLog("[Browse] Appended \(newItems.count) items at offset \(offset), total: \(existing.items.count)")
+                } else {
+                    // New browse result
+                    browseResult = BrowseResult(
+                        action: msg.action,
+                        list: msg.list,
+                        items: newItems,
+                        offset: 0
+                    )
+                    debugLog("[Browse] Got \(newItems.count) items, list: \(msg.list?.title ?? "nil"), level: \(msg.list?.level ?? -1), total: \(msg.list?.count ?? 0)")
+                    if let title = msg.list?.title {
+                        if let level = msg.list?.level, level > 0 {
+                            while browseStack.count >= level {
+                                browseStack.removeLast()
+                            }
+                            browseStack.append(title)
+                        } else {
+                            browseStack = [title]
                         }
-                        browseStack.append(title)
-                    } else {
-                        browseStack = [title]
                     }
                 }
             } catch {
-                print("[Browse] Decode error: \(error)")
+                debugLog("[Browse] Decode error: \(error)")
             }
 
         case "queue":
@@ -324,7 +336,9 @@ class RoonService: ObservableObject {
     func browse(hierarchy: String = "browse", itemKey: String? = nil, input: String? = nil, popLevels: Int? = nil, popAll: Bool = false) {
         // Prevent duplicate browse requests for the same item_key
         let browseKey = itemKey ?? "__root__"
+        debugLog("[Browse] browse() called: itemKey=\(itemKey ?? "nil"), pendingBrowseKey=\(pendingBrowseKey ?? "nil")")
         if itemKey != nil && browseKey == pendingBrowseKey {
+            debugLog("[Browse] BLOCKED by pendingBrowseKey guard")
             return
         }
         pendingBrowseKey = browseKey

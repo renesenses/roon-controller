@@ -406,39 +406,30 @@ function handleBrowse(ws, msg) {
         if (err) return sendError(ws, "Browse error: " + err);
         console.log("[Browse] Result: action=" + result.action + ", list=" + result.list?.title + ", count=" + result.list?.count);
 
-        // If there are items to load, load all pages
+        // Load first page only; client can request more via browse/load
         if (result.list && result.list.count > 0) {
-            const totalCount = result.list.count;
             const hierarchy = msg.hierarchy || "browse";
             const sessionKey = ws.__session_key || undefined;
-            const allItems = [];
             const PAGE_SIZE = 100;
 
-            function loadPage(offset) {
-                browse.load({
-                    hierarchy: hierarchy,
-                    multi_session_key: sessionKey,
-                    offset: offset,
-                    count: PAGE_SIZE
-                }, (lerr, litems) => {
-                    if (lerr) return sendError(ws, "Browse load error: " + lerr);
-                    const items = litems.items || [];
-                    allItems.push(...items);
-                    const nextOffset = offset + items.length;
-                    if (nextOffset < totalCount && items.length === PAGE_SIZE) {
-                        loadPage(nextOffset);
-                    } else {
-                        ws.send(JSON.stringify({
-                            type: "browse_result",
-                            action: result.action,
-                            list: result.list,
-                            items: allItems,
-                            offset: 0
-                        }));
-                    }
-                });
-            }
-            loadPage(0);
+            browse.load({
+                hierarchy: hierarchy,
+                multi_session_key: sessionKey,
+                offset: 0,
+                count: PAGE_SIZE
+            }, (lerr, litems) => {
+                if (lerr) return sendError(ws, "Browse load error: " + lerr);
+                const items = litems.items || [];
+                if (ws.readyState === 1) {
+                    ws.send(JSON.stringify({
+                        type: "browse_result",
+                        action: result.action,
+                        list: result.list,
+                        items: items,
+                        offset: 0
+                    }));
+                }
+            });
         } else {
             ws.send(JSON.stringify({
                 type: "browse_result",
