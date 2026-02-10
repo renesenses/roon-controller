@@ -1,0 +1,371 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0206ACCC748F3AC269561DEE /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE5C81111DFF879D58805C8 /* SidebarView.swift */; };
+		31D8FDDCB97A9EC2F22CCDF4 /* RoonModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F75FB3DE82DDCA6F017225C /* RoonModels.swift */; };
+		519F92A185C861D59BAA94A4 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6208159EBB6F3E199BC08686 /* PlayerView.swift */; };
+		529A895FA3C4E32038B5FF81 /* RoonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */; };
+		BA76D9EE334357CA73C2ED75 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961DF94025297E364472E8E9 /* ConnectionView.swift */; };
+		C959637010EB96B877AB45F6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCEE5B31B68C21920E308DD /* SettingsView.swift */; };
+		D163747CACBB2E3A080A0765 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E5A3B5B194123E7D9AE567 /* ContentView.swift */; };
+		E3D11AF841A9512B0BBD7998 /* RoonControllerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */; };
+		F1A2B3C4D5E6A7B8C9D0E1F3 /* RoonColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* QueueView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		13E5A3B5B194123E7D9AE567 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		47815C3C2FB6ED9B1402F795 /* RoonController.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RoonController.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FCEE5B31B68C21920E308DD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonControllerApp.swift; sourceTree = "<group>"; };
+		6208159EBB6F3E199BC08686 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		6F75FB3DE82DDCA6F017225C /* RoonModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonModels.swift; sourceTree = "<group>"; };
+		92A3271B5BF5E27D48F206C8 /* RoonController.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RoonController.entitlements; sourceTree = "<group>"; };
+		961DF94025297E364472E8E9 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
+		A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonService.swift; sourceTree = "<group>"; };
+		EEE5C81111DFF879D58805C8 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonColors.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		D2E3F4A5B6C7D8E9F0A1B2C3 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		5BFD6DA1FCF413299E25BF32 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				961DF94025297E364472E8E9 /* ConnectionView.swift */,
+				13E5A3B5B194123E7D9AE567 /* ContentView.swift */,
+				D2E3F4A5B6C7D8E9F0A1B2C3 /* Helpers */,
+				6208159EBB6F3E199BC08686 /* PlayerView.swift */,
+				A1B2C3D4E5F60718293A4B5D /* QueueView.swift */,
+				4FCEE5B31B68C21920E308DD /* SettingsView.swift */,
+				EEE5C81111DFF879D58805C8 /* SidebarView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		5CD54845E7E35CE717F3994E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		C386E6C9C18E39CC8E474385 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				6F75FB3DE82DDCA6F017225C /* RoonModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CAB6FEEBE53B9F2C8A3D473A /* RoonController */ = {
+			isa = PBXGroup;
+			children = (
+				92A3271B5BF5E27D48F206C8 /* RoonController.entitlements */,
+				518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */,
+				C386E6C9C18E39CC8E474385 /* Models */,
+				5CD54845E7E35CE717F3994E /* Services */,
+				5BFD6DA1FCF413299E25BF32 /* Views */,
+			);
+			name = RoonController;
+			path = .;
+			sourceTree = "<group>";
+		};
+		D1876C3791EAAF794DAB00BA = {
+			isa = PBXGroup;
+			children = (
+				C386E6C9C18E39CC8E474385 /* Models */,
+				CAB6FEEBE53B9F2C8A3D473A /* RoonController */,
+				5CD54845E7E35CE717F3994E /* Services */,
+				5BFD6DA1FCF413299E25BF32 /* Views */,
+				F52F554ADB65682218CA9C0B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F52F554ADB65682218CA9C0B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				47815C3C2FB6ED9B1402F795 /* RoonController.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4280D56A3A8630738591AB8A /* RoonController */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D613682A45753184DE6064BD /* Build configuration list for PBXNativeTarget "RoonController" */;
+			buildPhases = (
+				73FFFAC1CDB3AFDDB00191E0 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RoonController;
+			packageProductDependencies = (
+			);
+			productName = RoonController;
+			productReference = 47815C3C2FB6ED9B1402F795 /* RoonController.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7F5DC9B3E228D366E4AC3AE5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					4280D56A3A8630738591AB8A = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = DB7358A357C874A8117A975A /* Build configuration list for PBXProject "RoonController" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D1876C3791EAAF794DAB00BA;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4280D56A3A8630738591AB8A /* RoonController */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		73FFFAC1CDB3AFDDB00191E0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BA76D9EE334357CA73C2ED75 /* ConnectionView.swift in Sources */,
+				D163747CACBB2E3A080A0765 /* ContentView.swift in Sources */,
+				519F92A185C861D59BAA94A4 /* PlayerView.swift in Sources */,
+				E3D11AF841A9512B0BBD7998 /* RoonControllerApp.swift in Sources */,
+				31D8FDDCB97A9EC2F22CCDF4 /* RoonModels.swift in Sources */,
+				529A895FA3C4E32038B5FF81 /* RoonService.swift in Sources */,
+				C959637010EB96B877AB45F6 /* SettingsView.swift in Sources */,
+				F1A2B3C4D5E6A7B8C9D0E1F3 /* RoonColors.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* QueueView.swift in Sources */,
+			0206ACCC748F3AC269561DEE /* SidebarView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1E934D34FBE1285A040BD842 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = RoonController.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_GENERATION_LIBRARY = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bertrand.RoonController;
+				PRODUCT_NAME = "Roon Controller";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		339E26F2CACF502CE0E1E822 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		66C0853AE0A5AFF9327AC864 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = RoonController.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_GENERATION_LIBRARY = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bertrand.RoonController;
+				PRODUCT_NAME = "Roon Controller";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		B8D25D67927A29526E9AE5D5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D613682A45753184DE6064BD /* Build configuration list for PBXNativeTarget "RoonController" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				66C0853AE0A5AFF9327AC864 /* Debug */,
+				1E934D34FBE1285A040BD842 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DB7358A357C874A8117A975A /* Build configuration list for PBXProject "RoonController" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				339E26F2CACF502CE0E1E822 /* Debug */,
+				B8D25D67927A29526E9AE5D5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7F5DC9B3E228D366E4AC3AE5 /* Project object */;
+}
