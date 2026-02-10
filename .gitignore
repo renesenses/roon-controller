@@ -12,7 +12,7 @@ build/
 DerivedData/
 *.xcuserstate
 *.xcworkspace/xcuserdata/
-*.xcodeproj/xcuserdata/
+**/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 
 # Claude Code
