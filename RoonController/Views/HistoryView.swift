@@ -41,7 +41,7 @@ struct HistoryView: View {
                     LazyVStack(spacing: 0) {
                         ForEach(roonService.playbackHistory) { item in
                             Button {
-                                roonService.searchAndPlay(title: item.title)
+                                roonService.searchAndPlay(title: item.title, artist: item.artist, album: item.album)
                             } label: {
                                 HStack(spacing: 10) {
                                     if let url = roonService.imageURL(key: item.image_key, width: 80, height: 80) {

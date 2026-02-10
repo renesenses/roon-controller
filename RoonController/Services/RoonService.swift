@@ -31,6 +31,7 @@ class RoonService: ObservableObject {
     private var reconnectTask: Task<Void, Never>?
     private var receiveTask: Task<Void, Never>?
     private var backendProcess: Process?
+    private var historyPlaybackIndex: Int?  // non-nil when playing from history
 
     // MARK: - Backend Auto-Start
 
@@ -310,11 +311,27 @@ class RoonService: ObservableObject {
     }
 
     func next() {
+        // If playing from history, go to next history item (older)
+        if let idx = historyPlaybackIndex, idx + 1 < playbackHistory.count {
+            let nextItem = playbackHistory[idx + 1]
+            searchAndPlay(title: nextItem.title, artist: nextItem.artist, album: nextItem.album)
+            return
+        }
+        // If playing from queue with multiple items, use Roon transport
+        historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
         send(["type": "transport/control", "zone_id": zoneId, "control": "next"])
     }
 
     func previous() {
+        // If playing from history, go to previous history item (more recent)
+        if let idx = historyPlaybackIndex, idx - 1 >= 0 {
+            let prevItem = playbackHistory[idx - 1]
+            searchAndPlay(title: prevItem.title, artist: prevItem.artist, album: prevItem.album)
+            return
+        }
+        // If playing from queue, use Roon transport
+        historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
         send(["type": "transport/control", "zone_id": zoneId, "control": "previous"])
     }
@@ -371,6 +388,7 @@ class RoonService: ObservableObject {
     func selectZone(_ zone: RoonZone) {
         currentZone = zone
         queueItems = []
+        historyPlaybackIndex = nil
         subscribeQueue()
     }
 
@@ -382,6 +400,7 @@ class RoonService: ObservableObject {
     }
 
     func playFromHere(queueItemId: Int) {
+        historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
         send(["type": "transport/play_from_here", "zone_id": zoneId, "queue_item_id": queueItemId])
     }
@@ -430,9 +449,17 @@ class RoonService: ObservableObject {
 
     // MARK: - Play from History
 
-    func searchAndPlay(title: String) {
+    func searchAndPlay(title: String, artist: String = "", album: String = "") {
         guard let zoneId = currentZone?.zone_id else { return }
-        send(["type": "browse/play_search", "zone_id": zoneId, "title": title])
+        var msg: [String: Any] = ["type": "browse/play_search", "zone_id": zoneId, "title": title]
+        if !artist.isEmpty { msg["artist"] = artist }
+        if !album.isEmpty { msg["album"] = album }
+        send(msg)
+
+        // Track history playback index for next/previous navigation
+        if let idx = playbackHistory.firstIndex(where: { $0.title == title }) {
+            historyPlaybackIndex = idx
+        }
     }
 
     // MARK: - Core Connection

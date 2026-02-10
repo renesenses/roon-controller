@@ -479,20 +479,20 @@ function handlePlaySearch(ws, msg) {
     if (!browse) return sendError(ws, "Browse not available");
     const zone_id = msg.zone_id;
     const title = msg.title;
+    const album = msg.album;
     if (!zone_id || !title) return sendError(ws, "Missing zone_id or title");
 
     const sessionKey = "play_" + ws.__session_key;
     const hierarchy = "browse";
     const base = { hierarchy, multi_session_key: sessionKey, zone_or_output_id: zone_id };
 
-    // Step 1: Reset browse and load root
+    // Step 1: Reset browse and find search
     browse.browse({ ...base, pop_all: true }, (err) => {
         if (err) return sendError(ws, "Play search error: " + err);
         browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, loaded) => {
             if (err) return;
             const rootItems = loaded.items || [];
 
-            // Search might be at root level or inside Library
             let searchItem = rootItems.find(i => i.input_prompt);
             if (searchItem) { doSearch(searchItem); return; }
 
@@ -511,30 +511,107 @@ function handlePlaySearch(ws, msg) {
     });
 
     function doSearch(searchItem) {
-        browse.browse({ ...base, item_key: searchItem.item_key, input: title }, (err, searchResult) => {
-            if (err) return;
-            if (!searchResult.list || searchResult.list.count === 0) return;
-            browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 50 }, (err, searchLoaded) => {
-                if (err) return;
-                const items = searchLoaded.items || [];
+        // If album name is provided, try album-based approach for "Play From Here"
+        if (album) {
+            doAlbumSearch(searchItem);
+        } else {
+            doTrackSearch(searchItem);
+        }
+    }
 
-                const actionItem = items.find(i => i.hint === "action_list");
-                if (actionItem) { playBrowseItem(hierarchy, sessionKey, zone_id, actionItem); return; }
+    // Search by album → enter album → find track → "Play From Here"
+    function doAlbumSearch(searchItem) {
+        browse.browse({ ...base, item_key: searchItem.item_key, input: album }, (err, result) => {
+            if (err || !result.list || result.list.count === 0) { doTrackSearch(searchItem); return; }
+            browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 50 }, (err, loaded) => {
+                if (err) { doTrackSearch(searchItem); return; }
+                const items = loaded.items || [];
 
-                const category = items.find(i => i.hint === "list" && i.title && /track/i.test(i.title))
-                              || items.find(i => i.hint === "list");
-                if (!category) return;
+                // Find "Albums" category in search results
+                const albumsCat = items.find(i => i.hint === "list" && /album/i.test(i.title));
+                if (!albumsCat) { doTrackSearch(searchItem); return; }
 
-                browse.browse({ ...base, item_key: category.item_key }, (err) => {
-                    if (err) return;
-                    browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, catLoaded) => {
-                        if (err) return;
-                        const trackItem = (catLoaded.items || []).find(i => i.hint === "action_list");
-                        if (trackItem) playBrowseItem(hierarchy, sessionKey, zone_id, trackItem);
+                browse.browse({ ...base, item_key: albumsCat.item_key }, (err) => {
+                    if (err) { doTrackSearch(searchItem); return; }
+                    browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, albumsLoaded) => {
+                        if (err || !albumsLoaded.items || albumsLoaded.items.length === 0) { doTrackSearch(searchItem); return; }
+
+                        // Enter the first album
+                        const firstAlbum = albumsLoaded.items[0];
+                        browse.browse({ ...base, item_key: firstAlbum.item_key }, (err) => {
+                            if (err) { doTrackSearch(searchItem); return; }
+                            browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 100 }, (err, tracksLoaded) => {
+                                if (err) { doTrackSearch(searchItem); return; }
+                                const tracks = tracksLoaded.items || [];
+
+                                // Find the matching track by title in the album
+                                const titleLower = title.toLowerCase();
+                                const matchTrack = tracks.find(i => i.hint === "action_list" && i.title && i.title.toLowerCase().includes(titleLower))
+                                                || tracks.find(i => i.hint === "action_list");
+                                if (matchTrack) {
+                                    playBrowseItem(hierarchy, sessionKey, zone_id, matchTrack);
+                                } else {
+                                    doTrackSearch(searchItem);
+                                }
+                            });
+                        });
                     });
                 });
             });
         });
+    }
+
+    // Fallback: search by track title → "Play Now" (single track)
+    function doTrackSearch(searchItem) {
+        browse.browse({ ...base, pop_all: true }, (err) => {
+            if (err) return;
+            browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, loaded) => {
+                if (err) return;
+                const rootItems = loaded.items || [];
+                let si = rootItems.find(i => i.input_prompt);
+                if (!si) {
+                    const lib = rootItems.find(i => i.title === "Library" || i.title === "Bibliothèque");
+                    if (!lib) return;
+                    browse.browse({ ...base, item_key: lib.item_key }, (err) => {
+                        if (err) return;
+                        browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, ll) => {
+                            if (err) return;
+                            si = (ll.items || []).find(i => i.input_prompt);
+                            if (si) searchByTitle(si);
+                        });
+                    });
+                    return;
+                }
+                searchByTitle(si);
+            });
+        });
+
+        function searchByTitle(si) {
+            browse.browse({ ...base, item_key: si.item_key, input: title }, (err, searchResult) => {
+                if (err) return;
+                if (!searchResult.list || searchResult.list.count === 0) return;
+                browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 50 }, (err, searchLoaded) => {
+                    if (err) return;
+                    const items = searchLoaded.items || [];
+
+                    const actionItem = items.find(i => i.hint === "action_list");
+                    if (actionItem) { playBrowseItem(hierarchy, sessionKey, zone_id, actionItem); return; }
+
+                    const category = items.find(i => i.hint === "list" && i.title && /track/i.test(i.title))
+                                  || items.find(i => i.hint === "list");
+                    if (!category) return;
+
+                    browse.browse({ ...base, item_key: category.item_key }, (err) => {
+                        if (err) return;
+                        browse.load({ hierarchy, multi_session_key: sessionKey, offset: 0, count: 20 }, (err, catLoaded) => {
+                            if (err) return;
+                            const trackItem = (catLoaded.items || []).find(i => i.hint === "action_list");
+                            if (trackItem) playBrowseItem(hierarchy, sessionKey, zone_id, trackItem);
+                        });
+                    });
+                });
+            });
+        }
     }
 }
 
@@ -553,8 +630,9 @@ function playBrowseItem(hierarchy, sessionKey, zone_id, item, depth) {
             if (err) return;
             const actions = loaded.items || [];
 
-            // Execute a direct action (Play Now, etc.)
-            const directAction = actions.find(a => a.hint === "action");
+            // Prefer "Play From Here" over "Play Now" to queue subsequent tracks
+            const playFromHere = actions.find(a => a.hint === "action" && /play from here|lire.*partir/i.test(a.title));
+            const directAction = playFromHere || actions.find(a => a.hint === "action");
             if (directAction) {
                 browse.browse({ ...base, item_key: directAction.item_key }, () => {});
                 return;

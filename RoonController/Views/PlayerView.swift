@@ -204,7 +204,7 @@ struct PlayerView: View {
     private func transportControls(zone: RoonZone) -> some View {
         HStack(spacing: 40) {
             Button { roonService.previous() } label: {
-                Image(systemName: "backward.fill")
+                Image(systemName: "chevron.backward")
                     .font(.title2)
                     .foregroundStyle(Color.roonText)
             }
@@ -220,7 +220,7 @@ struct PlayerView: View {
             .buttonStyle(.plain)
 
             Button { roonService.next() } label: {
-                Image(systemName: "forward.fill")
+                Image(systemName: "chevron.forward")
                     .font(.title2)
                     .foregroundStyle(Color.roonText)
             }
