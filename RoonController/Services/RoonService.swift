@@ -1,25 +1,6 @@
 import Foundation
 import Combine
 
-private func debugLog(_ message: String) {
-    let line = "[\(Date())] \(message)\n"
-    NSLog("%@", message)
-    if let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
-        let path = dir.appendingPathComponent("roon_debug.log").path
-        if let data = line.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: path) {
-                if let fh = FileHandle(forWritingAtPath: path) {
-                    fh.seekToEndOfFile()
-                    fh.write(data)
-                    fh.closeFile()
-                }
-            } else {
-                FileManager.default.createFile(atPath: path, contents: data)
-            }
-        }
-    }
-}
-
 @MainActor
 class RoonService: ObservableObject {
 
@@ -119,11 +100,7 @@ class RoonService: ObservableObject {
 
         let decoder = JSONDecoder()
 
-        guard let base = try? decoder.decode(WSMessage.self, from: data) else {
-            print("[WS] Failed to decode base message: \(text.prefix(200))")
-            return
-        }
-        debugLog("[WS] Received: \(base.type)")
+        guard let base = try? decoder.decode(WSMessage.self, from: data) else { return }
 
         switch base.type {
         case "state":
@@ -166,7 +143,6 @@ class RoonService: ObservableObject {
                     existing.items.append(contentsOf: newItems)
                     existing.offset = offset
                     browseResult = existing
-                    debugLog("[Browse] Appended \(newItems.count) items at offset \(offset), total: \(existing.items.count)")
                 } else {
                     // New browse result
                     browseResult = BrowseResult(
@@ -175,7 +151,6 @@ class RoonService: ObservableObject {
                         items: newItems,
                         offset: 0
                     )
-                    debugLog("[Browse] Got \(newItems.count) items, list: \(msg.list?.title ?? "nil"), level: \(msg.list?.level ?? -1), total: \(msg.list?.count ?? 0)")
                     if let title = msg.list?.title {
                         if let level = msg.list?.level, level > 0 {
                             while browseStack.count >= level {
@@ -188,7 +163,6 @@ class RoonService: ObservableObject {
                     }
                 }
             } catch {
-                debugLog("[Browse] Decode error: \(error)")
             }
 
         case "queue":
@@ -201,7 +175,6 @@ class RoonService: ObservableObject {
         case "error":
             if let msg = try? decoder.decode(WSErrorMessage.self, from: data) {
                 lastError = msg.message
-                print("[WS] Error from backend: \(msg.message)")
             }
 
         default:
@@ -227,7 +200,6 @@ class RoonService: ObservableObject {
         let delay = min(pow(2.0, Double(reconnectAttempt)), maxReconnectDelay)
         reconnectAttempt += 1
 
-        print("[WS] Reconnecting in \(delay)s (attempt \(reconnectAttempt))...")
 
         reconnectTask = Task {
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
@@ -343,9 +315,7 @@ class RoonService: ObservableObject {
     func browse(hierarchy: String = "browse", itemKey: String? = nil, input: String? = nil, popLevels: Int? = nil, popAll: Bool = false) {
         // Prevent duplicate browse requests for the same item_key
         let browseKey = itemKey ?? "__root__"
-        debugLog("[Browse] browse() called: itemKey=\(itemKey ?? "nil"), pendingBrowseKey=\(pendingBrowseKey ?? "nil")")
         if itemKey != nil && browseKey == pendingBrowseKey {
-            debugLog("[Browse] BLOCKED by pendingBrowseKey guard")
             return
         }
         pendingBrowseKey = browseKey
@@ -455,13 +425,10 @@ class RoonService: ObservableObject {
     private func send(_ dict: [String: Any]) {
         guard let data = try? JSONSerialization.data(withJSONObject: dict),
               let text = String(data: data, encoding: .utf8) else {
-            print("[WS] Failed to serialize message")
             return
         }
-        debugLog("[WS] Sending: \(text)")
         webSocketTask?.send(.string(text)) { error in
             if let error = error {
-                print("[WS] Send error: \(error.localizedDescription)")
             }
         }
     }
