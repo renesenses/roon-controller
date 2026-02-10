@@ -17,6 +17,7 @@
 		E3D11AF841A9512B0BBD7998 /* RoonControllerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */; };
 		F1A2B3C4D5E6A7B8C9D0E1F3 /* RoonColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */; };
 		A1B2C3D4E5F60718293A4B5C /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* QueueView.swift */; };
+		B2C3D4E5F607182A3B4C5D6E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F607182A3B4C5D6F /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,7 @@
 		EEE5C81111DFF879D58805C8 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonColors.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5D /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
+		B2C3D4E5F607182A3B4C5D6F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -76,6 +78,7 @@
 		CAB6FEEBE53B9F2C8A3D473A /* RoonController */ = {
 			isa = PBXGroup;
 			children = (
+				B2C3D4E5F607182A3B4C5D6F /* Assets.xcassets */,
 				92A3271B5BF5E27D48F206C8 /* RoonController.entitlements */,
 				518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */,
 				C386E6C9C18E39CC8E474385 /* Models */,
@@ -108,11 +111,20 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		C3D4E5F6071829A3B4C5D6E7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B2C3D4E5F607182A3B4C5D6E /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4280D56A3A8630738591AB8A /* RoonController */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D613682A45753184DE6064BD /* Build configuration list for PBXNativeTarget "RoonController" */;
 			buildPhases = (
 				73FFFAC1CDB3AFDDB00191E0 /* Sources */,
+				C3D4E5F6071829A3B4C5D6E7 /* Resources */,
 			);
 			buildRules = (
 			);
