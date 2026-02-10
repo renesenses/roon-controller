@@ -31,6 +31,7 @@ actor SOODDiscovery {
     private var sendFd: Int32 = -1
     private var recvFd: Int32 = -1
     private var receiveTask: Task<Void, Never>?
+    private var sendReceiveTask: Task<Void, Never>?
     private var queryTask: Task<Void, Never>?
     private var discoveredCores: [String: DiscoveredCore] = [:]
 
@@ -41,7 +42,7 @@ actor SOODDiscovery {
     func start() {
         stop()
         setupSockets()
-        startReceiveLoop()
+        startReceiveLoops()
         startQueryLoop()
     }
 
@@ -50,6 +51,8 @@ actor SOODDiscovery {
         queryTask = nil
         receiveTask?.cancel()
         receiveTask = nil
+        sendReceiveTask?.cancel()
+        sendReceiveTask = nil
 
         if sendFd >= 0 { Darwin.close(sendFd); sendFd = -1 }
         if recvFd >= 0 { Darwin.close(recvFd); recvFd = -1 }
@@ -119,13 +122,20 @@ actor SOODDiscovery {
         }
     }
 
-    // MARK: - Receive Loop
+    // MARK: - Receive Loops
 
-    private func startReceiveLoop() {
-        let fd = recvFd
-        guard fd >= 0 else { return }
+    private func startReceiveLoops() {
+        // Listen on the multicast/receive socket (port 9003)
+        receiveTask = makeRecvTask(fd: recvFd)
+        // Also listen on the send socket (ephemeral port) for unicast replies
+        sendReceiveTask = makeRecvTask(fd: sendFd)
+    }
 
-        receiveTask = Task.detached { [weak self] in
+    /// Spawn a detached task that loops on `recvfrom` for the given socket fd.
+    private func makeRecvTask(fd: Int32) -> Task<Void, Never>? {
+        guard fd >= 0 else { return nil }
+
+        return Task.detached { [weak self] in
             var buf = [UInt8](repeating: 0, count: 65536)
             while !Task.isCancelled {
                 var sender = sockaddr_in()
