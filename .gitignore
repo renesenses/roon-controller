@@ -16,5 +16,8 @@ DerivedData/
 *.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 *.profraw
 
+# Marp generated files
+docs/*.html
+
 # Claude Code
 .claude/
