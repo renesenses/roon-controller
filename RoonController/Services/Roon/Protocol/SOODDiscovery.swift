@@ -1,11 +1,13 @@
 import Foundation
-import Network
 
 // MARK: - SOOD Discovery Protocol
 
 /// Discovers Roon Core instances on the local network using the SOOD protocol.
 /// SOOD uses UDP multicast on 239.255.90.90:9003 with a proprietary binary format:
 /// `"SOOD" + 0x02 + 'Q'/'R' + properties`
+///
+/// Uses POSIX (BSD) sockets instead of Network.framework to avoid the
+/// `com.apple.developer.networking.multicast` entitlement requirement.
 actor SOODDiscovery {
 
     struct DiscoveredCore: Sendable, Equatable {
@@ -26,8 +28,8 @@ actor SOODDiscovery {
 
     // MARK: - Properties
 
-    private var connection: NWConnection?
-    private var listener: NWListener?
+    private var sendFd: Int32 = -1
+    private var recvFd: Int32 = -1
     private var receiveTask: Task<Void, Never>?
     private var queryTask: Task<Void, Never>?
     private var discoveredCores: [String: DiscoveredCore] = [:]
@@ -38,7 +40,8 @@ actor SOODDiscovery {
 
     func start() {
         stop()
-        startListening()
+        setupSockets()
+        startReceiveLoop()
         startQueryLoop()
     }
 
@@ -47,10 +50,9 @@ actor SOODDiscovery {
         queryTask = nil
         receiveTask?.cancel()
         receiveTask = nil
-        listener?.cancel()
-        listener = nil
-        connection?.cancel()
-        connection = nil
+
+        if sendFd >= 0 { Darwin.close(sendFd); sendFd = -1 }
+        if recvFd >= 0 { Darwin.close(recvFd); recvFd = -1 }
         discoveredCores.removeAll()
     }
 
@@ -58,119 +60,141 @@ actor SOODDiscovery {
         Array(discoveredCores.values)
     }
 
-    // MARK: - Listening for SOOD replies
+    // MARK: - Socket Setup
 
-    private func startListening() {
-        let params = NWParameters.udp
-        params.allowLocalEndpointReuse = true
-        params.requiredInterfaceType = .other
+    private func setupSockets() {
+        // --- Send socket ---
+        sendFd = Darwin.socket(AF_INET, SOCK_DGRAM, 0)
+        guard sendFd >= 0 else { return }
 
-        do {
-            let listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: 0)!)
-            self.listener = listener
+        var yes: Int32 = 1
+        Darwin.setsockopt(sendFd, SOL_SOCKET, SO_BROADCAST,
+                          &yes, socklen_t(MemoryLayout<Int32>.size))
 
-            listener.stateUpdateHandler = { state in
-                switch state {
-                case .ready:
-                    break
-                case .failed:
-                    Task { [weak self] in await self?.restartListening() }
-                default:
-                    break
+        var ttl: UInt8 = 1
+        Darwin.setsockopt(sendFd, IPPROTO_IP, IP_MULTICAST_TTL,
+                          &ttl, socklen_t(MemoryLayout<UInt8>.size))
+
+        // --- Receive socket ---
+        recvFd = Darwin.socket(AF_INET, SOCK_DGRAM, 0)
+        guard recvFd >= 0 else {
+            Darwin.close(sendFd); sendFd = -1
+            return
+        }
+
+        Darwin.setsockopt(recvFd, SOL_SOCKET, SO_REUSEADDR,
+                          &yes, socklen_t(MemoryLayout<Int32>.size))
+        Darwin.setsockopt(recvFd, SOL_SOCKET, SO_REUSEPORT,
+                          &yes, socklen_t(MemoryLayout<Int32>.size))
+
+        var bindAddr = sockaddr_in()
+        bindAddr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        bindAddr.sin_family = sa_family_t(AF_INET)
+        bindAddr.sin_port = Self.soodPort.bigEndian
+        bindAddr.sin_addr.s_addr = INADDR_ANY
+
+        let rc = withUnsafePointer(to: &bindAddr) { ptr in
+            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sa in
+                Darwin.bind(recvFd, sa, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        if rc < 0 {
+            Darwin.close(recvFd); recvFd = -1
+            return
+        }
+
+        joinMulticastOnAllInterfaces()
+    }
+
+    /// Join the SOOD multicast group on every IPv4 interface.
+    private func joinMulticastOnAllInterfaces() {
+        guard recvFd >= 0 else { return }
+        for iface in getNetworkInterfaces() {
+            var mreq = ip_mreq()
+            mreq.imr_multiaddr.s_addr = inet_addr(Self.multicastGroup)
+            mreq.imr_interface.s_addr = inet_addr(iface.address)
+            Darwin.setsockopt(recvFd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+                              &mreq, socklen_t(MemoryLayout<ip_mreq>.size))
+            // Errors (e.g. already joined) are intentionally ignored.
+        }
+    }
+
+    // MARK: - Receive Loop
+
+    private func startReceiveLoop() {
+        let fd = recvFd
+        guard fd >= 0 else { return }
+
+        receiveTask = Task.detached { [weak self] in
+            var buf = [UInt8](repeating: 0, count: 65536)
+            while !Task.isCancelled {
+                var sender = sockaddr_in()
+                var senderLen = socklen_t(MemoryLayout<sockaddr_in>.size)
+
+                let n = buf.withUnsafeMutableBufferPointer { bufPtr in
+                    withUnsafeMutablePointer(to: &sender) { addrPtr in
+                        addrPtr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sa in
+                            Darwin.recvfrom(fd, bufPtr.baseAddress, bufPtr.count,
+                                            0, sa, &senderLen)
+                        }
+                    }
                 }
-            }
+                guard n > 0 else { break } // socket closed or error
 
-            listener.newConnectionHandler = { [weak self] connection in
-                connection.start(queue: .global(qos: .utility))
-                Task { await self?.receiveSOODData(on: connection) }
-            }
+                let data = Data(buf[0..<n])
+                var ipBuf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+                var addr = sender.sin_addr
+                inet_ntop(AF_INET, &addr, &ipBuf, socklen_t(INET_ADDRSTRLEN))
+                let senderIP = String(cString: ipBuf)
 
-            listener.start(queue: .global(qos: .utility))
-        } catch {
-            // Listener failed to start
+                await self?.handleSOODMessage(data, senderIP: senderIP)
+            }
         }
     }
 
-    private func restartListening() {
-        listener?.cancel()
-        listener = nil
-        startListening()
-    }
-
-    private nonisolated func receiveSOODData(on connection: NWConnection) async {
-        connection.receiveMessage { [weak self] data, _, _, error in
-            guard let data = data, error == nil else { return }
-            Task { await self?.handleSOODReply(data, from: connection) }
-        }
-    }
-
-    // MARK: - Sending SOOD queries
+    // MARK: - Query Loop
 
     private func startQueryLoop() {
-        queryTask?.cancel()
         queryTask = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.sendQuery()
-                do {
-                    try await Task.sleep(nanoseconds: 5_000_000_000) // 5s between queries
-                } catch {
-                    break
-                }
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
         }
     }
 
     private func sendQuery() {
-        let queryPacket = buildQueryPacket()
+        guard sendFd >= 0 else { return }
 
-        let params = NWParameters.udp
-        params.allowLocalEndpointReuse = true
+        // Refresh multicast memberships in case new interfaces appeared.
+        joinMulticastOnAllInterfaces()
 
-        let host = NWEndpoint.Host(Self.multicastGroup)
-        let port = NWEndpoint.Port(rawValue: Self.soodPort)!
-        let endpoint = NWEndpoint.hostPort(host: host, port: port)
-        let connection = NWConnection(to: endpoint, using: params)
+        let packet = buildQueryPacket()
 
-        connection.stateUpdateHandler = { state in
-            switch state {
-            case .ready:
-                connection.send(content: queryPacket, completion: .contentProcessed { _ in
-                    connection.cancel()
-                })
-            case .failed, .cancelled:
-                break
-            default:
-                break
-            }
+        // Send to multicast group
+        sendPacket(packet, toIP: Self.multicastGroup, port: Self.soodPort)
+
+        // Send to broadcast address on each interface
+        for iface in getNetworkInterfaces() {
+            let dst = iface.broadcast ?? "255.255.255.255"
+            sendPacket(packet, toIP: dst, port: Self.soodPort)
         }
-
-        connection.start(queue: .global(qos: .utility))
-
-        // Also send via direct UDP to common ports for discovery
-        sendDirectQuery(queryPacket)
     }
 
-    private func sendDirectQuery(_ packet: Data) {
-        // Roon Core listens on port 9003 for SOOD queries
-        // Send on all available network interfaces
-        let interfaces = getNetworkInterfaces()
-        for iface in interfaces {
-            let broadcastAddr = iface.broadcast ?? "255.255.255.255"
-            let params = NWParameters.udp
-            params.allowLocalEndpointReuse = true
+    private func sendPacket(_ packet: Data, toIP ip: String, port: UInt16) {
+        var dst = sockaddr_in()
+        dst.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        dst.sin_family = sa_family_t(AF_INET)
+        dst.sin_port = port.bigEndian
+        dst.sin_addr.s_addr = inet_addr(ip)
 
-            let host = NWEndpoint.Host(broadcastAddr)
-            let port = NWEndpoint.Port(rawValue: Self.soodPort)!
-            let conn = NWConnection(to: .hostPort(host: host, port: port), using: params)
-
-            conn.stateUpdateHandler = { state in
-                if state == .ready {
-                    conn.send(content: packet, completion: .contentProcessed { _ in
-                        conn.cancel()
-                    })
+        packet.withUnsafeBytes { buf in
+            withUnsafePointer(to: &dst) { addrPtr in
+                addrPtr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sa in
+                    _ = Darwin.sendto(sendFd, buf.baseAddress, buf.count, 0,
+                                      sa, socklen_t(MemoryLayout<sockaddr_in>.size))
                 }
             }
-            conn.start(queue: .global(qos: .utility))
         }
     }
 
@@ -181,61 +205,43 @@ actor SOODDiscovery {
         data.append(Self.magic)
         data.append(Self.version)
         data.append(Self.typeQuery)
-
-        // Add query_service_id property for Roon
-        let queryServiceId = "00720724-5143-4a9b-abac-0e50cba674bb"
         appendProperty(&data, key: "_tid", value: UUID().uuidString)
-        appendProperty(&data, key: "query_service_id", value: queryServiceId)
-
+        appendProperty(&data, key: "query_service_id",
+                       value: "00720724-5143-4a9b-abac-0e50cba674bb")
         return data
     }
 
-    /// Append a SOOD property: `type(1) + key_len(2 BE) + key + value_len(2 BE) + value`
+    /// Append a SOOD property: `key_len(1B) + key + value_len(2B BE) + value`
     private func appendProperty(_ data: inout Data, key: String, value: String) {
-        let keyData = Data(key.utf8)
-        let valueData = Data(value.utf8)
+        let keyBytes = Data(key.utf8)
+        let valBytes = Data(value.utf8)
 
-        // Type byte: 0x01 for UTF-8 string
-        data.append(0x01)
-
-        // Key length (big-endian 16-bit)
-        var keyLen = UInt16(keyData.count).bigEndian
-        data.append(Data(bytes: &keyLen, count: 2))
-        data.append(keyData)
+        // Key length (1 byte)
+        data.append(UInt8(keyBytes.count))
+        data.append(keyBytes)
 
         // Value length (big-endian 16-bit)
-        var valueLen = UInt16(valueData.count).bigEndian
-        data.append(Data(bytes: &valueLen, count: 2))
-        data.append(valueData)
+        var vlen = UInt16(valBytes.count).bigEndian
+        data.append(Data(bytes: &vlen, count: 2))
+        data.append(valBytes)
     }
 
     // MARK: - Packet Parsing
 
-    private func handleSOODReply(_ data: Data, from connection: NWConnection) {
-        guard data.count >= 6 else { return }
+    private func handleSOODMessage(_ data: Data, senderIP: String) {
+        guard data.count >= 6,
+              data[0..<4] == Self.magic,
+              data[4] == Self.version,
+              data[5] == Self.typeReply else { return }
 
-        // Verify magic
-        guard data[data.startIndex..<data.startIndex + 4] == Self.magic else { return }
-        guard data[data.startIndex + 4] == Self.version else { return }
-        guard data[data.startIndex + 5] == Self.typeReply else { return }
+        let props = parseProperties(data, from: 6)
 
-        // Parse properties
-        let properties = parseProperties(data, from: data.startIndex + 6)
-
-        guard let serviceId = properties["service_id"],
-              let httpPort = properties["http_port"],
+        guard let serviceId = props["service_id"],
+              let httpPort = props["http_port"],
               let port = Int(httpPort) else { return }
 
-        // Get host from the connection's remote endpoint
-        let host: String
-        if let name = properties["name"] {
-            // Try to get host from properties first
-            host = properties["host"] ?? extractHost(from: connection) ?? name
-        } else {
-            host = extractHost(from: connection) ?? "unknown"
-        }
-
-        let displayName = properties["display_name"] ?? properties["name"] ?? serviceId
+        let host = props["_replyaddr"] ?? senderIP
+        let displayName = props["display_name"] ?? props["name"] ?? serviceId
 
         let core = DiscoveredCore(
             coreId: serviceId,
@@ -244,62 +250,37 @@ actor SOODDiscovery {
             port: port
         )
 
-        if discoveredCores[serviceId] == nil || discoveredCores[serviceId] != core {
+        if discoveredCores[serviceId] != core {
             discoveredCores[serviceId] = core
             onCoreDiscovered?(core)
         }
     }
 
-    /// Parse SOOD properties from binary data.
-    private func parseProperties(_ data: Data, from offset: Data.Index) -> [String: String] {
-        var properties: [String: String] = [:]
+    /// Parse SOOD properties: `key_len(1B) + key + value_len(2B BE) + value`
+    private func parseProperties(_ data: Data, from offset: Int) -> [String: String] {
+        var props: [String: String] = [:]
         var pos = offset
 
-        while pos < data.endIndex {
-            guard pos + 1 <= data.endIndex else { break }
-            let type = data[pos]
-            pos = data.index(after: pos)
+        while pos < data.count {
+            let keyLen = Int(data[pos])
+            pos += 1
+            guard keyLen > 0, pos + keyLen <= data.count else { break }
 
-            guard type == 0x01 else { break } // Only handle UTF-8 string type
+            let key = String(data: data[pos..<(pos + keyLen)], encoding: .utf8) ?? ""
+            pos += keyLen
 
-            // Key length (big-endian 16-bit)
-            guard pos + 2 <= data.endIndex else { break }
-            let keyLen = Int(UInt16(data[pos]) << 8 | UInt16(data[data.index(after: pos)]))
-            pos = data.index(pos, offsetBy: 2)
+            guard pos + 2 <= data.count else { break }
+            let valLen = Int(data[pos]) << 8 | Int(data[pos + 1])
+            pos += 2
 
-            guard pos + keyLen <= data.endIndex else { break }
-            let key = String(data: data[pos..<data.index(pos, offsetBy: keyLen)], encoding: .utf8) ?? ""
-            pos = data.index(pos, offsetBy: keyLen)
+            if valLen == 0xFFFF { continue }        // null sentinel
+            if valLen == 0 { props[key] = ""; continue }
 
-            // Value length (big-endian 16-bit)
-            guard pos + 2 <= data.endIndex else { break }
-            let valueLen = Int(UInt16(data[pos]) << 8 | UInt16(data[data.index(after: pos)]))
-            pos = data.index(pos, offsetBy: 2)
-
-            guard pos + valueLen <= data.endIndex else { break }
-            let value = String(data: data[pos..<data.index(pos, offsetBy: valueLen)], encoding: .utf8) ?? ""
-            pos = data.index(pos, offsetBy: valueLen)
-
-            properties[key] = value
+            guard pos + valLen <= data.count else { break }
+            props[key] = String(data: data[pos..<(pos + valLen)], encoding: .utf8) ?? ""
+            pos += valLen
         }
-
-        return properties
-    }
-
-    private nonisolated func extractHost(from connection: NWConnection) -> String? {
-        if case .hostPort(let host, _) = connection.currentPath?.remoteEndpoint {
-            switch host {
-            case .ipv4(let addr):
-                return "\(addr)"
-            case .ipv6(let addr):
-                return "\(addr)"
-            case .name(let name, _):
-                return name
-            @unknown default:
-                return nil
-            }
-        }
-        return nil
+        return props
     }
 
     // MARK: - Network Interfaces
@@ -349,7 +330,8 @@ actor SOODDiscovery {
                         broadcastStr = String(cString: bcast)
                     }
 
-                    interfaces.append(NetworkInterface(name: name, address: address, broadcast: broadcastStr))
+                    interfaces.append(NetworkInterface(
+                        name: name, address: address, broadcast: broadcastStr))
                 }
             }
 
