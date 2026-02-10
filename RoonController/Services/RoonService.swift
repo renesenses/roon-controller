@@ -375,6 +375,12 @@ class RoonService: ObservableObject {
         if lastTrackPerZone[zone.zone_id] == trackKey { return }
         lastTrackPerZone[zone.zone_id] = trackKey
 
+        // Skip if same track already in recent history for this zone
+        if let last = playbackHistory.first(where: { $0.zone_name == zone.display_name }),
+           last.title == title {
+            return
+        }
+
         let item = PlaybackHistoryItem(
             id: UUID(),
             title: title,
