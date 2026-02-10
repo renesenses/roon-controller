@@ -12,7 +12,6 @@ struct RoonControllerApp: App {
                 .preferredColorScheme(.dark)
                 .tint(Color.roonAccent)
                 .task {
-                    await roonService.ensureBackendRunning()
                     roonService.connect()
                 }
         }

@@ -110,15 +110,96 @@ final class RoonServiceTests: XCTestCase {
     // MARK: - Image URL generation
 
     func testImageURLGeneration() {
-        service.backendHost = "192.168.1.10"
-        service.backendPort = 3333
-
         let url = service.imageURL(key: "abc123", width: 400, height: 400)
-        XCTAssertEqual(url?.absoluteString, "http://192.168.1.10:3333/api/image/abc123?scale=fit&width=400&height=400")
+        XCTAssertEqual(url?.absoluteString, "http://localhost:9150/image/abc123?width=400&height=400")
     }
 
     func testImageURLReturnsNilForNilKey() {
         let url = service.imageURL(key: nil)
         XCTAssertNil(url)
+    }
+
+    // MARK: - MOO Message Tests
+
+    func testMOOMessageParseRequest() {
+        let raw = "MOO/1 REQUEST com.roonlabs.transport:2/control\nRequest-Id: 42\nContent-Type: application/json\n\n{\"control\":\"play\"}"
+        let data = Data(raw.utf8)
+        let msg = MOOMessage.parse(data)
+
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.verb, .request)
+        XCTAssertEqual(msg?.name, "com.roonlabs.transport:2/control")
+        XCTAssertEqual(msg?.requestId, 42)
+        XCTAssertNotNil(msg?.body)
+
+        let bodyJSON = msg?.bodyJSON
+        XCTAssertEqual(bodyJSON?["control"] as? String, "play")
+    }
+
+    func testMOOMessageParseContinue() {
+        let raw = "MOO/1 CONTINUE Subscribed\nRequest-Id: 7\n\n"
+        let data = Data(raw.utf8)
+        let msg = MOOMessage.parse(data)
+
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.verb, .continue)
+        XCTAssertEqual(msg?.name, "Subscribed")
+        XCTAssertEqual(msg?.requestId, 7)
+        XCTAssertNil(msg?.body)
+    }
+
+    func testMOOMessageParseComplete() {
+        let raw = "MOO/1 COMPLETE Success\nRequest-Id: 1\n\n"
+        let data = Data(raw.utf8)
+        let msg = MOOMessage.parse(data)
+
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.verb, .complete)
+        XCTAssertEqual(msg?.name, "Success")
+        XCTAssertEqual(msg?.requestId, 1)
+    }
+
+    func testMOOMessageBuildRequest() {
+        let body: [String: Any] = ["control": "play"]
+        let data = MOOMessage.request(name: "com.roonlabs.transport:2/control", requestId: 5, jsonBody: body)
+
+        // Should be parseable
+        let msg = MOOMessage.parse(data)
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.verb, .request)
+        XCTAssertEqual(msg?.name, "com.roonlabs.transport:2/control")
+        XCTAssertEqual(msg?.requestId, 5)
+        XCTAssertEqual(msg?.bodyJSON?["control"] as? String, "play")
+    }
+
+    func testMOOMessageBuildComplete() {
+        let data = MOOMessage.complete(name: "Success", requestId: 10)
+        let msg = MOOMessage.parse(data)
+
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.verb, .complete)
+        XCTAssertEqual(msg?.requestId, 10)
+    }
+
+    func testMOOMessageParseInvalidReturnsNil() {
+        let raw = "INVALID DATA"
+        let data = Data(raw.utf8)
+        XCTAssertNil(MOOMessage.parse(data))
+    }
+
+    func testMOOMessageParseMissingRequestIdReturnsNil() {
+        let raw = "MOO/1 REQUEST test/method\n\n"
+        let data = Data(raw.utf8)
+        XCTAssertNil(MOOMessage.parse(data))
+    }
+
+    func testMOORequestIdGeneratorIncrementsAtomically() {
+        let generator = MOORequestIdGenerator()
+        let id1 = generator.next()
+        let id2 = generator.next()
+        let id3 = generator.next()
+        XCTAssertEqual(id1, 1)
+        XCTAssertEqual(id2, 2)
+        XCTAssertEqual(id3, 3)
     }
 }
