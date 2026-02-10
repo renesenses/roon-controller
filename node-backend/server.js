@@ -66,6 +66,16 @@ const roon = new RoonApi({
                 if (data.zones_removed) {
                     data.zones_removed.forEach(id => { delete zones[id]; });
                 }
+                if (data.zones_seek_changed) {
+                    data.zones_seek_changed.forEach(z => {
+                        if (zones[z.zone_id]) {
+                            zones[z.zone_id].seek_position = z.seek_position;
+                            if (z.queue_time_remaining !== undefined) {
+                                zones[z.zone_id].queue_time_remaining = z.queue_time_remaining;
+                            }
+                        }
+                    });
+                }
                 broadcastMessage({ type: "zones_changed", zones: Object.values(zones) });
             } else if (cmd === "SubscriptionStopped") {
                 zones = {};

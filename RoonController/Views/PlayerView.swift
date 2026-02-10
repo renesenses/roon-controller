@@ -42,6 +42,7 @@ struct PlayerView: View {
                     EmptyView()
                 }
             }
+            .id(imageKey)
             .ignoresSafeArea()
             .overlay(Color.roonBackground.opacity(0.7))
         }
@@ -95,6 +96,7 @@ struct PlayerView: View {
                     artPlaceholder
                 }
             }
+            .id(imageKey)
             .frame(maxWidth: 400, maxHeight: 400)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.6), radius: 24, x: 0, y: 8)
@@ -118,23 +120,31 @@ struct PlayerView: View {
 
     @ViewBuilder
     private func trackInfo(nowPlaying: NowPlaying) -> some View {
+        let title = nowPlaying.three_line?.line1 ?? "Unknown Title"
+        let artist = nowPlaying.three_line?.line2 ?? ""
+        let album = nowPlaying.three_line?.line3 ?? ""
+
         VStack(spacing: 6) {
-            Text(nowPlaying.three_line?.line1 ?? "Unknown Title")
+            Text(title)
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundStyle(Color.roonText)
                 .lineLimit(1)
+                .id(title)
 
-            Text(nowPlaying.three_line?.line2 ?? "")
+            Text(artist)
                 .font(.title3)
                 .foregroundStyle(Color.roonSecondary)
                 .lineLimit(1)
+                .id(artist)
 
-            Text(nowPlaying.three_line?.line3 ?? "")
+            Text(album)
                 .font(.body)
                 .foregroundStyle(Color.roonTertiary)
                 .lineLimit(1)
+                .id(album)
         }
+        .animation(.easeInOut(duration: 0.3), value: title)
     }
 
     // MARK: - Seek Bar
