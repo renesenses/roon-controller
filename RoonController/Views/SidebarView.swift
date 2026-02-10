@@ -19,7 +19,7 @@ struct SidebarView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Section Picker
-            Picker("Section", selection: $selectedSection) {
+            Picker("", selection: $selectedSection) {
                 ForEach(SidebarSection.allCases, id: \.self) { section in
                     Text(section.rawValue).tag(section)
                 }
