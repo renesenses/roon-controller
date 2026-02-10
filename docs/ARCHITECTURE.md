@@ -2,6 +2,13 @@
 
 ## Vue d'ensemble
 
+```
+┌──────────────────────┐      WebSocket       ┌───────────────────┐      Roon API      ┌──────────────┐
+│   App macOS (Swift)  │  ←────────────────→  │  Backend Node.js  │  ←───────────────→  │  Roon Core    │
+│   SwiftUI · port WS  │     JSON messages     │  Express · WS     │     SOOD/TCP       │  (serveur)    │
+└──────────────────────┘                       └───────────────────┘                     └──────────────┘
+```
+
 Roon Controller est compose de deux parties :
 
 1. **Backend Node.js** — passerelle WebSocket/HTTP vers l'API Roon
