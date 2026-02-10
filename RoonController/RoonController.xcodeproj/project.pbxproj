@@ -9,40 +9,64 @@
 /* Begin PBXBuildFile section */
 		0206ACCC748F3AC269561DEE /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE5C81111DFF879D58805C8 /* SidebarView.swift */; };
 		31D8FDDCB97A9EC2F22CCDF4 /* RoonModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F75FB3DE82DDCA6F017225C /* RoonModels.swift */; };
+		499F184FF6A98B535C8A0773 /* RoonColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C612F323088B23891CBC08 /* RoonColors.swift */; };
 		519F92A185C861D59BAA94A4 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6208159EBB6F3E199BC08686 /* PlayerView.swift */; };
 		529A895FA3C4E32038B5FF81 /* RoonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */; };
+		54911BE3A34F964675E4707E /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4926CDAEA0DDFB262E6BE81A /* QueueView.swift */; };
+		83D2098070D56815105DD58C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1B2F25475F39979BA3F2E470 /* Assets.xcassets */; };
+		A1CC3BB098C5D1127AA08BB2 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4154732D9AD241A718F6DFE0 /* HistoryView.swift */; };
+		A8A720BA6B2B39B2BE4319B2 /* RoonModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502C0AF9FE6B1E36CBBB5699 /* RoonModelsTests.swift */; };
 		BA76D9EE334357CA73C2ED75 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961DF94025297E364472E8E9 /* ConnectionView.swift */; };
 		C959637010EB96B877AB45F6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCEE5B31B68C21920E308DD /* SettingsView.swift */; };
 		D163747CACBB2E3A080A0765 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E5A3B5B194123E7D9AE567 /* ContentView.swift */; };
+		DA3008D61AB3C948441093AE /* RoonServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED2B62A70A4641D8240F8444 /* RoonServiceTests.swift */; };
 		E3D11AF841A9512B0BBD7998 /* RoonControllerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */; };
-		F1A2B3C4D5E6A7B8C9D0E1F3 /* RoonColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* QueueView.swift */; };
-		B2C3D4E5F607182A3B4C5D6E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F607182A3B4C5D6F /* Assets.xcassets */; };
-		D4E5F607182A3B4C5D6E7F80 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F607182A3B4C5D6E7F81 /* HistoryView.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A6C21A757651253525CCFCD5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7F5DC9B3E228D366E4AC3AE5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4280D56A3A8630738591AB8A;
+			remoteInfo = RoonController;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		0BFD1EE34B068DB0496A9F51 /* RoonControllerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RoonControllerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		13E5A3B5B194123E7D9AE567 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1B2F25475F39979BA3F2E470 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4154732D9AD241A718F6DFE0 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		47815C3C2FB6ED9B1402F795 /* RoonController.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RoonController.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4926CDAEA0DDFB262E6BE81A /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
 		4FCEE5B31B68C21920E308DD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		502C0AF9FE6B1E36CBBB5699 /* RoonModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonModelsTests.swift; sourceTree = "<group>"; };
 		518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonControllerApp.swift; sourceTree = "<group>"; };
 		6208159EBB6F3E199BC08686 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		6F75FB3DE82DDCA6F017225C /* RoonModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonModels.swift; sourceTree = "<group>"; };
+		89C612F323088B23891CBC08 /* RoonColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonColors.swift; sourceTree = "<group>"; };
 		92A3271B5BF5E27D48F206C8 /* RoonController.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RoonController.entitlements; sourceTree = "<group>"; };
 		961DF94025297E364472E8E9 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
 		A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonService.swift; sourceTree = "<group>"; };
+		ED2B62A70A4641D8240F8444 /* RoonServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonServiceTests.swift; sourceTree = "<group>"; };
 		EEE5C81111DFF879D58805C8 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
-		F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonColors.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5D /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
-		B2C3D4E5F607182A3B4C5D6F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		D4E5F607182A3B4C5D6E7F81 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
-		D2E3F4A5B6C7D8E9F0A1B2C3 /* Helpers */ = {
+		0D878111769E34072232B468 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonColors.swift */,
+				502C0AF9FE6B1E36CBBB5699 /* RoonModelsTests.swift */,
+				ED2B62A70A4641D8240F8444 /* RoonServiceTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		57CF163E76FF13B0523B2653 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				89C612F323088B23891CBC08 /* RoonColors.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -52,12 +76,12 @@
 			children = (
 				961DF94025297E364472E8E9 /* ConnectionView.swift */,
 				13E5A3B5B194123E7D9AE567 /* ContentView.swift */,
-				D2E3F4A5B6C7D8E9F0A1B2C3 /* Helpers */,
+				4154732D9AD241A718F6DFE0 /* HistoryView.swift */,
 				6208159EBB6F3E199BC08686 /* PlayerView.swift */,
-				D4E5F607182A3B4C5D6E7F81 /* HistoryView.swift */,
-				A1B2C3D4E5F60718293A4B5D /* QueueView.swift */,
+				4926CDAEA0DDFB262E6BE81A /* QueueView.swift */,
 				4FCEE5B31B68C21920E308DD /* SettingsView.swift */,
 				EEE5C81111DFF879D58805C8 /* SidebarView.swift */,
+				57CF163E76FF13B0523B2653 /* Helpers */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -81,7 +105,7 @@
 		CAB6FEEBE53B9F2C8A3D473A /* RoonController */ = {
 			isa = PBXGroup;
 			children = (
-				B2C3D4E5F607182A3B4C5D6F /* Assets.xcassets */,
+				1B2F25475F39979BA3F2E470 /* Assets.xcassets */,
 				92A3271B5BF5E27D48F206C8 /* RoonController.entitlements */,
 				518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */,
 				C386E6C9C18E39CC8E474385 /* Models */,
@@ -98,6 +122,7 @@
 				C386E6C9C18E39CC8E474385 /* Models */,
 				CAB6FEEBE53B9F2C8A3D473A /* RoonController */,
 				5CD54845E7E35CE717F3994E /* Services */,
+				0D878111769E34072232B468 /* Tests */,
 				5BFD6DA1FCF413299E25BF32 /* Views */,
 				F52F554ADB65682218CA9C0B /* Products */,
 			);
@@ -107,6 +132,7 @@
 			isa = PBXGroup;
 			children = (
 				47815C3C2FB6ED9B1402F795 /* RoonController.app */,
+				0BFD1EE34B068DB0496A9F51 /* RoonControllerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -114,20 +140,12 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		C3D4E5F6071829A3B4C5D6E7 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				B2C3D4E5F607182A3B4C5D6E /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		4280D56A3A8630738591AB8A /* RoonController */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D613682A45753184DE6064BD /* Build configuration list for PBXNativeTarget "RoonController" */;
 			buildPhases = (
 				73FFFAC1CDB3AFDDB00191E0 /* Sources */,
-				C3D4E5F6071829A3B4C5D6E7 /* Resources */,
+				E9D5C54BE7836449EDB2DC20 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -139,6 +157,24 @@
 			productName = RoonController;
 			productReference = 47815C3C2FB6ED9B1402F795 /* RoonController.app */;
 			productType = "com.apple.product-type.application";
+		};
+		689C756E6C10A74AEEB16626 /* RoonControllerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A2F39862CD3E88339DDD858 /* Build configuration list for PBXNativeTarget "RoonControllerTests" */;
+			buildPhases = (
+				7264D141F37DD4BE0B7D75D3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2C69167A6EAC4A7DE566179F /* PBXTargetDependency */,
+			);
+			name = RoonControllerTests;
+			packageProductDependencies = (
+			);
+			productName = RoonControllerTests;
+			productReference = 0BFD1EE34B068DB0496A9F51 /* RoonControllerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -169,30 +205,59 @@
 			projectRoot = "";
 			targets = (
 				4280D56A3A8630738591AB8A /* RoonController */,
+				689C756E6C10A74AEEB16626 /* RoonControllerTests */,
 			);
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		E9D5C54BE7836449EDB2DC20 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				83D2098070D56815105DD58C /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
+		7264D141F37DD4BE0B7D75D3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A8A720BA6B2B39B2BE4319B2 /* RoonModelsTests.swift in Sources */,
+				DA3008D61AB3C948441093AE /* RoonServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		73FFFAC1CDB3AFDDB00191E0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				BA76D9EE334357CA73C2ED75 /* ConnectionView.swift in Sources */,
 				D163747CACBB2E3A080A0765 /* ContentView.swift in Sources */,
+				A1CC3BB098C5D1127AA08BB2 /* HistoryView.swift in Sources */,
 				519F92A185C861D59BAA94A4 /* PlayerView.swift in Sources */,
+				54911BE3A34F964675E4707E /* QueueView.swift in Sources */,
+				499F184FF6A98B535C8A0773 /* RoonColors.swift in Sources */,
 				E3D11AF841A9512B0BBD7998 /* RoonControllerApp.swift in Sources */,
 				31D8FDDCB97A9EC2F22CCDF4 /* RoonModels.swift in Sources */,
 				529A895FA3C4E32038B5FF81 /* RoonService.swift in Sources */,
 				C959637010EB96B877AB45F6 /* SettingsView.swift in Sources */,
-				F1A2B3C4D5E6A7B8C9D0E1F3 /* RoonColors.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5C /* QueueView.swift in Sources */,
-				D4E5F607182A3B4C5D6E7F80 /* HistoryView.swift in Sources */,
-			0206ACCC748F3AC269561DEE /* SidebarView.swift in Sources */,
+				0206ACCC748F3AC269561DEE /* SidebarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2C69167A6EAC4A7DE566179F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4280D56A3A8630738591AB8A /* RoonController */;
+			targetProxy = A6C21A757651253525CCFCD5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1E934D34FBE1285A040BD842 /* Release */ = {
@@ -281,6 +346,25 @@
 			};
 			name = Debug;
 		};
+		37E61732FCDC317DB9E30778 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bertrand.RoonControllerTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Roon Controller.app/Contents/MacOS/Roon Controller";
+			};
+			name = Release;
+		};
 		66C0853AE0A5AFF9327AC864 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -301,6 +385,25 @@
 				PRODUCT_NAME = "Roon Controller";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		8FFB5AD06C3AD060E496C627 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bertrand.RoonControllerTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Roon Controller.app/Contents/MacOS/Roon Controller";
 			};
 			name = Debug;
 		};
@@ -363,6 +466,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		7A2F39862CD3E88339DDD858 /* Build configuration list for PBXNativeTarget "RoonControllerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8FFB5AD06C3AD060E496C627 /* Debug */,
+				37E61732FCDC317DB9E30778 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		D613682A45753184DE6064BD /* Build configuration list for PBXNativeTarget "RoonController" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

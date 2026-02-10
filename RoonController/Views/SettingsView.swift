@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject var roonService: RoonService
     @AppStorage("backendHost") private var backendHost: String = "localhost"
     @AppStorage("backendPort") private var backendPort: Int = 3333
+    @AppStorage("backendDir") private var backendDir: String = ""
     @State private var coreIP: String = ""
 
     var body: some View {
@@ -11,6 +12,8 @@ struct SettingsView: View {
             Section("Backend Node.js") {
                 TextField("Hôte", text: $backendHost)
                 TextField("Port", value: $backendPort, format: .number)
+                TextField("Dossier backend (server.js)", text: $backendDir)
+                    .help("Chemin vers le dossier contenant server.js. Laissez vide pour la détection automatique.")
 
                 HStack {
                     Button("Appliquer et reconnecter") {

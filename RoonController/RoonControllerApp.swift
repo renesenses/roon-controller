@@ -11,7 +11,8 @@ struct RoonControllerApp: App {
                 .frame(minWidth: 800, minHeight: 500)
                 .preferredColorScheme(.dark)
                 .tint(Color.roonAccent)
-                .onAppear {
+                .task {
+                    await roonService.ensureBackendRunning()
                     roonService.connect()
                 }
         }

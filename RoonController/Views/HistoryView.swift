@@ -40,58 +40,64 @@ struct HistoryView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(roonService.playbackHistory) { item in
-                            HStack(spacing: 10) {
-                                if let url = roonService.imageURL(key: item.image_key, width: 80, height: 80) {
-                                    AsyncImage(url: url) { phase in
-                                        switch phase {
-                                        case .success(let img):
-                                            img.resizable().aspectRatio(contentMode: .fill)
-                                        default:
-                                            Color.roonSurface
+                            Button {
+                                roonService.searchAndPlay(title: item.title)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    if let url = roonService.imageURL(key: item.image_key, width: 80, height: 80) {
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .success(let img):
+                                                img.resizable().aspectRatio(contentMode: .fill)
+                                            default:
+                                                Color.roonSurface
+                                            }
+                                        }
+                                        .frame(width: 40, height: 40)
+                                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(Color.roonSurface)
+                                            .frame(width: 40, height: 40)
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.title)
+                                            .foregroundStyle(Color.roonText)
+                                            .lineLimit(1)
+                                        if !item.artist.isEmpty {
+                                            Text(item.artist)
+                                                .font(.caption)
+                                                .foregroundStyle(Color.roonSecondary)
+                                                .lineLimit(1)
+                                        }
+                                        HStack(spacing: 4) {
+                                            Text(item.zone_name)
+                                                .font(.caption2)
+                                                .foregroundStyle(Color.roonTertiary)
+                                            Text("·")
+                                                .font(.caption2)
+                                                .foregroundStyle(Color.roonTertiary)
+                                            Text(timeAgo(item.playedAt))
+                                                .font(.caption2)
+                                                .foregroundStyle(Color.roonTertiary)
                                         }
                                     }
-                                    .frame(width: 40, height: 40)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                                } else {
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(Color.roonSurface)
-                                        .frame(width: 40, height: 40)
-                                }
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title)
-                                        .foregroundStyle(Color.roonText)
-                                        .lineLimit(1)
-                                    if !item.artist.isEmpty {
-                                        Text(item.artist)
-                                            .font(.caption)
-                                            .foregroundStyle(Color.roonSecondary)
-                                            .lineLimit(1)
-                                    }
-                                    HStack(spacing: 4) {
-                                        Text(item.zone_name)
+                                    Spacer()
+
+                                    if let length = item.length {
+                                        Text(formatDuration(length))
                                             .font(.caption2)
-                                            .foregroundStyle(Color.roonTertiary)
-                                        Text("·")
-                                            .font(.caption2)
-                                            .foregroundStyle(Color.roonTertiary)
-                                        Text(timeAgo(item.playedAt))
-                                            .font(.caption2)
+                                            .monospacedDigit()
                                             .foregroundStyle(Color.roonTertiary)
                                     }
                                 }
-
-                                Spacer()
-
-                                if let length = item.length {
-                                    Text(formatDuration(length))
-                                        .font(.caption2)
-                                        .monospacedDigit()
-                                        .foregroundStyle(Color.roonTertiary)
-                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .contentShape(Rectangle())
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
+                            .buttonStyle(.plain)
                         }
                     }
                 }

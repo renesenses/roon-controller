@@ -30,6 +30,84 @@ class RoonService: ObservableObject {
     private let maxReconnectDelay: Double = 30
     private var reconnectTask: Task<Void, Never>?
     private var receiveTask: Task<Void, Never>?
+    private var backendProcess: Process?
+
+    // MARK: - Backend Auto-Start
+
+    func ensureBackendRunning() async {
+        if await isBackendReachable() { return }
+
+        let backendDir = UserDefaults.standard.string(forKey: "backendDir") ?? autoDetectBackendDir()
+        let serverPath = (backendDir as NSString).appendingPathComponent("server.js")
+
+        guard FileManager.default.fileExists(atPath: serverPath) else { return }
+
+        let nodePath = findNodeBinary()
+        guard let nodePath else { return }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: nodePath)
+        process.arguments = [serverPath]
+        process.currentDirectoryURL = URL(fileURLWithPath: backendDir)
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            backendProcess = process
+            // Wait for the server to start
+            for _ in 0..<10 {
+                try await Task.sleep(nanoseconds: 500_000_000)
+                if await isBackendReachable() { return }
+            }
+        } catch { }
+    }
+
+    private nonisolated func isBackendReachable() async -> Bool {
+        guard let url = URL(string: "http://localhost:3333/api/status") else { return false }
+        do {
+            let (_, response) = try await URLSession.shared.data(from: url)
+            return (response as? HTTPURLResponse)?.statusCode == 200
+        } catch {
+            return false
+        }
+    }
+
+    private func autoDetectBackendDir() -> String {
+        // Try relative to the app bundle (development layout)
+        let bundlePath = Bundle.main.bundlePath
+        let candidates = [
+            (bundlePath as NSString).deletingLastPathComponent + "/node-backend",
+            NSString(string: "~/DEV/Roon client/node-backend").expandingTildeInPath
+        ]
+        for dir in candidates {
+            let serverPath = (dir as NSString).appendingPathComponent("server.js")
+            if FileManager.default.fileExists(atPath: serverPath) {
+                UserDefaults.standard.set(dir, forKey: "backendDir")
+                return dir
+            }
+        }
+        return ""
+    }
+
+    private func findNodeBinary() -> String? {
+        let candidates = [
+            "/opt/homebrew/bin/node",
+            "/usr/local/bin/node",
+            "/usr/bin/node"
+        ]
+        for path in candidates {
+            if FileManager.default.fileExists(atPath: path) {
+                return path
+            }
+        }
+        return nil
+    }
+
+    func stopBackend() {
+        backendProcess?.terminate()
+        backendProcess = nil
+    }
 
     // MARK: - Connection
 
@@ -348,6 +426,13 @@ class RoonService: ObservableObject {
         browseStack.removeAll()
         browseResult = nil
         browse(popAll: true)
+    }
+
+    // MARK: - Play from History
+
+    func searchAndPlay(title: String) {
+        guard let zoneId = currentZone?.zone_id else { return }
+        send(["type": "browse/play_search", "zone_id": zoneId, "title": title])
     }
 
     // MARK: - Core Connection

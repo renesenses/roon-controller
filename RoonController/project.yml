@@ -16,6 +16,7 @@ targets:
           - project.yml
           - "*.xcodeproj"
           - "*.xcworkspace"
+          - Tests
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bertrand.RoonController
@@ -28,3 +29,19 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "15.0"
         CODE_SIGN_STYLE: Automatic
         PRODUCT_NAME: "Roon Controller"
+
+  RoonControllerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: RoonController
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bertrand.RoonControllerTests
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Roon Controller.app/Contents/MacOS/Roon Controller"
+        BUNDLE_LOADER: "$(TEST_HOST)"
