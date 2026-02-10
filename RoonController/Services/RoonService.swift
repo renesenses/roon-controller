@@ -206,7 +206,7 @@ class RoonService: ObservableObject {
                 }
                 // Auto-select first zone if none selected
                 if currentZone == nil, let first = zones.first {
-                    currentZone = first
+                    selectZone(first)
                 }
             }
 
