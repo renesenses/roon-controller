@@ -56,6 +56,7 @@ Tous les messages sont en JSON. Format : `{ "type": "...", ...payload }`.
 | `transport/play_from_here` | `zone_id`, `queue_item_id` | Lire depuis un element de la queue |
 | `browse/browse` | `hierarchy`, `zone_id?`, `item_key?`, `input?`, `pop_levels?`, `pop_all?` | Naviguer dans la bibliotheque |
 | `browse/load` | `hierarchy`, `offset`, `count` | Charger une page de resultats |
+| `browse/play_search` | `zone_id`, `title` | Rechercher un morceau et le lire (utilise par l'historique) |
 | `core/connect` | `ip` | Connexion manuelle au Core |
 | `get_zones` | — | Demander la liste des zones |
 
@@ -150,9 +151,10 @@ WebSocket message (JSON)
 | `ContentView` | Routage : `ConnectionView` si deconnecte, sinon `NavigationSplitView` |
 | `ConnectionView` | Ecran de connexion (status, IP manuelle, reconnexion) |
 | `PlayerView` | Lecteur : pochette avec fond flou, infos piste, seek bar, controles transport, shuffle/repeat/radio |
-| `SidebarView` | Barre laterale avec 3 onglets (picker segmente) : Zones, Bibliotheque, File d'attente |
+| `SidebarView` | Barre laterale avec 4 onglets (picker segmente) : Zones, Bibliotheque, File d'attente, Historique |
 | `QueueView` | Liste de la file d'attente, item en cours surbrille, tap pour jouer depuis un point |
-| `SettingsView` | Preferences : hote/port backend, connexion manuelle Core |
+| `HistoryView` | Historique de lecture avec pochette, titre, artiste, zone, heure. Tap pour rejouer |
+| `SettingsView` | Preferences : hote/port/dossier backend, connexion manuelle Core |
 
 #### Palette de couleurs (`RoonColors.swift`)
 
@@ -168,6 +170,6 @@ WebSocket message (JSON)
 
 ### Entitlements
 
-- `com.apple.security.app-sandbox` : sandbox active
+- `com.apple.security.app-sandbox` : desactive (necessaire pour le demarrage automatique du backend via `Process`)
 - `com.apple.security.network.client` : connexions sortantes (WS, HTTP)
 - `com.apple.security.network.server` : connexions entrantes

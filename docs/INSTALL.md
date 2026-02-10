@@ -130,26 +130,11 @@ L'app et le backend peuvent tourner sur la meme machine ou sur des machines diff
 
 ## Depannage
 
-### Le backend ne trouve pas le Core
+Pour une liste complete des problemes connus et solutions, consultez **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**.
 
-- Verifiez que le Roon Core est allume et sur le meme reseau
-- Utilisez la connexion manuelle par IP dans l'app (ecran de connexion ou Parametres)
-- Verifiez qu'aucun pare-feu ne bloque le port 9330 (Roon) ou 3333 (backend)
+Quelques verifications rapides :
 
-### L'app ne se connecte pas au backend
-
-- Verifiez que le backend est lance (`node server.js`)
-- Verifiez le port dans Parametres (par defaut : 3333)
-- Verifiez la sortie console de l'app pour les messages `[WS]`
-
-### L'extension n'apparait pas dans Roon
-
-- Relancez le backend
-- Verifiez `config/roon-state.json` — supprimez-le pour repartir de zero
-- Attendez 10-20 secondes pour la decouverte SOOD
-
-### Erreur de build Xcode
-
-- Verifiez que la target est macOS (pas iOS)
-- Deployment target : macOS 15.0
-- Swift version : 6.0
+- **Le backend ne trouve pas le Core** : verifiez le reseau et le port 9330, ou utilisez la connexion manuelle par IP
+- **L'app ne se connecte pas** : verifiez que le backend tourne (`curl http://localhost:3333/api/status`)
+- **L'extension n'apparait pas dans Roon** : supprimez `config/roon-state.json` et relancez le backend
+- **Erreur de build Xcode** : target macOS, deployment target 15.0, Swift 6.0

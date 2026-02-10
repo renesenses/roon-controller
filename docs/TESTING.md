@@ -102,88 +102,58 @@ kill %1
 
 Le endpoint `/api/status` doit repondre avec un JSON valide.
 
-## Tests automatises
+## Tests automatises (Swift / XCTest)
 
-Il n'y a pas encore de tests automatises dans ce projet. Voici les pistes pour en ajouter :
+Le projet inclut 20 tests unitaires dans la target `RoonControllerTests`.
 
-### Backend (Node.js)
-
-Ajouter des tests avec **Jest** ou **Mocha** :
+### Lancer les tests
 
 ```bash
-npm install --save-dev jest
+cd "Roon client/RoonController"
+xcodebuild test -project RoonController.xcodeproj \
+  -scheme RoonControllerTests \
+  -destination 'platform=macOS'
 ```
 
-Fichier `node-backend/__tests__/server.test.js` :
+Ou depuis Xcode : **Product > Test** (Cmd+U).
 
-```javascript
-// Exemple de test unitaire pour le handler WS
-const { describe, test, expect } = require("@jest/globals");
+### Fichiers de tests
 
-describe("handleWSMessage", () => {
-    test("should reject messages without type", () => {
-        // Mock ws.send, appeler handleWSMessage({})
-        // Verifier qu'un message error est envoye
-    });
+| Fichier | Tests | Description |
+|---------|-------|-------------|
+| `Tests/RoonModelsTests.swift` | 11 tests | Decodage JSON des modeles (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
+| `Tests/RoonServiceTests.swift` | 9 tests | Logique du service (garde anti-doublon browse, historique, selection de zone, generation d'URL image) |
 
-    test("should handle transport/control", () => {
-        // Mock transport.control
-        // Verifier l'appel avec les bons parametres
-    });
-});
-```
+### Detail des tests
 
-Pour pouvoir tester, il faudrait d'abord refactorer `server.js` pour exporter les handlers (actuellement tout est dans un seul fichier).
+**RoonModelsTests** :
+- `testBrowseItemDecodesInputPromptAsObject` — input_prompt decode comme objet (pas String)
+- `testBrowseItemDecodesWithoutInputPrompt` — input_prompt optionnel
+- `testBrowseItemIdUsesItemKey` / `testBrowseItemIdFallsBackToTitle` — logique Identifiable
+- `testWSBrowseResultDecodesWithInputPromptItems` — decodage complet d'un browse_result mixte
+- `testBrowseResultItemsAreMutable` — items et offset modifiables (pagination)
+- `testPlaybackHistoryItemRoundTrip` — encodage/decodage JSON avec dates ISO 8601
+- `testRoonZoneEqualityIncludesNowPlaying` / `testRoonZoneEqualityIncludesSeekPosition` — Equatable correct
+- `testQueueItemDecoding` — decodage QueueItem complet
+- `testInputPromptDecoding` — decodage InputPrompt
 
-### App Swift (XCTest)
+**RoonServiceTests** (`@MainActor`) :
+- `testBrowsePendingKeyBlocksDuplicate` — un meme item_key ne declenche pas deux browse
+- `testBrowseDifferentKeyPassesGuard` — un item_key different passe le garde
+- `testBrowseBackResetsPendingKey` / `testBrowseHomeResetsPendingKey` — la navigation reset le garde
+- `testBrowseWithoutItemKeySkipsGuard` — le browse racine n'est jamais bloque
+- `testHistoryIsInitiallyEmpty` / `testClearHistoryRemovesAll` — gestion de l'historique
+- `testHistoryDeduplicationPreventsConsecutiveSameTrack` — pas de doublon consecutif
+- `testSelectZoneClearsQueue` — changer de zone vide la queue
+- `testImageURLGeneration` / `testImageURLReturnsNilForNilKey` — construction d'URL image
 
-Ajouter une target de test dans Xcode :
+### Note sur le nom du module
 
-1. **File > New > Target > Unit Testing Bundle**
-2. Creer `RoonControllerTests/RoonModelsTests.swift` :
-
-```swift
-import XCTest
-@testable import RoonController
-
-final class RoonModelsTests: XCTestCase {
-    func testQueueItemDecoding() throws {
-        let json = """
-        {
-            "queue_item_id": 42,
-            "one_line": {"line1": "Title"},
-            "two_line": {"line1": "Title", "line2": "Artist"},
-            "three_line": {"line1": "Title", "line2": "Artist", "line3": "Album"},
-            "length": 210,
-            "image_key": "abc123"
-        }
-        """.data(using: .utf8)!
-
-        let item = try JSONDecoder().decode(QueueItem.self, from: json)
-        XCTAssertEqual(item.queue_item_id, 42)
-        XCTAssertEqual(item.three_line?.line1, "Title")
-        XCTAssertEqual(item.length, 210)
-    }
-
-    func testZoneDecoding() throws {
-        let json = """
-        {
-            "zone_id": "zone1",
-            "display_name": "Living Room",
-            "state": "playing"
-        }
-        """.data(using: .utf8)!
-
-        let zone = try JSONDecoder().decode(RoonZone.self, from: json)
-        XCTAssertEqual(zone.zone_id, "zone1")
-        XCTAssertEqual(zone.display_name, "Living Room")
-        XCTAssertEqual(zone.state, "playing")
-    }
-}
-```
+Le module Swift s'appelle `Roon_Controller` (avec underscore) car le PRODUCT_NAME est "Roon Controller" (avec espace). Les imports de test utilisent `@testable import Roon_Controller`.
 
 ### Pistes d'amelioration
 
+- **Tests backend** : ajouter des tests Jest pour `server.js` (necessite un refactoring pour exporter les handlers)
 - **Tests d'integration** : simuler un serveur WS mock pour tester `RoonService` end-to-end
 - **Tests UI** : XCUITest pour les parcours utilisateur critiques
 - **CI** : `xcodebuild test` dans une GitHub Action
