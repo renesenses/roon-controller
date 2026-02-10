@@ -1,0 +1,139 @@
+name: Version Watch
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC — after CI cron (08:00), checks for version changes
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check-versions:
+    runs-on: macos-15
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get current runner versions
+        id: current
+        run: |
+          MACOS=$(sw_vers -productVersion)
+          XCODE=$(xcodebuild -version | head -1 | awk '{print $2}')
+          SWIFT=$(swift --version 2>&1 | grep -oE 'Swift version [0-9]+\.[0-9]+(\.[0-9]+)?' | awk '{print $3}')
+          echo "macos=$MACOS" >> "$GITHUB_OUTPUT"
+          echo "xcode=$XCODE" >> "$GITHUB_OUTPUT"
+          echo "swift=$SWIFT" >> "$GITHUB_OUTPUT"
+          echo "Runner versions: macOS $MACOS, Xcode $XCODE, Swift $SWIFT"
+
+      - name: Check Roon latest version
+        id: roon
+        run: |
+          # Fetch Roon community release notes (Discourse API)
+          ROON=$(curl -sL --max-time 15 \
+            "https://community.roonlabs.com/c/roon-software/18.json" 2>/dev/null | \
+            python3 -c "
+          import sys, json, re
+          try:
+              data = json.load(sys.stdin)
+              topics = data.get('topic_list', {}).get('topics', [])
+              for t in topics:
+                  title = t.get('title', '')
+                  m = re.search(r'(?:Build|build)\s*(\d+)', title)
+                  if m and 'release' in title.lower():
+                      print(title.strip())
+                      break
+              else:
+                  print('unknown')
+          except:
+              print('unknown')
+          " 2>/dev/null || echo "unknown")
+          echo "roon=$ROON" >> "$GITHUB_OUTPUT"
+          echo "Roon: $ROON"
+
+      - name: Load known versions
+        id: known
+        run: |
+          if [ -f .github/versions.json ]; then
+            echo "macos=$(jq -r '.macos' .github/versions.json)" >> "$GITHUB_OUTPUT"
+            echo "xcode=$(jq -r '.xcode' .github/versions.json)" >> "$GITHUB_OUTPUT"
+            echo "swift=$(jq -r '.swift' .github/versions.json)" >> "$GITHUB_OUTPUT"
+            echo "roon=$(jq -r '.roon' .github/versions.json)" >> "$GITHUB_OUTPUT"
+          else
+            echo "macos=unknown" >> "$GITHUB_OUTPUT"
+            echo "xcode=unknown" >> "$GITHUB_OUTPUT"
+            echo "swift=unknown" >> "$GITHUB_OUTPUT"
+            echo "roon=unknown" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compare and alert
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CHANGES=""
+
+          if [ "${{ steps.current.outputs.macos }}" != "${{ steps.known.outputs.macos }}" ]; then
+            CHANGES="${CHANGES}- **macOS**: \`${{ steps.known.outputs.macos }}\` → \`${{ steps.current.outputs.macos }}\`\n"
+          fi
+
+          if [ "${{ steps.current.outputs.xcode }}" != "${{ steps.known.outputs.xcode }}" ]; then
+            CHANGES="${CHANGES}- **Xcode**: \`${{ steps.known.outputs.xcode }}\` → \`${{ steps.current.outputs.xcode }}\`\n"
+          fi
+
+          if [ "${{ steps.current.outputs.swift }}" != "${{ steps.known.outputs.swift }}" ]; then
+            CHANGES="${CHANGES}- **Swift**: \`${{ steps.known.outputs.swift }}\` → \`${{ steps.current.outputs.swift }}\`\n"
+          fi
+
+          ROON_CURRENT="${{ steps.roon.outputs.roon }}"
+          ROON_KNOWN="${{ steps.known.outputs.roon }}"
+          if [ "$ROON_CURRENT" != "unknown" ] && [ "$ROON_CURRENT" != "$ROON_KNOWN" ]; then
+            CHANGES="${CHANGES}- **Roon**: \`$ROON_KNOWN\` → \`$ROON_CURRENT\`\n"
+          fi
+
+          if [ -z "$CHANGES" ]; then
+            echo "No version changes detected."
+            exit 0
+          fi
+
+          echo "Version changes detected:"
+          printf "$CHANGES"
+
+          # Check for existing open issue to avoid duplicates
+          EXISTING=$(gh issue list --label "version-watch" --state open --limit 1 --json number -q '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ]; then
+            echo "Open issue #$EXISTING already exists, adding comment."
+            gh issue comment "$EXISTING" --body "$(printf "## New version check — $(date -u +%%Y-%%m-%%d)\n\n${CHANGES}")"
+          else
+            gh issue create \
+              --title "Version update detected" \
+              --label "version-watch" \
+              --body "$(printf "## Version changes detected\n\nThe following versions have changed since last review:\n\n${CHANGES}\n\n### Action required\n\n- [ ] Run CI build and verify all 36 tests pass\n- [ ] Check for new deprecation warnings or Swift concurrency errors\n- [ ] Test SOOD discovery and MOO/1 registration manually\n- [ ] If Roon updated: verify protocol compatibility\n- [ ] Update \`.github/versions.json\` after review\n\n---\n*Detected by [version-watch](../actions/workflows/version-watch.yml) workflow*")"
+          fi
+
+      - name: Update versions.json
+        run: |
+          ROON_VAL="${{ steps.roon.outputs.roon }}"
+          if [ "$ROON_VAL" = "unknown" ]; then
+            ROON_VAL=$(jq -r '.roon' .github/versions.json)
+          fi
+          cat > .github/versions.json << EOF
+          {
+            "macos": "${{ steps.current.outputs.macos }}",
+            "xcode": "${{ steps.current.outputs.xcode }}",
+            "swift": "${{ steps.current.outputs.swift }}",
+            "roon": "$ROON_VAL",
+            "_comment": "Auto-updated by version-watch workflow on $(date -u +%Y-%m-%d)"
+          }
+          EOF
+          # Remove leading spaces from heredoc
+          sed -i '' 's/^          //' .github/versions.json 2>/dev/null || \
+            sed -i 's/^          //' .github/versions.json
+
+      - name: Commit updated versions
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/versions.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: update versions.json [version-watch]"
+          git push

@@ -1,0 +1,60 @@
+import SwiftUI
+
+struct SettingsView: View {
+    @EnvironmentObject var roonService: RoonService
+    @State private var coreIP: String = ""
+
+    var body: some View {
+        Form {
+            Section("Connexion Roon Core") {
+                HStack {
+                    if roonService.connectionState == .connected {
+                        Label("Connecte au Roon Core", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    } else if roonService.connectionState == .connecting {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Connexion en cours...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Label("Deconnecte", systemImage: "xmark.circle")
+                            .foregroundStyle(.red)
+                            .font(.caption)
+                    }
+
+                    Spacer()
+
+                    Button("Reconnecter") {
+                        roonService.disconnect()
+                        roonService.connect()
+                    }
+                }
+
+                Text("L'application decouvre automatiquement le Roon Core via le protocole SOOD sur le reseau local.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Core Roon (connexion manuelle)") {
+                TextField("Adresse IP du Core", text: $coreIP)
+                Button("Connecter a ce Core") {
+                    let ip = coreIP.trimmingCharacters(in: .whitespaces)
+                    if !ip.isEmpty {
+                        roonService.connectCore(ip: ip)
+                    }
+                }
+                .disabled(coreIP.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                Text("Utilisez ce champ uniquement si la decouverte automatique echoue.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 450, height: 280)
+    }
+}

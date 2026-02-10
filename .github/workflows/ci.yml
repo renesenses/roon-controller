@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Every Monday at 08:00 UTC — catches breakage from Xcode/macOS runner updates
+    - cron: '0 8 * * 1'
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Print Xcode and Swift versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build
+        run: >
+          xcodebuild build
+          -project RoonController/RoonController.xcodeproj
+          -scheme RoonController
+          -configuration Debug
+
+      - name: Test
+        run: >
+          xcodebuild test
+          -project RoonController/RoonController.xcodeproj
+          -scheme RoonControllerTests
+          -destination 'platform=macOS'

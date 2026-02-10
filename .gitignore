@@ -1,0 +1,23 @@
+# Node
+node-backend/node_modules/
+node-backend/config/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+**/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+*.profraw
+
+# Marp generated files
+docs/*.html
+
+# Claude Code
+.claude/
