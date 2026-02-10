@@ -8,6 +8,7 @@ La chaine CI/CD repose sur **GitHub Actions** avec deux workflows independants :
 |----------|---------|--------|--------------|
 | **CI** (build + tests) | `.github/workflows/ci.yml` | `macos-15` (Sequoia) | push, PR, cron hebdo |
 | **Claude Code** (revue IA) | `.github/workflows/claude.yml` | `ubuntu-latest` | PR, mentions `@claude` |
+| **Version Watch** (veille versions) | `.github/workflows/version-watch.yml` | `macos-15` (Sequoia) | cron hebdo, manuel |
 
 ```
                          ┌─────────────────────────────────────────────┐
@@ -24,6 +25,15 @@ La chaine CI/CD repose sur **GitHub Actions** avec deux workflows independants :
                          │  │ Checkout │→ │ Claude Code Action (v1)  │  │
                          │  └─────────┘  │ revue auto / interactif  │  │
                          │               └──────────────────────────┘  │
+                         │                                             │
+  cron hebdo / manuel ──┤  version-watch.yml                          │
+                         │  ┌─────────┐  ┌──────────┐  ┌───────────┐  │
+                         │  │ Checkout │→ │ Versions │→ │ Issue si  │  │
+                         │  └─────────┘  │ macOS    │  │ changement│  │
+                         │               │ Xcode    │  └───────────┘  │
+                         │               │ Swift    │                  │
+                         │               │ Roon     │                  │
+                         │               └──────────┘                  │
                          └─────────────────────────────────────────────┘
 ```
 
@@ -110,6 +120,45 @@ Le workflow dispose des permissions minimales necessaires :
 
 1. **Claude GitHub App** installee sur le depot (via [github.com/apps/claude](https://github.com/apps/claude))
 2. **Secret `ANTHROPIC_API_KEY`** configure dans Settings > Secrets > Actions
+
+## Workflow Version Watch — Veille versions
+
+### Objectif
+
+Detecter les mises a jour de macOS, Xcode, Swift (sur les runners GitHub) et Roon (via le forum communautaire) et ouvrir une issue quand une nouvelle version est detectee.
+
+### Declencheurs
+
+| Evenement | Condition | Raison |
+|-----------|-----------|--------|
+| `schedule` | lundi 09:00 UTC | Apres le build CI (08:00), verifie les versions |
+| `workflow_dispatch` | manuel | Verification a la demande |
+
+### Fonctionnement
+
+1. **Versions runner** : `sw_vers`, `xcodebuild -version`, `swift --version` sur `macos-15`
+2. **Version Roon** : requete API Discourse sur `community.roonlabs.com` (categorie Roon Software), extraction du dernier titre contenant "Release" et un numero de build
+3. **Comparaison** : lecture de `.github/versions.json` et comparaison avec les versions detectees
+4. **Alerte** : creation d'une issue GitHub avec label `version-watch` (ou commentaire si une issue est deja ouverte)
+5. **Mise a jour** : commit automatique du nouveau `versions.json`
+
+### Fichier de reference
+
+`.github/versions.json` stocke les dernieres versions connues :
+
+```json
+{
+  "macos": "15.2",
+  "xcode": "16.2",
+  "swift": "6.0.3",
+  "roon": "Roon 2.0 (Build 1456) Release Notes"
+}
+```
+
+### Limitations
+
+- La detection Roon repose sur le forum communautaire Discourse — si la structure change, le check retournera `unknown` (pas de faux positif)
+- Les versions du runner dependent de quand GitHub met a jour ses images `macos-15`
 
 ## Secrets
 

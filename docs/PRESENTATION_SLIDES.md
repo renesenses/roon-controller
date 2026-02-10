@@ -391,22 +391,25 @@ xcodebuild test \
 
 ## CI/CD : GitHub Actions
 
-### 2 workflows
+### 3 workflows
 
 **CI** (`ci.yml`) — build + test :
 - Push main, PRs, **cron hebdomadaire** (lundi 8h)
 - Runner `macos-15` (Sequoia)
-- Detecte les regressions Xcode en avance
 
 **Claude Code** (`claude.yml`) — revue IA :
 - Chaque PR, mentions `@claude`
-- Focus : Swift best practices, regressions SOOD/MOO, thread safety
-- 5 turns max, timeout 10 min
+- Focus : Swift best practices, thread safety
+
+**Version Watch** (`version-watch.yml`) — veille :
+- Cron hebdo (lundi 9h, apres CI)
+- Detecte changements macOS, Xcode, Swift, Roon
+- Ouvre une issue GitHub si nouvelle version
 
 ```
-PR ouverte → Claude Code analyse le diff
-           → Commente les problemes potentiels
-           → Verifie la thread-safety Swift 6
+Lundi 08:00  CI build + tests (regressions Xcode)
+Lundi 09:00  Version Watch (macOS, Xcode, Swift, Roon)
+       PR →  Claude Code (revue IA automatique)
 ```
 
 ---
@@ -422,6 +425,7 @@ PR ouverte → Claude Code analyse le diff
 | **Commits** | 26 |
 | **Actors** | 4 |
 | **Taille app** | ~5 Mo |
+| **Workflows CI** | 3 |
 
 ### 4 phases de developpement
 

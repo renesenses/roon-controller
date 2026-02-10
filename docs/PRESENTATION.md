@@ -421,6 +421,37 @@ steps:
 
 Les runners `macos-15` de GitHub sont mis a jour regulierement avec les nouvelles versions de Xcode. Un build qui passe aujourd'hui peut casser la semaine prochaine si Apple introduit de nouveaux warnings. Le cron du lundi matin detecte ces regressions proactivement.
 
+### Veille des versions (`version-watch.yml`)
+
+Un troisieme workflow surveille les changements de versions de l'environnement :
+
+```
+Lundi 09:00 UTC (apres le build CI)
+        │
+        ▼
+┌───────────────────────────────┐
+│  Detecte les versions :       │
+│  - macOS (sw_vers)            │
+│  - Xcode (xcodebuild)        │
+│  - Swift (swift --version)    │
+│  - Roon (API forum Discourse) │
+└───────────────┬───────────────┘
+                │
+    Compare avec .github/versions.json
+                │
+        ┌───────┴───────┐
+        │               │
+    Pas de           Changement
+    changement       detecte
+        │               │
+      (rien)      Ouvre une issue
+                  GitHub avec
+                  checklist de
+                  verification
+```
+
+Cela repond a un angle mort du CI classique : le build peut passer alors que l'environnement a change (nouvelle version macOS mineure, mise a jour Roon qui modifie les protocoles). La veille alerte proactivement.
+
 ---
 
 ## 8. Chiffres cles
@@ -436,7 +467,7 @@ Les runners `macos-15` de GitHub sont mis a jour regulierement avec les nouvelle
 | Classes @MainActor | 1 (RoonService) |
 | Taille de l'app | ~5 Mo |
 | Appels async/await | ~125 occurrences |
-| Workflows CI | 2 (build + Claude) |
+| Workflows CI | 3 (build + Claude + version-watch) |
 
 ### Evolution en 4 phases
 
