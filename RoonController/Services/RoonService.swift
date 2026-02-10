@@ -1,6 +1,25 @@
 import Foundation
 import Combine
 
+private func debugLog(_ message: String) {
+    let line = "[\(Date())] \(message)\n"
+    NSLog("%@", message)
+    if let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+        let path = dir.appendingPathComponent("roon_debug.log").path
+        if let data = line.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: path) {
+                if let fh = FileHandle(forWritingAtPath: path) {
+                    fh.seekToEndOfFile()
+                    fh.write(data)
+                    fh.closeFile()
+                }
+            } else {
+                FileManager.default.createFile(atPath: path, contents: data)
+            }
+        }
+    }
+}
+
 @MainActor
 class RoonService: ObservableObject {
 
@@ -97,7 +116,11 @@ class RoonService: ObservableObject {
 
         let decoder = JSONDecoder()
 
-        guard let base = try? decoder.decode(WSMessage.self, from: data) else { return }
+        guard let base = try? decoder.decode(WSMessage.self, from: data) else {
+            print("[WS] Failed to decode base message: \(text.prefix(200))")
+            return
+        }
+        debugLog("[WS] Received: \(base.type)")
 
         switch base.type {
         case "state":
@@ -296,7 +319,16 @@ class RoonService: ObservableObject {
 
     // MARK: - Browse
 
+    private var pendingBrowseKey: String?
+
     func browse(hierarchy: String = "browse", itemKey: String? = nil, input: String? = nil, popLevels: Int? = nil, popAll: Bool = false) {
+        // Prevent duplicate browse requests for the same item_key
+        let browseKey = itemKey ?? "__root__"
+        if itemKey != nil && browseKey == pendingBrowseKey {
+            return
+        }
+        pendingBrowseKey = browseKey
+
         var msg: [String: Any] = ["type": "browse/browse", "hierarchy": hierarchy]
         if let zoneId = currentZone?.zone_id {
             msg["zone_id"] = zoneId
@@ -313,6 +345,7 @@ class RoonService: ObservableObject {
     }
 
     func browseBack() {
+        pendingBrowseKey = nil
         browse(popLevels: 1)
         if !browseStack.isEmpty {
             browseStack.removeLast()
@@ -320,6 +353,7 @@ class RoonService: ObservableObject {
     }
 
     func browseHome() {
+        pendingBrowseKey = nil
         browseStack.removeAll()
         browseResult = nil
         browse(popAll: true)
@@ -346,7 +380,7 @@ class RoonService: ObservableObject {
             print("[WS] Failed to serialize message")
             return
         }
-        print("[WS] Sending: \(text)")
+        debugLog("[WS] Sending: \(text)")
         webSocketTask?.send(.string(text)) { error in
             if let error = error {
                 print("[WS] Send error: \(error.localizedDescription)")

@@ -4,6 +4,7 @@ struct SidebarView: View {
     @EnvironmentObject var roonService: RoonService
     @State private var selectedSection: SidebarSection = .zones
     @State private var searchText: String = ""
+    @State private var browseListId: UUID = UUID()
 
     enum SidebarSection: String, CaseIterable {
         case zones = "Zones"
@@ -186,6 +187,7 @@ struct SidebarView: View {
                 if !roonService.browseStack.isEmpty {
                     Button {
                         searchText = ""
+                        browseListId = UUID()
                         roonService.browseBack()
                     } label: {
                         Image(systemName: "chevron.left")
@@ -210,6 +212,7 @@ struct SidebarView: View {
                 if !roonService.browseStack.isEmpty {
                     Button {
                         searchText = ""
+                        browseListId = UUID()
                         roonService.browseHome()
                     } label: {
                         Image(systemName: "house")
@@ -271,55 +274,57 @@ struct SidebarView: View {
                         Spacer()
                     }
                 } else {
-                    List(items) { item in
-                        Button {
-                            searchText = ""
-                            handleBrowseItemTap(item)
-                        } label: {
-                            HStack(spacing: 10) {
-                                if let url = roonService.imageURL(key: item.image_key, width: 80, height: 80) {
-                                    AsyncImage(url: url) { phase in
-                                        switch phase {
-                                        case .success(let img):
-                                            img.resizable().aspectRatio(contentMode: .fill)
-                                        default:
-                                            Color.roonSurface
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(items) { item in
+                                HStack(spacing: 10) {
+                                    if let url = roonService.imageURL(key: item.image_key, width: 80, height: 80) {
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .success(let img):
+                                                img.resizable().aspectRatio(contentMode: .fill)
+                                            default:
+                                                Color.roonSurface
+                                            }
+                                        }
+                                        .frame(width: 36, height: 36)
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.title ?? "")
+                                            .foregroundStyle(Color.roonText)
+                                            .lineLimit(1)
+                                        if let subtitle = item.subtitle, !subtitle.isEmpty {
+                                            Text(subtitle)
+                                                .font(.caption)
+                                                .foregroundStyle(Color.roonSecondary)
+                                                .lineLimit(1)
                                         }
                                     }
-                                    .frame(width: 36, height: 36)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                                }
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title ?? "")
-                                        .foregroundStyle(Color.roonText)
-                                        .lineLimit(1)
-                                    if let subtitle = item.subtitle, !subtitle.isEmpty {
-                                        Text(subtitle)
+                                    Spacer()
+
+                                    if item.hint == "list" || item.hint == "action_list" {
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundStyle(Color.roonTertiary)
+                                    } else if item.hint == "action" {
+                                        Image(systemName: "play.circle")
                                             .font(.caption)
                                             .foregroundStyle(Color.roonSecondary)
-                                            .lineLimit(1)
                                     }
                                 }
-
-                                Spacer()
-
-                                if item.hint == "list" || item.hint == "action_list" {
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundStyle(Color.roonTertiary)
-                                } else if item.hint == "action" {
-                                    Image(systemName: "play.circle")
-                                        .font(.caption)
-                                        .foregroundStyle(Color.roonSecondary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    searchText = ""
+                                    handleBrowseItemTap(item)
                                 }
                             }
                         }
-                        .buttonStyle(.plain)
-                        .listRowBackground(Color.clear)
                     }
-                    .listStyle(.sidebar)
-                    .scrollContentBackground(.hidden)
                 }
             } else {
                 VStack(spacing: 12) {
@@ -337,6 +342,7 @@ struct SidebarView: View {
 
     private func handleBrowseItemTap(_ item: BrowseItem) {
         guard let itemKey = item.item_key else { return }
+        browseListId = UUID()
         roonService.browse(itemKey: itemKey)
     }
 }

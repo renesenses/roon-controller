@@ -390,6 +390,7 @@ function handlePlayFromHere(ws, msg) {
 
 function handleBrowse(ws, msg) {
     if (!browse) return sendError(ws, "Browse not available");
+    console.log("[Browse] Request:", JSON.stringify({ item_key: msg.item_key, zone_id: msg.zone_id, pop_levels: msg.pop_levels, pop_all: msg.pop_all }));
 
     const opts = {
         hierarchy:  msg.hierarchy || "browse",
@@ -403,6 +404,7 @@ function handleBrowse(ws, msg) {
 
     browse.browse(opts, (err, result) => {
         if (err) return sendError(ws, "Browse error: " + err);
+        console.log("[Browse] Result: action=" + result.action + ", list=" + result.list?.title + ", count=" + result.list?.count);
 
         // If there are items to load, load all pages
         if (result.list && result.list.count > 0) {

@@ -102,9 +102,14 @@ struct BrowseItem: Codable, Identifiable, Equatable {
     let item_key: String?
     let hint: String? // "action", "list", "action_list"
     let image_key: String?
-    let input_prompt: String?
+    let input_prompt: InputPrompt?
 
     var id: String { item_key ?? title ?? UUID().uuidString }
+}
+
+struct InputPrompt: Codable, Equatable {
+    let prompt: String?
+    let action: String?
 }
 
 struct BrowseList: Codable, Equatable {
