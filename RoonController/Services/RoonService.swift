@@ -219,7 +219,7 @@ class RoonService: ObservableObject {
         // If playing from history, go to next history item (older)
         if let idx = historyPlaybackIndex, idx + 1 < playbackHistory.count {
             let nextItem = playbackHistory[idx + 1]
-            searchAndPlay(title: nextItem.title, artist: nextItem.artist, album: nextItem.album)
+            searchAndPlay(title: nextItem.title, artist: nextItem.artist, album: nextItem.album, isRadio: nextItem.isRadio)
             return
         }
         historyPlaybackIndex = nil
@@ -231,7 +231,7 @@ class RoonService: ObservableObject {
         // If playing from history, go to previous history item (more recent)
         if let idx = historyPlaybackIndex, idx - 1 >= 0 {
             let prevItem = playbackHistory[idx - 1]
-            searchAndPlay(title: prevItem.title, artist: prevItem.artist, album: prevItem.album)
+            searchAndPlay(title: prevItem.title, artist: prevItem.artist, album: prevItem.album, isRadio: prevItem.isRadio)
             return
         }
         historyPlaybackIndex = nil
@@ -440,13 +440,22 @@ class RoonService: ObservableObject {
 
     // MARK: - Play from History (searchAndPlay)
 
-    func searchAndPlay(title: String, artist: String = "", album: String = "") {
+    func searchAndPlay(title: String, artist: String = "", album: String = "", isRadio: Bool = false) {
         guard let zoneId = currentZone?.zone_id else { return }
-        guard let browseService = browseService else { return }
 
         // Track history playback index
         if let idx = playbackHistory.firstIndex(where: { $0.title == title }) {
             historyPlaybackIndex = idx
+        }
+
+        if isRadio {
+            let stationName = album.isEmpty ? title : album
+            let radioSession = RoonBrowseService(connection: connection, sessionKey: "play_radio")
+            Task {
+                try? await playRadioStation(browseService: radioSession, zoneId: zoneId, stationName: stationName)
+                subscribeQueue()
+            }
+            return
         }
 
         let playSessionBrowse = RoonBrowseService(connection: connection, sessionKey: "play_search")
@@ -460,6 +469,20 @@ class RoonService: ObservableObject {
                 album: album
             )
         }
+    }
+
+    private func playRadioStation(
+        browseService: RoonBrowseService,
+        zoneId: String,
+        stationName: String
+    ) async throws {
+        let result = try await browseService.browse(hierarchy: "internet_radio", zoneId: zoneId, popAll: true)
+        let nameLower = stationName.lowercased()
+        let station = result.items.first {
+            ($0["title"] as? String)?.lowercased() == nameLower
+        }
+        guard let station = station, let key = station["item_key"] as? String else { return }
+        try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, hierarchy: "internet_radio")
     }
 
     private func performPlaySearch(
@@ -604,11 +627,12 @@ class RoonService: ObservableObject {
         browseService: RoonBrowseService,
         zoneId: String,
         itemKey: String,
-        depth: Int = 0
+        depth: Int = 0,
+        hierarchy: String = "browse"
     ) async throws {
         guard depth <= 3 else { return }
 
-        let result = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
+        let result = try await browseService.browse(hierarchy: hierarchy, zoneId: zoneId, itemKey: itemKey)
         let action = result.action
 
         if action == "message" { return } // Action executed
@@ -623,14 +647,23 @@ class RoonService: ObservableObject {
         let directAction = playFromHere ?? result.items.first { ($0["hint"] as? String) == "action" }
 
         if let directAction = directAction, let key = directAction["item_key"] as? String {
-            _ = try await browseService.browse(zoneId: zoneId, itemKey: key)
+            _ = try await browseService.browse(hierarchy: hierarchy, zoneId: zoneId, itemKey: key)
             return
         }
 
         // Recurse into nested action_list
         let nextItem = result.items.first { ($0["hint"] as? String) == "action_list" } ?? result.items.first
         if let nextItem = nextItem, let key = nextItem["item_key"] as? String {
-            try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, depth: depth + 1)
+            try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, depth: depth + 1, hierarchy: hierarchy)
+        }
+    }
+
+    func playItem(itemKey: String) {
+        guard let browseService = browseService,
+              let zoneId = currentZone?.zone_id else { return }
+        Task {
+            try? await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: itemKey)
+            subscribeQueue()
         }
     }
 
@@ -675,6 +708,7 @@ class RoonService: ObservableObject {
             album: np.three_line?.line3 ?? "",
             image_key: np.image_key,
             length: np.length,
+            isRadio: zone.is_seek_allowed == false,
             zone_name: zone.display_name,
             playedAt: Date()
         )

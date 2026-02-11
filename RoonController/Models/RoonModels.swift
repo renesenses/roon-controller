@@ -90,8 +90,34 @@ struct PlaybackHistoryItem: Codable, Identifiable, Equatable {
     let album: String
     let image_key: String?
     let length: Int?
+    let isRadio: Bool
     let zone_name: String
     let playedAt: Date
+
+    init(id: UUID, title: String, artist: String, album: String, image_key: String?, length: Int?, isRadio: Bool = false, zone_name: String, playedAt: Date) {
+        self.id = id
+        self.title = title
+        self.artist = artist
+        self.album = album
+        self.image_key = image_key
+        self.length = length
+        self.isRadio = isRadio
+        self.zone_name = zone_name
+        self.playedAt = playedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        artist = try c.decode(String.self, forKey: .artist)
+        album = try c.decode(String.self, forKey: .album)
+        image_key = try c.decodeIfPresent(String.self, forKey: .image_key)
+        length = try c.decodeIfPresent(Int.self, forKey: .length)
+        isRadio = try c.decodeIfPresent(Bool.self, forKey: .isRadio) ?? false
+        zone_name = try c.decode(String.self, forKey: .zone_name)
+        playedAt = try c.decode(Date.self, forKey: .playedAt)
+    }
 }
 
 // MARK: - Queue

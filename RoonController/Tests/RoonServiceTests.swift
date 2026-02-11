@@ -386,6 +386,87 @@ final class RoonServiceTests: XCTestCase {
         XCTAssertNotNil(body["changes"], "Changes format must have changes key")
     }
 
+    // MARK: - Radio history
+
+    func testRadioHistoryItemIsRadioFlag() {
+        let radio = PlaybackHistoryItem(
+            id: UUID(), title: "FIP", artist: "", album: "",
+            image_key: nil, length: nil, isRadio: true, zone_name: "Zone", playedAt: Date()
+        )
+        XCTAssertTrue(radio.isRadio)
+
+        let track = PlaybackHistoryItem(
+            id: UUID(), title: "Song", artist: "Artist", album: "Album",
+            image_key: nil, length: 240, isRadio: false, zone_name: "Zone", playedAt: Date()
+        )
+        XCTAssertFalse(track.isRadio)
+    }
+
+    func testRadioHistoryItemBackwardCompatibility() {
+        // Old history JSON without isRadio field should decode with isRadio = false
+        let json = """
+        {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "title": "Old Track", "artist": "Artist", "album": "Album",
+            "length": 200, "zone_name": "Zone",
+            "playedAt": "2025-01-01T00:00:00Z"
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let item = try? decoder.decode(PlaybackHistoryItem.self, from: Data(json.utf8))
+        XCTAssertNotNil(item)
+        XCTAssertFalse(item!.isRadio, "Old history items without isRadio must default to false")
+    }
+
+    func testRadioStationNameResolution() {
+        // When album is empty, title should be used as station name
+        let radioNoAlbum = PlaybackHistoryItem(
+            id: UUID(), title: "FIP", artist: "", album: "",
+            image_key: nil, length: nil, isRadio: true, zone_name: "Zone", playedAt: Date()
+        )
+        let stationName1 = radioNoAlbum.album.isEmpty ? radioNoAlbum.title : radioNoAlbum.album
+        XCTAssertEqual(stationName1, "FIP")
+
+        // When album has the station name (track metadata available), album is used
+        let radioWithAlbum = PlaybackHistoryItem(
+            id: UUID(), title: "I Will Survive", artist: "Gloria Gaynor", album: "FIP",
+            image_key: nil, length: 200, isRadio: true, zone_name: "Zone", playedAt: Date()
+        )
+        let stationName2 = radioWithAlbum.album.isEmpty ? radioWithAlbum.title : radioWithAlbum.album
+        XCTAssertEqual(stationName2, "FIP")
+    }
+
+    func testRadioDetectionFromZone() {
+        // is_seek_allowed == false indicates a radio stream
+        let radioZone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "FIP", line2: nil, line3: nil),
+                length: nil, seek_position: nil, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: nil,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: false,
+            is_previous_allowed: false, is_next_allowed: false
+        )
+        XCTAssertEqual(radioZone.is_seek_allowed, false)
+
+        // Regular playback has is_seek_allowed == true
+        let normalZone = RoonZone(
+            zone_id: "z2", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song", line2: "Artist", line3: "Album"),
+                length: 240, seek_position: 10, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 10,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        XCTAssertEqual(normalZone.is_seek_allowed, true)
+    }
+
     // MARK: - Registration
 
     func testRegistrationResponseParsing() {

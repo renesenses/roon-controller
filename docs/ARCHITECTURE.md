@@ -9,9 +9,15 @@
 │                          │  ←────────────────────────→   │              │
 │  SOOD · MOO/1 · WS      │     WebSocket (MOO/1)         │  port 9330   │
 └──────────────────────────┘                               └──────────────┘
+
+┌──────────────────────────┐         RAAT (audio)         ┌──────────────┐
+│    Roon Bridge (daemon)  │  ←────────────────────────   │  Roon Core   │
+│    expose DAC/audio      │                               │              │
+└──────────────────────────┘                               └──────────────┘
 ```
 
-L'app se connecte directement au Roon Core sans intermediaire. Elle implemente nativement en Swift les protocoles Roon :
+L'app se connecte directement au Roon Core sans intermediaire. Elle implemente nativement en Swift les protocoles Roon.
+**Roon Bridge** (app separee) expose les sorties audio du Mac (DAC USB, etc.) au Core via le protocole RAAT :
 
 1. **SOOD** — decouverte du Core via UDP multicast
 2. **MOO/1** — protocole de messagerie binaire sur WebSocket
@@ -260,6 +266,23 @@ Classe `@MainActor ObservableObject` qui orchestre l'ensemble :
   - `lastError` — derniere erreur
 - **Actions** : play, pause, next, previous, seek, volume, mute, shuffle, loop, radio, browse, queue
 
+### Replay depuis l'historique
+
+Le replay depuis l'historique distingue deux cas :
+
+**Morceaux** : `searchAndPlay()` effectue une recherche textuelle (album puis titre) via le Browse API et lance la lecture du premier resultat correspondant.
+
+**Radios live** : detectees par `zone.is_seek_allowed == false` lors de l'enregistrement dans l'historique (champ `isRadio`). Au replay, `playRadioStation()` parcourt la hierarchie `internet_radio` du Browse API, trouve la station par nom (dans `album` ou `title` selon la metadata disponible), et navigue le menu d'actions pour lancer la lecture.
+
+```
+Historique → searchAndPlay(isRadio: true)
+               → playRadioStation()
+                   → browse(hierarchy: "internet_radio", popAll: true)
+                   → match station par nom
+                   → playBrowseItem(hierarchy: "internet_radio")
+                       → selectionne l'action "Play"
+```
+
 ### Flux de donnees
 
 ```
@@ -319,7 +342,7 @@ BrowseItem
 | `PlayerView` | Lecteur : pochette avec fond flou, infos piste, seek bar, controles transport, shuffle/repeat/radio |
 | `SidebarView` | Barre laterale avec 4 onglets : Zones, Bibliotheque, File d'attente, Historique |
 | `QueueView` | Liste de la file d'attente, item en cours surbrille, tap pour jouer depuis un point |
-| `HistoryView` | Historique de lecture avec pochette, titre, artiste, zone, heure. Tap pour rejouer |
+| `HistoryView` | Historique de lecture avec pochette, titre, artiste, zone, heure. Tap pour rejouer (morceaux et radios) |
 | `SettingsView` | Connexion manuelle au Core par IP |
 
 ### Palette de couleurs (`RoonColors.swift`)

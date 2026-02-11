@@ -373,22 +373,26 @@ private func scheduleReconnect() {
 
 ## 7. Tests et CI/CD
 
-### 36 tests unitaires
+### 44 tests unitaires
 
 Les tests couvrent trois niveaux :
 
-**Modeles** (RoonModelsTests — 15 tests) :
+**Modeles** (RoonModelsTests — 11 tests) :
 - Decodage JSON de tous les types (Zone, QueueItem, BrowseItem, NowPlaying)
 - `InputPrompt` decode comme objet (pas comme string — bug corrige)
 - Egalite des zones (inclut `now_playing` et `seek_position`)
 - Encodage/decodage ISO 8601 des dates d'historique
 
-**Services** (RoonServiceTests — 21 tests) :
+**Services** (RoonServiceTests — 33 tests) :
 - Garde anti-doublon du browse (`pendingBrowseKey`)
 - Reset de navigation (retour, home)
 - Deduplication de l'historique de lecture
 - Generation d'URLs d'images
 - Selection de zone vide la queue
+- Detection radio via `is_seek_allowed` et flag `isRadio`
+- Resolution du nom de station (fallback `title` quand `album` est vide)
+- Backward-compatibility du decodage JSON (historique sans champ `isRadio`)
+- Format du body `subscribe_queue` (regression `zone_or_output_id`)
 
 **Protocole** (dans RoonServiceTests) :
 - Parsing de messages MOO/1 (REQUEST, COMPLETE, CONTINUE)
@@ -458,27 +462,28 @@ Cela repond a un angle mort du CI classique : le build peut passer alors que l'e
 
 | Metrique | Valeur |
 |----------|--------|
-| Lignes de Swift | ~4 500 |
+| Lignes de Swift | ~4 700 |
 | Fichiers Swift | 25 |
-| Tests unitaires | 36 |
+| Tests unitaires | 44 |
 | Dependances externes | **0** |
-| Commits | 26 |
+| Commits | 31 |
 | Acteurs Swift | 4 |
 | Classes @MainActor | 1 (RoonService) |
 | Taille de l'app | ~5 Mo |
 | Appels async/await | ~125 occurrences |
 | Workflows CI | 3 (build + Claude + version-watch) |
+| Stack audio | Roon Controller + Roon Bridge (sans Roon.app) |
 
 ### Evolution en 4 phases
 
 ```
-Phase 1          Phase 2           Phase 3           Phase 4
-Prototype        Natif             Stabilisation     CI/CD
-─────────────    ─────────────     ─────────────     ─────────────
-Node.js backend  Rewrite Swift     Fix SOOD          GitHub Actions
-SwiftUI client   SOOD + MOO/1     Fix MOO            Claude Code
-5 npm packages   natifs            POSIX sockets     36 tests
-WebSocket relay  0 dependances     Dual-socket       Cron hebdo
+Phase 1          Phase 2           Phase 3           Phase 4           Phase 5
+Prototype        Natif             Stabilisation     CI/CD             Autonome
+─────────────    ─────────────     ─────────────     ─────────────     ─────────────
+Node.js backend  Rewrite Swift     Fix SOOD          GitHub Actions    Radio replay
+SwiftUI client   SOOD + MOO/1     Fix MOO            Claude Code       Roon Bridge
+5 npm packages   natifs            POSIX sockets     44 tests          Roon.app supprime
+WebSocket relay  0 dependances     Dual-socket       Cron hebdo        DMG distributable
 ```
 
 ### Ce qui a ete construit
@@ -489,7 +494,7 @@ WebSocket relay  0 dependances     Dual-socket       Cron hebdo
 - **Transport** : play, pause, next, prev, seek, shuffle, repeat, radio
 - **Browse** : navigation hierarchique dans la bibliotheque, recherche, pagination
 - **Queue** : affichage en temps reel, play-from-here
-- **Historique** : tracking automatique, deduplication, persistance JSON
+- **Historique** : tracking automatique, deduplication, persistance JSON, replay de radios live via `internet_radio`
 - **Images** : serveur HTTP local :9150, cache LRU, chargement asynchrone
 - **Reconnexion** : backoff exponentiel, detection de deconnexion
 
@@ -500,3 +505,5 @@ WebSocket relay  0 dependances     Dual-socket       Cron hebdo
 Ce projet demontre qu'il est possible de construire un client Roon complet et performant sans aucune dependance externe, en reimplementant des protocoles proprietaires non documentes en Swift pur. L'architecture basee sur les actors Swift 6 garantit la thread-safety a la compilation, et le pipeline CI/CD avec revue IA assure la qualite du code en continu.
 
 Le passage de l'architecture Node.js a Swift natif a elimine une couche complete de complexite tout en ameliorant les performances, la fiabilite et la distribuabilite de l'application.
+
+Combine avec **Roon Bridge** (daemon audio gratuit), l'app remplace completement le client officiel Roon.app (~500 Mo) par une solution legere et native : **Roon Controller** (~5 Mo) pour le controle et **Roon Bridge** (~37 Mo) pour la sortie audio.

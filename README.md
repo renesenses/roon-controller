@@ -28,7 +28,7 @@ Application macOS native (SwiftUI) pour controler un systeme audio [Roon](https:
 - Recherche dans les resultats de navigation
 - File d'attente (queue) avec lecture depuis un morceau
 - Controle du volume par sortie (slider + mute)
-- Historique de lecture avec replay
+- Historique de lecture avec replay (morceaux et radios live)
 - Reconnexion automatique avec backoff exponentiel
 - Theme sombre style Roon
 
@@ -37,6 +37,7 @@ Application macOS native (SwiftUI) pour controler un systeme audio [Roon](https:
 - **macOS 15.0** (Sequoia) ou superieur
 - **Xcode 16** ou superieur
 - Un **Roon Core** actif sur le reseau local
+- **Roon Bridge** (recommande) pour exposer les sorties audio (DAC) du Mac au Core
 
 ## Installation rapide
 
@@ -61,6 +62,21 @@ open RoonController.xcodeproj
 4. Les zones apparaissent dans la barre laterale — selectionnez-en une pour commencer
 
 > Pour une connexion manuelle : ouvrez **Parametres** (Cmd+,) et entrez l'adresse IP du Core.
+
+## Roon Bridge (sortie audio)
+
+Pour utiliser un DAC connecte au Mac comme sortie audio Roon, installez **Roon Bridge** (gratuit). Il tourne en arriere-plan et expose les peripheriques audio du Mac au Core, sans avoir besoin de Roon.app.
+
+```bash
+# Telecharger et installer
+curl -L -o ~/Downloads/RoonBridge.dmg https://download.roonlabs.net/builds/RoonBridge.dmg
+open ~/Downloads/RoonBridge.dmg
+# Glisser RoonBridge.app dans /Applications, puis lancer
+```
+
+Pour le lancement automatique au demarrage : **Reglages Systeme > General > Ouverture > ajouter RoonBridge**.
+
+> Voir [docs/INSTALL.md](docs/INSTALL.md) pour plus de details.
 
 ## Structure du projet
 

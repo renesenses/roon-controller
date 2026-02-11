@@ -59,6 +59,49 @@ Si la decouverte automatique echoue :
 3. Entrez l'adresse IP du Roon Core
 4. Cliquez "Connecter a ce Core"
 
+## 5. Roon Bridge (sortie audio)
+
+Pour utiliser un DAC connecte au Mac comme sortie audio Roon (zone endpoint), installez **Roon Bridge**. C'est une app gratuite qui tourne en arriere-plan et expose les peripheriques audio du Mac au Roon Core, independamment de Roon.app.
+
+### Installation
+
+```bash
+# Telecharger
+curl -L -o ~/Downloads/RoonBridge.dmg https://download.roonlabs.net/builds/RoonBridge.dmg
+
+# Monter et copier
+hdiutil attach ~/Downloads/RoonBridge.dmg
+cp -R "/Volumes/RoonBridge/RoonBridge.app" /Applications/
+hdiutil detach /Volumes/RoonBridge
+```
+
+### Lancement
+
+```bash
+open /Applications/RoonBridge.app
+```
+
+Roon Bridge est une app sans interface visible — elle tourne en arriere-plan. Le DAC connecte au Mac apparait comme zone disponible dans le Roon Core.
+
+### Lancement automatique au demarrage
+
+Ajoutez RoonBridge aux elements d'ouverture : **Reglages Systeme > General > Ouverture** ou via la ligne de commande :
+
+```bash
+osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/RoonBridge.app", hidden:true}'
+```
+
+### Roon.app vs Roon Bridge
+
+| | Roon.app | Roon Bridge |
+|---|---|---|
+| Interface graphique | Oui (app complete) | Non (daemon) |
+| Expose les DAC au Core | Oui | Oui |
+| Taille | ~500 Mo | ~37 Mo |
+| Usage recommande | Non necessaire si vous utilisez Roon Controller | Recommande comme endpoint audio |
+
+> Avec **Roon Controller + Roon Bridge**, vous n'avez plus besoin de Roon.app sur le Mac.
+
 ## Depannage
 
 Pour une liste complete des problemes connus et solutions, consultez **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**.
