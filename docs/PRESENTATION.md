@@ -27,6 +27,7 @@ Construire un **controleur Roon leger et natif** en SwiftUI :
 - Empreinte memoire minimale
 - Interface macOS native
 - Zero dependances externes
+- Interface bilingue (francais/anglais) suivant la langue du systeme
 
 ### Le defi technique
 
@@ -40,18 +41,12 @@ Les protocoles Roon (**SOOD** pour la decouverte, **MOO/1** pour la communicatio
 
 Le SDK officiel Roon etant en Node.js (`node-roon-api`), la premiere approche a ete de l'utiliser comme backend :
 
-```
-┌─────────────────────┐     WebSocket     ┌──────────────────┐     MOO/1     ┌────────────┐
-│   SwiftUI App       │ ◄──────────────► │  Node.js Backend  │ ◄──────────► │  Roon Core  │
-│   (macOS native)    │   localhost:3000  │  (node-roon-api)  │   TCP:9330   │  (serveur)  │
-└─────────────────────┘                   └──────────────────┘              └────────────┘
-                                                  │
-                                           npm dependencies:
-                                           - node-roon-api
-                                           - node-roon-api-transport
-                                           - node-roon-api-browse
-                                           - node-roon-api-image
-                                           - ws (WebSocket)
+```mermaid
+graph LR
+    A["SwiftUI App<br/>(macOS native)"] <-->|"WebSocket<br/>localhost:3000"| B["Node.js Backend<br/>(node-roon-api)"]
+    B <-->|"MOO/1<br/>TCP:9330"| C["Roon Core<br/>(serveur)"]
+
+    B -.- D["npm dependencies:<br/>node-roon-api<br/>node-roon-api-transport<br/>node-roon-api-browse<br/>node-roon-api-image<br/>ws"]
 ```
 
 ### Comment ca marchait
@@ -93,31 +88,17 @@ Plutot que de chercher un compromis (embarquer Node.js, utiliser un bridge C...)
 
 ### La nouvelle architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      RoonController.app                      │
-│                                                              │
-│  ┌──────────────┐    ┌───────────────┐    ┌──────────────┐  │
-│  │  SwiftUI     │    │  RoonService  │    │  Roon/       │  │
-│  │  Views       │◄──►│  @MainActor   │◄──►│  Protocol    │  │
-│  │              │    │  Observable   │    │  (actors)    │  │
-│  └──────────────┘    └───────────────┘    └──────┬───────┘  │
-│                                                   │          │
-│                              ┌────────────────────┤          │
-│                              │                    │          │
-│                     ┌────────┴───────┐   ┌───────┴────────┐ │
-│                     │ SOODDiscovery  │   │ MOOTransport   │ │
-│                     │ (UDP POSIX)    │   │ (WebSocket)    │ │
-│                     └────────┬───────┘   └───────┬────────┘ │
-│                              │                    │          │
-└──────────────────────────────┼────────────────────┼──────────┘
-                               │                    │
-                          UDP multicast        WebSocket TCP
-                         239.255.90.90:9003    ws://core:9330/api
-                               │                    │
-                        ┌──────┴────────────────────┴──────┐
-                        │           Roon Core               │
-                        └──────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph APP["RoonController.app"]
+        Views["SwiftUI Views"] <--> Service["RoonService<br/>@MainActor<br/>Observable"]
+        Service <--> Protocol["Roon / Protocol<br/>(actors)"]
+        Protocol --> SOOD["SOODDiscovery<br/>(UDP POSIX)"]
+        Protocol --> MOO["MOOTransport<br/>(WebSocket)"]
+    end
+
+    SOOD -->|"UDP multicast<br/>239.255.90.90:9003"| Core["Roon Core"]
+    MOO <-->|"WebSocket TCP<br/>ws://core:9330/api"| Core
 ```
 
 ### Ce que ca change
@@ -193,31 +174,32 @@ Content-Type: application/json
 
 **Flux typique — controle de lecture** :
 
-```
-App                                    Core
- │                                      │
- │─── REQUEST transport:1/play_pause ──►│
- │◄── COMPLETE (200 OK) ───────────────│
- │                                      │
- │◄── CONTINUE zones_changed ──────────│  (subscription update)
- │                                      │
+```mermaid
+sequenceDiagram
+    participant App
+    participant Core
+
+    App->>Core: REQUEST transport:1/play_pause
+    Core-->>App: COMPLETE (200 OK)
+    Core-->>App: CONTINUE zones_changed (subscription update)
 ```
 
 **Flux d'enregistrement** :
 
-```
-App                                    Core
- │                                      │
- │─── REQUEST registry:1/info ────────►│
- │◄── COMPLETE {services list} ────────│
- │                                      │
- │─── REQUEST registry:1/register ────►│  (extension_id, display_name, token)
- │◄── CONTINUE {core_id, token} ──────│  (token a persister)
- │                                      │
- │─── REQUEST transport:2/subscribe ──►│  (subscribe_zones)
- │◄── CONTINUE {zones} ───────────────│  (etat initial)
- │◄── CONTINUE {zones_changed} ───────│  (mises a jour en continu)
- │                                      │
+```mermaid
+sequenceDiagram
+    participant App
+    participant Core
+
+    App->>Core: REQUEST registry:1/info
+    Core-->>App: COMPLETE {services list}
+
+    App->>Core: REQUEST registry:1/register (extension_id, display_name, token)
+    Core-->>App: CONTINUE {core_id, token} (token a persister)
+
+    App->>Core: REQUEST transport:2/subscribe (subscribe_zones)
+    Core-->>App: CONTINUE {zones} (etat initial)
+    Core-->>App: CONTINUE {zones_changed} (mises a jour en continu)
 ```
 
 ### Reverse-engineering
@@ -301,24 +283,24 @@ startReceiveLoop(on: sendFd, label: "unicast")     // port ephemere
 
 ### Pile protocolaire
 
-```
-┌─────────────────────────────────────────────────┐
-│                  SwiftUI Views                   │  @MainActor (implicite)
-│         PlayerView, SidebarView, ...            │
-├─────────────────────────────────────────────────┤
-│               RoonService                        │  @MainActor, ObservableObject
-│      @Published zones, currentZone, queue        │  Bridge actors ↔ UI
-├────────────────┬────────────────────────────────┤
-│  Transport     │  Browse    │  Image   │ Status │  Services metier
-│  Service       │  Service   │  Service │ Service│  (structs, pas actors)
-├────────────────┴────────────┴──────────┴────────┤
-│              RoonConnection (actor)               │  Lifecycle + routing
-├────────────────┬────────────────────────────────┤
-│ SOODDiscovery  │         MOOTransport            │  Protocoles reseau
-│ (actor, POSIX) │     (actor, WebSocket)          │
-├────────────────┴────────────────────────────────┤
-│          Darwin / Foundation / URLSession         │  Frameworks systeme
-└─────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    A["SwiftUI Views — @MainActor (implicite)"]
+    B["RoonService — @MainActor, ObservableObject"]
+    C["Transport"]
+    D["Browse"]
+    E["Image"]
+    F["Status"]
+    G["RoonConnection (actor) — Lifecycle + routing"]
+    H["SOODDiscovery<br/>(actor, POSIX)"]
+    I["MOOTransport<br/>(actor, WebSocket)"]
+    J["Darwin / Foundation / URLSession"]
+
+    A --> B
+    B --> C & D & E & F
+    C & D & E & F --> G
+    G --> H & I
+    H & I --> J
 ```
 
 ### Les 4 actors du projet
@@ -375,7 +357,7 @@ private func scheduleReconnect() {
 
 ## 7. Tests et CI/CD
 
-### 44 tests unitaires
+### 104 tests unitaires
 
 Les tests couvrent trois niveaux :
 
@@ -431,29 +413,12 @@ Les runners `macos-15` de GitHub sont mis a jour regulierement avec les nouvelle
 
 Un troisieme workflow surveille les changements de versions de l'environnement :
 
-```
-Lundi 09:00 UTC (apres le build CI)
-        │
-        ▼
-┌───────────────────────────────┐
-│  Detecte les versions :       │
-│  - macOS (sw_vers)            │
-│  - Xcode (xcodebuild)        │
-│  - Swift (swift --version)    │
-│  - Roon (API forum Discourse) │
-└───────────────┬───────────────┘
-                │
-    Compare avec .github/versions.json
-                │
-        ┌───────┴───────┐
-        │               │
-    Pas de           Changement
-    changement       detecte
-        │               │
-      (rien)      Ouvre une issue
-                  GitHub avec
-                  checklist de
-                  verification
+```mermaid
+flowchart TD
+    A["Lundi 09:00 UTC<br/>(apres le build CI)"] --> B["Detecte les versions :<br/>macOS, Xcode, Swift, Roon"]
+    B --> C{"Compare avec<br/>.github/versions.json"}
+    C -->|Pas de changement| D["(rien)"]
+    C -->|Changement detecte| E["Ouvre une issue GitHub<br/>avec checklist de verification"]
 ```
 
 Cela repond a un angle mort du CI classique : le build peut passer alors que l'environnement a change (nouvelle version macOS mineure, mise a jour Roon qui modifie les protocoles). La veille alerte proactivement.
@@ -464,28 +429,30 @@ Cela repond a un angle mort du CI classique : le build peut passer alors que l'e
 
 | Metrique | Valeur |
 |----------|--------|
-| Lignes de Swift | ~4 700 |
-| Fichiers Swift | 25 |
-| Tests unitaires | 44 |
+| Lignes de Swift | ~6 000 |
+| Fichiers Swift | 27 |
+| Tests unitaires | 104 |
 | Dependances externes | **0** |
 | Commits | 31 |
 | Acteurs Swift | 4 |
 | Classes @MainActor | 1 (RoonService) |
 | Taille de l'app | ~5 Mo |
-| Appels async/await | ~125 occurrences |
+| Appels async/await | ~128 occurrences |
+| Langues UI | 2 (francais, anglais) |
 | Workflows CI | 3 (build + Claude + version-watch) |
 | Stack audio | Roon Controller + Roon Bridge (sans Roon.app) |
 
-### Evolution en 4 phases
+### Evolution en 6 phases
 
-```
-Phase 1          Phase 2           Phase 3           Phase 4           Phase 5
-Prototype        Natif             Stabilisation     CI/CD             Autonome
-─────────────    ─────────────     ─────────────     ─────────────     ─────────────
-Node.js backend  Rewrite Swift     Fix SOOD          GitHub Actions    Radio replay
-SwiftUI client   SOOD + MOO/1     Fix MOO            Claude Code       Roon Bridge
-5 npm packages   natifs            POSIX sockets     44 tests          Roon.app supprime
-WebSocket relay  0 dependances     Dual-socket       Cron hebdo        DMG distributable
+```mermaid
+timeline
+    title Evolution du projet
+    Phase 1 - Prototype : Node.js backend : SwiftUI client : 5 npm packages : WebSocket relay
+    Phase 2 - Natif : Rewrite Swift : SOOD + MOO/1 natifs : 0 dependances
+    Phase 3 - Stabilisation : Fix SOOD : Fix MOO : POSIX sockets : Dual-socket
+    Phase 4 - CI/CD : GitHub Actions : Claude Code : 104 tests : Cron hebdo
+    Phase 5 - Autonome : Radio replay : Roon Bridge : Roon.app supprime : DMG distributable
+    Phase 6 - Localisation : String Catalog : FR + EN : Langue systeme : .xcstrings
 ```
 
 ### Ce qui a ete construit
@@ -499,6 +466,7 @@ WebSocket relay  0 dependances     Dual-socket       Cron hebdo        DMG distr
 - **Historique** : tracking automatique, deduplication, persistance JSON, replay de radios live via `internet_radio`
 - **Images** : serveur HTTP local :9150, cache LRU, chargement asynchrone
 - **Reconnexion** : backoff exponentiel, detection de deconnexion
+- **Localisation** : String Catalog (.xcstrings) avec francais et anglais, suit la langue du systeme
 
 ---
 

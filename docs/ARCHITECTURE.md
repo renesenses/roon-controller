@@ -4,18 +4,20 @@
 
 ## Vue d'ensemble
 
-```
-┌──────────────────────────┐     SOOD (UDP multicast)     ┌──────────────┐
-│    App macOS (Swift)     │  ──────────────────────────→  │  Roon Core   │
-│    SwiftUI · native      │                               │  (serveur)   │
-│                          │  ←────────────────────────→   │              │
-│  SOOD · MOO/1 · WS      │     WebSocket (MOO/1)         │  port 9330   │
-└──────────────────────────┘                               └──────────────┘
+```mermaid
+graph LR
+    subgraph Controle
+        App["App macOS (Swift)<br/>SwiftUI · native<br/>SOOD · MOO/1 · WS"]
+    end
 
-┌──────────────────────────┐         RAAT (audio)         ┌──────────────┐
-│    Roon Bridge (daemon)  │  ←────────────────────────   │  Roon Core   │
-│    expose DAC/audio      │                               │              │
-└──────────────────────────┘                               └──────────────┘
+    App -->|"SOOD (UDP multicast)"| Core["Roon Core<br/>(serveur)<br/>port 9330"]
+    App <-->|"WebSocket (MOO/1)"| Core
+
+    subgraph Audio
+        Bridge["Roon Bridge (daemon)<br/>expose DAC/audio"]
+    end
+
+    Core -->|"RAAT (audio)"| Bridge
 ```
 
 L'app se connecte directement au Roon Core sans intermediaire. Elle implemente nativement en Swift les protocoles Roon.
@@ -27,18 +29,18 @@ L'app se connecte directement au Roon Core sans intermediaire. Elle implemente n
 
 ## Pile protocolaire
 
-```
-┌─────────────────────────────────┐
-│         RoonService             │  @MainActor ObservableObject
-│    (orchestrateur UI/logique)   │
-├─────────────────────────────────┤
-│        RoonConnection           │  Actor — cycle de vie complet
-│  discovery → WS → registration  │  → message routing
-├──────────┬──────────┬───────────┤
-│   SOOD   │   MOO    │  Registry │
-│ Discovery│ Transport│ Registration│
-│ (UDP)    │ (WS)     │ (handshake)│
-└──────────┴──────────┴───────────┘
+```mermaid
+graph TD
+    A["RoonService<br/>@MainActor ObservableObject<br/>(orchestrateur UI/logique)"]
+    B["RoonConnection — Actor<br/>discovery → WS → registration → message routing"]
+    C["SOODDiscovery<br/>(UDP)"]
+    D["MOOTransport<br/>(WS)"]
+    E["RoonRegistration<br/>(handshake)"]
+
+    A --> B
+    B --> C
+    B --> D
+    B --> E
 ```
 
 ## Protocole SOOD (decouverte)
@@ -47,11 +49,9 @@ L'app se connecte directement au Roon Core sans intermediaire. Elle implemente n
 
 SOOD utilise UDP multicast sur `239.255.90.90:9003` avec un format binaire proprietaire :
 
-```
-┌──────┬─────────┬──────┬────────────────┐
-│ SOOD │ version │ type │  properties... │
-│ 4B   │  1B     │ 1B   │  variable      │
-└──────┴─────────┴──────┴────────────────┘
+```mermaid
+graph LR
+    A["SOOD<br/>(magic 4B)"] --- B["version<br/>(1B)"] --- C["type<br/>(1B)"] --- D["properties...<br/>(variable)"]
 ```
 
 - **Magic** : `0x53 0x4F 0x4F 0x44` ("SOOD")
@@ -123,26 +123,20 @@ Content-Length: {length}\n           (optionnel, si body present)
 
 ### Cycle requete/reponse
 
-```
-App                                    Core
- │                                      │
- │  REQUEST com.roonlabs.registry:1/info│
- │ ────────────────────────────────────→│
- │                                      │
- │  COMPLETE Success                    │
- │ ←────────────────────────────────────│
- │                                      │
- │  REQUEST .../subscribe_zones         │
- │ ────────────────────────────────────→│
- │                                      │
- │  CONTINUE Subscribed (zones data)    │
- │ ←────────────────────────────────────│  (repete a chaque changement)
- │                                      │
- │  REQUEST com.roonlabs.ping:1/ping    │
- │ ←────────────────────────────────────│  (keepalive du Core)
- │                                      │
- │  COMPLETE Success                    │
- │ ────────────────────────────────────→│
+```mermaid
+sequenceDiagram
+    participant App
+    participant Core
+
+    App->>Core: REQUEST com.roonlabs.registry:1/info
+    Core-->>App: COMPLETE Success
+
+    App->>Core: REQUEST .../subscribe_zones
+    Core-->>App: CONTINUE Subscribed (zones data)
+    Note right of Core: repete a chaque changement
+
+    Core->>App: REQUEST com.roonlabs.ping:1/ping (keepalive)
+    App-->>Core: COMPLETE Success
 ```
 
 ### Implementation (`MOOMessage.swift`, `MOOTransport.swift`)
@@ -189,12 +183,15 @@ Le token d'autorisation est sauvegarde dans `UserDefaults` (`roon_core_token`). 
 
 ### Etats
 
-```
-disconnected → discovering → connecting → registering → connected
-                                                           ↓
-                                                      disconnected
-                                                           ↓
-                                                    (scheduleReconnect)
+```mermaid
+stateDiagram-v2
+    disconnected --> discovering
+    discovering --> connecting
+    connecting --> registering
+    registering --> connected
+    connected --> disconnected
+    disconnected --> reconnecting: scheduleReconnect
+    reconnecting --> discovering
 ```
 
 ### Responsabilites
@@ -276,62 +273,73 @@ Le replay depuis l'historique distingue deux cas :
 
 **Radios live** : detectees par `zone.is_seek_allowed == false` lors de l'enregistrement dans l'historique (champ `isRadio`). Au replay, `playRadioStation()` parcourt la hierarchie `internet_radio` du Browse API, trouve la station par nom (dans `album` ou `title` selon la metadata disponible), et navigue le menu d'actions pour lancer la lecture.
 
-```
-Historique → searchAndPlay(isRadio: true)
-               → playRadioStation()
-                   → browse(hierarchy: "internet_radio", popAll: true)
-                   → match station par nom
-                   → playBrowseItem(hierarchy: "internet_radio")
-                       → selectionne l'action "Play"
+```mermaid
+flowchart LR
+    A["Historique"] --> B["searchAndPlay<br/>(isRadio: true)"]
+    B --> C["playRadioStation()"]
+    C --> D["browse(hierarchy:<br/>internet_radio,<br/>popAll: true)"]
+    D --> E["match station<br/>par nom"]
+    E --> F["playBrowseItem(hierarchy:<br/>internet_radio)"]
+    F --> G["selectionne<br/>l'action Play"]
 ```
 
 ### Flux de donnees
 
-```
-Roon Core (WebSocket MOO/1)
-    → RoonConnection (message routing)
-        → RoonService callbacks (Data)
-            → decode JSON, met a jour @Published
-                → SwiftUI re-render les vues
+```mermaid
+flowchart LR
+    A["Roon Core<br/>(WebSocket MOO/1)"] --> B["RoonConnection<br/>(message routing)"]
+    B --> C["RoonService<br/>callbacks (Data)"]
+    C --> D["decode JSON<br/>met a jour @Published"]
+    D --> E["SwiftUI<br/>re-render les vues"]
 ```
 
 ### Modeles (`RoonModels.swift`)
 
-```
-RoonZone
-├── zone_id: String
-├── display_name: String
-├── state: String?              // playing, paused, loading, stopped
-├── now_playing: NowPlaying?
-├── outputs: [RoonOutput]?
-├── settings: ZoneSettings?
-├── seek_position: Int?
-└── is_play/pause/seek/previous/next_allowed: Bool?
+```mermaid
+classDiagram
+    class RoonZone {
+        zone_id: String
+        display_name: String
+        state: String?
+        now_playing: NowPlaying?
+        outputs: [RoonOutput]?
+        settings: ZoneSettings?
+        seek_position: Int?
+        is_play/pause/seek_allowed: Bool?
+    }
 
-NowPlaying
-├── one_line / two_line / three_line: LineInfo?
-├── length: Int?
-├── seek_position: Int?
-└── image_key: String?
+    class NowPlaying {
+        one_line / two_line / three_line: LineInfo?
+        length: Int?
+        seek_position: Int?
+        image_key: String?
+    }
 
-QueueItem
-├── queue_item_id: Int
-├── one_line / two_line / three_line: LineInfo?
-├── length: Int?
-└── image_key: String?
+    class QueueItem {
+        queue_item_id: Int
+        one_line / two_line / three_line: LineInfo?
+        length: Int?
+        image_key: String?
+    }
 
-RoonOutput
-├── output_id: String
-├── display_name: String
-├── zone_id: String?
-└── volume: VolumeInfo?
+    class RoonOutput {
+        output_id: String
+        display_name: String
+        zone_id: String?
+        volume: VolumeInfo?
+    }
 
-BrowseItem
-├── title / subtitle: String?
-├── item_key: String?
-├── hint: String?              // action, list, action_list
-├── image_key: String?
-└── input_prompt: InputPrompt?
+    class BrowseItem {
+        title / subtitle: String?
+        item_key: String?
+        hint: String?
+        image_key: String?
+        input_prompt: InputPrompt?
+    }
+
+    RoonZone --> NowPlaying
+    RoonZone --> RoonOutput
+    RoonZone --> QueueItem
 ```
 
 ### Vues

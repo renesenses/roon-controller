@@ -6,15 +6,19 @@
 
 Native macOS application (SwiftUI) to control a [Roon](https://roon.app) audio system. The app connects directly to the Roon Core via native SOOD and MOO protocols, with no intermediary.
 
+| English | Francais |
+|---------|----------|
+| ![English UI](https://github.com/renesenses/roon-controller/releases/download/v1.0.0/RoonController_EN.png) | ![Interface francaise](https://github.com/renesenses/roon-controller/releases/download/v1.0.0/RoonController_FR.png) |
+
 ## Architecture
 
-```
-+----------------------------+     SOOD (UDP multicast)     +--------------+
-|    macOS App (Swift)       |  ---------------------------> |  Roon Core   |
-|    SwiftUI - native        |                               |  (server)    |
-|                            |  <------------------------->  |              |
-|  SOOD - MOO/1 - WS        |     WebSocket (MOO/1)         |  port 9330   |
-+----------------------------+                               +--------------+
+```mermaid
+graph LR
+    App["macOS App (Swift)<br/>SwiftUI · native<br/>SOOD · MOO/1 · WS"]
+    Core["Roon Core<br/>(server)<br/>port 9330"]
+
+    App -->|"SOOD (UDP multicast)"| Core
+    App <-->|"WebSocket (MOO/1)"| Core
 ```
 
 - **macOS App**: SwiftUI interface with native implementation of Roon protocols (SOOD discovery + MOO/1 over WebSocket)
@@ -36,11 +40,12 @@ Native macOS application (SwiftUI) to control a [Roon](https://roon.app) audio s
 - Automatic reconnection with exponential backoff
 - Local seek interpolation for smooth progress bar
 - Dark theme matching Roon style
+- Localized UI in French and English (follows system language)
 
 ## Requirements
 
-- **macOS 15.0** (Sequoia) or later
-- **Xcode 16** or later
+- **macOS 15.0** (Sequoia) or later (tested on macOS 26 Tahoe)
+- **Xcode 26** or later
 - An active **Roon Core** on the local network
 - **Roon Bridge** (recommended) to expose the Mac's audio outputs (DAC) to the Core
 
@@ -99,6 +104,7 @@ For auto-start at login: **System Settings > General > Login Items > add RoonBri
 Roon client/
 +-- RoonController/
 |   +-- RoonControllerApp.swift          # App entry point
+|   +-- Localizable.xcstrings            # French/English translations (String Catalog)
 |   +-- Models/
 |   |   +-- RoonModels.swift             # Data models (Zone, NowPlaying, Queue, Browse...)
 |   +-- Services/

@@ -6,15 +6,19 @@
 
 Application macOS native (SwiftUI) pour controler un systeme audio [Roon](https://roon.app). L'app se connecte directement au Roon Core via les protocoles natifs SOOD et MOO, sans intermediaire.
 
+| Francais | English |
+|----------|---------|
+| ![Interface francaise](https://github.com/renesenses/roon-controller/releases/download/v1.0.0/RoonController_FR.png) | ![English UI](https://github.com/renesenses/roon-controller/releases/download/v1.0.0/RoonController_EN.png) |
+
 ## Architecture
 
-```
-┌──────────────────────────┐     SOOD (UDP multicast)     ┌──────────────┐
-│    App macOS (Swift)     │  ──────────────────────────→  │  Roon Core   │
-│    SwiftUI · native      │                               │  (serveur)   │
-│                          │  ←────────────────────────→   │              │
-│  SOOD · MOO/1 · WS      │     WebSocket (MOO/1)         │  port 9330   │
-└──────────────────────────┘                               └──────────────┘
+```mermaid
+graph LR
+    App["App macOS (Swift)<br/>SwiftUI · native<br/>SOOD · MOO/1 · WS"]
+    Core["Roon Core<br/>(serveur)<br/>port 9330"]
+
+    App -->|"SOOD (UDP multicast)"| Core
+    App <-->|"WebSocket (MOO/1)"| Core
 ```
 
 - **App macOS** : interface SwiftUI avec implementation native des protocoles Roon (SOOD discovery + MOO/1 sur WebSocket)
@@ -36,11 +40,12 @@ Application macOS native (SwiftUI) pour controler un systeme audio [Roon](https:
 - Reconnexion automatique avec backoff exponentiel
 - Interpolation locale du seek pour une barre de progression fluide
 - Theme sombre style Roon
+- Interface localisee en francais et anglais (suit la langue du systeme)
 
 ## Prerequis
 
-- **macOS 15.0** (Sequoia) ou superieur
-- **Xcode 16** ou superieur
+- **macOS 15.0** (Sequoia) ou superieur (teste sur macOS 26 Tahoe)
+- **Xcode 26** ou superieur
 - Un **Roon Core** actif sur le reseau local
 - **Roon Bridge** (recommande) pour exposer les sorties audio (DAC) du Mac au Core
 
@@ -99,6 +104,7 @@ Pour le lancement automatique au demarrage : **Reglages Systeme > General > Ouve
 Roon client/
 ├── RoonController/
 │   ├── RoonControllerApp.swift          # Point d'entree de l'app
+│   ├── Localizable.xcstrings            # Traductions francais/anglais (String Catalog)
 │   ├── Models/
 │   │   └── RoonModels.swift             # Modeles de donnees (Zone, NowPlaying, Queue, Browse...)
 │   ├── Services/
