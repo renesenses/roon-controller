@@ -178,15 +178,19 @@ class RoonService: ObservableObject {
 
     private func handleQueueData(zoneId: String, data: Data) {
         guard zoneId == currentZone?.zone_id else { return }
-        guard let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let itemsArray = body["items"] as? [[String: Any]] else { return }
+        guard let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
 
-        let decoder = JSONDecoder()
-        let decodedItems: [QueueItem] = itemsArray.compactMap { dict in
-            guard let itemData = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-            return try? decoder.decode(QueueItem.self, from: itemData)
+        if let itemsArray = body["items"] as? [[String: Any]] {
+            let decoder = JSONDecoder()
+            let decodedItems: [QueueItem] = itemsArray.compactMap { dict in
+                guard let itemData = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                return try? decoder.decode(QueueItem.self, from: itemData)
+            }
+            queueItems = decodedItems
+        } else if body["changes"] != nil {
+            // Incremental queue update — re-subscribe to get full queue
+            subscribeQueue()
         }
-        queueItems = decodedItems
     }
 
     // MARK: - Transport Controls
@@ -388,6 +392,11 @@ class RoonService: ObservableObject {
             items: newItems,
             offset: 0
         )
+
+        // Browse action triggered playback — refresh queue subscription
+        if let action = response.action, action != "list" {
+            subscribeQueue()
+        }
 
         if let title = list?.title {
             if let level = list?.level, level > 0 {

@@ -263,6 +263,7 @@ actor RoonConnection {
         queueSubscriptions[zoneId] = requestId
 
         let body: [String: Any] = [
+            "zone_or_output_id": zoneId,
             "subscription_key": "queue_\(zoneId)",
             "max_items": 100
         ]
