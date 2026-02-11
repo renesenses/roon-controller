@@ -1,3 +1,5 @@
+> **[English version](INSTALL.en.md)** | Francais
+
 # Guide d'installation
 
 ## Prerequis

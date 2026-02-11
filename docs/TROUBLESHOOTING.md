@@ -1,3 +1,5 @@
+> **[English version](TROUBLESHOOTING.en.md)** | Francais
+
 # Troubleshooting
 
 ## 1. Decouverte du Core (SOOD)

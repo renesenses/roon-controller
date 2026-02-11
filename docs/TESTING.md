@@ -1,3 +1,5 @@
+> **[English version](TESTING.en.md)** | Francais
+
 # Guide de test
 
 ## Prerequis

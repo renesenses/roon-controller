@@ -1,3 +1,5 @@
+> **[English version](ARCHITECTURE.en.md)** | Francais
+
 # Architecture technique
 
 ## Vue d'ensemble

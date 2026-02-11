@@ -1,3 +1,5 @@
+> **[English version](PRESENTATION.en.md)** | Francais
+
 # Roon Controller : d'un prototype Node.js a une app macOS native
 
 Presentation technique du projet — Fevrier 2026
