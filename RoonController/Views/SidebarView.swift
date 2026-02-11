@@ -10,11 +10,17 @@ struct SidebarView: View {
     @State private var searchItemKey: String?
 
     enum SidebarSection: String, CaseIterable {
-        case zones = "Zones"
-        case browse = "Bibliotheque"
-        case queue = "File d'attente"
-        case history = "Historique"
-        case favorites = "Favoris"
+        case zones, browse, queue, history, favorites
+
+        var label: LocalizedStringKey {
+            switch self {
+            case .zones: "Zones"
+            case .browse: "Bibliotheque"
+            case .queue: "File d'attente"
+            case .history: "Historique"
+            case .favorites: "Favoris"
+            }
+        }
     }
 
     var body: some View {
@@ -22,7 +28,7 @@ struct SidebarView: View {
             // Section Picker
             Picker("", selection: $selectedSection) {
                 ForEach(SidebarSection.allCases, id: \.self) { section in
-                    Text(section.rawValue).tag(section)
+                    Text(section.label).tag(section)
                 }
             }
             .pickerStyle(.segmented)

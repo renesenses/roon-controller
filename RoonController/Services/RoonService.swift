@@ -935,7 +935,7 @@ class RoonService: ObservableObject {
         let csv = "Artist,Title\n" + lines.joined(separator: "\n") + "\n"
 
         let panel = NSSavePanel()
-        panel.title = "Exporter les favoris"
+        panel.title = String(localized: "Exporter les favoris")
         let dateFmt = DateFormatter()
         dateFmt.dateFormat = "yyyy_MM_dd"
         panel.nameFieldStringValue = "\(dateFmt.string(from: Date()))_favoris_radio.csv"
@@ -943,7 +943,7 @@ class RoonService: ObservableObject {
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             try? csv.write(to: url, atomically: true, encoding: .utf8)
-            self.playlistCreationStatus = "\(lines.count) morceaux exportes"
+            self.playlistCreationStatus = String(localized: "\(lines.count) morceaux exportes")
             Task {
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
                 await MainActor.run { self.playlistCreationStatus = nil }

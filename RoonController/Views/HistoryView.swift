@@ -113,9 +113,9 @@ struct HistoryView: View {
 
     private func timeAgo(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 60 { return "maintenant" }
-        if interval < 3600 { return "il y a \(Int(interval / 60)) min" }
-        if interval < 86400 { return "il y a \(Int(interval / 3600))h" }
+        if interval < 60 { return String(localized: "maintenant") }
+        if interval < 3600 { return String(localized: "il y a \(Int(interval / 60)) min") }
+        if interval < 86400 { return String(localized: "il y a \(Int(interval / 3600))h") }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short
