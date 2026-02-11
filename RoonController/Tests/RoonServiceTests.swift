@@ -283,6 +283,111 @@ final class RoonServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - Queue subscription body format
+
+    func testSubscribeQueueBodyContainsZoneOrOutputId() {
+        // Regression test: subscribe_queue was rejected with InvalidRequest
+        // because zone_or_output_id was missing from the body.
+        let zoneId = "1601f2904ed29969cc897bb4fd2fb6f955ba"
+        let body: [String: Any] = [
+            "zone_or_output_id": zoneId,
+            "subscription_key": "queue_\(zoneId)",
+            "max_items": 100
+        ]
+
+        // zone_or_output_id must be present
+        XCTAssertEqual(body["zone_or_output_id"] as? String, zoneId,
+                       "subscribe_queue body must include zone_or_output_id")
+        XCTAssertNotNil(body["subscription_key"])
+        XCTAssertNotNil(body["max_items"])
+
+        // Must be valid JSON
+        let data = try? JSONSerialization.data(withJSONObject: body)
+        XCTAssertNotNil(data, "subscribe_queue body must be valid JSON")
+    }
+
+    func testSubscribeQueueMOOMessageContainsZoneId() {
+        // Build the MOO message the same way RoonConnection.subscribeQueue does
+        let zoneId = "160186de7aef552def11a7c6800a805d4dee"
+        let body: [String: Any] = [
+            "zone_or_output_id": zoneId,
+            "subscription_key": "queue_\(zoneId)",
+            "max_items": 100
+        ]
+        let bodyData = try! JSONSerialization.data(withJSONObject: body)
+        let data = MOOMessage.request(
+            name: "com.roonlabs.transport:2/subscribe_queue",
+            requestId: 10,
+            body: bodyData
+        )
+
+        // Parse back and verify
+        let msg = MOOMessage.parse(data)
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.verb, .request)
+        XCTAssertEqual(msg?.name, "com.roonlabs.transport:2/subscribe_queue")
+
+        let parsed = msg?.bodyJSON
+        XCTAssertNotNil(parsed)
+        XCTAssertEqual(parsed?["zone_or_output_id"] as? String, zoneId,
+                       "Parsed subscribe_queue must contain zone_or_output_id")
+    }
+
+    // MARK: - Queue data parsing
+
+    func testQueueDataWithItemsFormat() {
+        // Simulate the initial queue subscription response
+        let queueJSON: [String: Any] = [
+            "items": [
+                [
+                    "queue_item_id": 1,
+                    "one_line": ["line1": "Track 1"],
+                    "length": 240
+                ],
+                [
+                    "queue_item_id": 2,
+                    "one_line": ["line1": "Track 2"],
+                    "length": 180
+                ]
+            ]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: queueJSON)
+        let body = try! JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let itemsArray = body["items"] as? [[String: Any]]
+
+        XCTAssertNotNil(itemsArray)
+        XCTAssertEqual(itemsArray?.count, 2)
+
+        // Verify items decode as QueueItem
+        let decoder = JSONDecoder()
+        let items: [QueueItem] = (itemsArray ?? []).compactMap { dict in
+            guard let d = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+            return try? decoder.decode(QueueItem.self, from: d)
+        }
+        XCTAssertEqual(items.count, 2)
+        XCTAssertEqual(items[0].queue_item_id, 1)
+        XCTAssertEqual(items[1].queue_item_id, 2)
+        XCTAssertEqual(items[0].length, 240)
+    }
+
+    func testQueueDataWithChangesFormatHasNoItems() {
+        // When the Core sends incremental updates, there is no top-level "items" key
+        let changesJSON: [String: Any] = [
+            "changes": [
+                ["operation": "remove", "index": 0, "count": 1]
+            ]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: changesJSON)
+        let body = try! JSONSerialization.jsonObject(with: data) as! [String: Any]
+
+        // items should be nil — this is the case that needs re-subscription
+        let itemsArray = body["items"] as? [[String: Any]]
+        XCTAssertNil(itemsArray, "Changes format should not have top-level items")
+        XCTAssertNotNil(body["changes"], "Changes format must have changes key")
+    }
+
+    // MARK: - Registration
+
     func testRegistrationResponseParsing() {
         // Registered response
         let registered = RoonRegistration.parseRegistrationResponse([
