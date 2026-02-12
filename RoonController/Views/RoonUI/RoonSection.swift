@@ -16,13 +16,13 @@ enum RoonSection: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .home: "Accueil"
-        case .browse: "Bibliotheque"
-        case .queue: "File d'attente"
-        case .radio: "Radio"
-        case .history: "Historique"
-        case .favorites: "Favoris"
-        case .nowPlaying: "En lecture"
+        case .home: String(localized: "Accueil")
+        case .browse: String(localized: "Bibliotheque")
+        case .queue: String(localized: "File d'attente")
+        case .radio: String(localized: "Radio")
+        case .history: String(localized: "Historique")
+        case .favorites: String(localized: "Favoris")
+        case .nowPlaying: String(localized: "En lecture")
         }
     }
 

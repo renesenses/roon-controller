@@ -101,7 +101,7 @@ struct RoonBrowseContentView: View {
             }
 
             Text(roonService.browseStack.isEmpty
-                 ? (startWithRadio ? "Radio" : "Bibliotheque")
+                 ? (startWithRadio ? String(localized: "Radio") : String(localized: "Bibliotheque"))
                  : (roonService.browseStack.last ?? ""))
                 .font(.inter(28))
                 .foregroundStyle(Color.roonText)
@@ -346,7 +346,7 @@ struct RoonBrowseContentView: View {
             Image(systemName: startWithRadio ? "dot.radiowaves.left.and.right" : "square.grid.2x2")
                 .font(.system(size: 40))
                 .foregroundStyle(Color.roonTertiary)
-            Button(startWithRadio ? "Parcourir les radios" : "Parcourir la bibliotheque") {
+            Button(startWithRadio ? String(localized: "Parcourir les radios") : String(localized: "Parcourir la bibliotheque")) {
                 if startWithRadio {
                     roonService.browse(hierarchy: "internet_radio")
                 } else {

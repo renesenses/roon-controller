@@ -46,7 +46,7 @@ struct RoonContentView: View {
                 // Recently Played
                 if !recentPlayedTiles.isEmpty {
                     homeSection(
-                        title: "Recently Played",
+                        title: "Ecoutes recemment",
                         tiles: recentPlayedTiles
                     )
                     .padding(.bottom, sectionSpacing)
@@ -55,7 +55,7 @@ struct RoonContentView: View {
                 // Up Next (Queue)
                 if !upNextTiles.isEmpty {
                     homeSection(
-                        title: "Up Next",
+                        title: "A suivre",
                         tiles: upNextTiles
                     )
                     .padding(.bottom, sectionSpacing)
@@ -77,7 +77,7 @@ struct RoonContentView: View {
 
     // MARK: - Home Section (title + horizontal scroll — Roon native style)
 
-    private func homeSection(title: String, tiles: [HomeTile]) -> some View {
+    private func homeSection(title: LocalizedStringKey, tiles: [HomeTile]) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             // Header — Roon uses font-inter text-6xl tracking-tighter
             Text(title)
@@ -148,7 +148,7 @@ struct RoonContentView: View {
 
     private func zonesSection(zones: [RoonZone]) -> some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Playing Elsewhere")
+            Text("En lecture ailleurs")
                 .font(.inter(40))
                 .foregroundStyle(Color.roonText)
                 .tracking(-1.5)

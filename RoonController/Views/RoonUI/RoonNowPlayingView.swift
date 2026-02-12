@@ -231,7 +231,7 @@ struct RoonNowPlayingView: View {
     private var upNextSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !roonService.queueItems.isEmpty {
-                Text("UP NEXT")
+                Text("A SUIVRE")
                     .font(.latoBold(11))
                     .foregroundStyle(Color.roonTertiary)
                     .tracking(1.5)
@@ -304,7 +304,7 @@ struct RoonNowPlayingView: View {
             Image(systemName: "music.note")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.roonTertiary)
-            Text("Nothing Playing")
+            Text("Rien en lecture")
                 .font(.inter(24))
                 .foregroundStyle(Color.roonSecondary)
         }

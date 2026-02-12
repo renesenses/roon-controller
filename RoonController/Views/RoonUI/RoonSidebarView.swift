@@ -88,7 +88,7 @@ struct RoonSidebarView: View {
 
     // MARK: - Section Header
 
-    private func sectionHeader(_ title: String) -> some View {
+    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.inter(10))
             .foregroundStyle(Color.roonTertiary)
@@ -122,7 +122,7 @@ struct RoonSidebarView: View {
                     .foregroundStyle(Color.roonAccent)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(roonService.currentZone?.display_name ?? "Aucune zone")
+                    Text(roonService.currentZone?.display_name ?? String(localized: "Aucune zone"))
                         .font(.latoBold(13))
                         .foregroundStyle(Color.roonText)
                         .lineLimit(1)
@@ -241,10 +241,10 @@ struct RoonSidebarView: View {
 
     private func stateLabel(_ state: String) -> String {
         switch state {
-        case "playing": "Lecture en cours"
-        case "paused": "En pause"
-        case "loading": "Chargement..."
-        default: "Arrete"
+        case "playing": String(localized: "Lecture en cours")
+        case "paused": String(localized: "En pause")
+        case "loading": String(localized: "Chargement...")
+        default: String(localized: "Arrete")
         }
     }
 
