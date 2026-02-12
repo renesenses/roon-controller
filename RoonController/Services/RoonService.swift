@@ -57,6 +57,7 @@ class RoonService: ObservableObject {
     private var currentBrowseTask: Task<Void, Never>?
     private var currentPlayTask: Task<Void, Never>?
     private var seekTimer: Timer?
+    private var refreshTimer: Timer?
 
     // MARK: - Connection
 
@@ -131,10 +132,17 @@ class RoonService: ObservableObject {
             _ = coreName
             // Re-subscribe queue after reconnection (lost when transport disconnects)
             subscribeQueue()
+            // Re-fetch data after reconnection
+            if !sidebarCategories.isEmpty {
+                fetchSidebarCategories()
+                fetchRecentlyAdded()
+            }
+            startRefreshTimer()
         case .failed(let error):
             connectionState = .disconnected
             lastError = error
             stopSeekTimer()
+            stopRefreshTimer()
         }
     }
 
@@ -476,6 +484,47 @@ class RoonService: ObservableObject {
         browse(popAll: true)
     }
 
+    /// Navigate to browse root, find the search item, and submit a query.
+    /// Results appear in browseResult for RoonBrowseContentView.
+    func browseSearch(query: String) {
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+        browseLoading = true
+        pendingBrowseKey = nil
+        browseStack.removeAll()
+
+        currentBrowseTask?.cancel()
+        currentBrowseTask = Task {
+            do {
+                // Reset to root
+                _ = try await browseService.browse(zoneId: zoneId, popAll: true)
+                guard !Task.isCancelled else { return }
+                let rootLoad = try await browseService.load(offset: 0, count: 20)
+                guard !Task.isCancelled else { return }
+
+                // Find search item (has input_prompt)
+                let searchItem = rootLoad.items.first { ($0["input_prompt"] as? [String: Any]) != nil }
+                guard let searchItem = searchItem,
+                      let searchItemKey = searchItem["item_key"] as? String else {
+                    await MainActor.run { browseLoading = false }
+                    return
+                }
+
+                // Submit search query
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: searchItemKey, input: query)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    handleBrowseResponse(response, isPageLoad: false)
+                }
+            } catch {
+                await MainActor.run {
+                    browseLoading = false
+                    lastError = "Search error: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
     private func handleBrowseResponse(_ response: RoonBrowseService.BrowseResponse, isPageLoad: Bool) {
         browseLoading = false
         let decoder = JSONDecoder()
@@ -716,6 +765,19 @@ class RoonService: ObservableObject {
                 }
             } catch {
                 // Recently added fetch failed silently
+            }
+        }
+    }
+
+    func playRecentlyAddedItem(itemKey: String) {
+        guard let zoneId = currentZone?.zone_id else { return }
+        let session = RoonBrowseService(connection: connection, sessionKey: "play_recent")
+        currentPlayTask?.cancel()
+        currentPlayTask = Task {
+            do {
+                try await playBrowseItem(browseService: session, zoneId: zoneId, itemKey: itemKey)
+            } catch {
+                // Play failed silently
             }
         }
     }
@@ -1213,6 +1275,23 @@ class RoonService: ObservableObject {
     private func stopSeekTimer() {
         seekTimer?.invalidate()
         seekTimer = nil
+    }
+
+    // MARK: - Refresh Timer (periodic stats/albums refresh)
+
+    private func startRefreshTimer() {
+        guard refreshTimer == nil else { return }
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self, self.connectionState == .connected else { return }
+                self.fetchRecentlyAdded()
+            }
+        }
+    }
+
+    private func stopRefreshTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
     }
 
     /// Stable identity for a track (ignores seek_position which changes every second)

@@ -6,6 +6,8 @@ struct RoonContentView: View {
     var toggleSidebar: () -> Void = {}
 
     @State private var dernierementTab: DernierementTab = .lus
+    @State private var scrollTarget: String?
+    @State private var homeSearchText: String = ""
 
     var body: some View {
         Group {
@@ -48,14 +50,13 @@ struct RoonContentView: View {
 
     private let pagePadding: CGFloat = 40
     private let sectionSpacing: CGFloat = 48
-    private let cardSize: CGFloat = 280
     private let cardGap: CGFloat = 24
-    private let cardImageRes: Int = 640
     private let dernierementCardSize: CGFloat = 180
+    private let scrollStep: Int = 4
 
     // MARK: - Tab Enum
 
-    private enum DernierementTab {
+    private enum DernierementTab: Equatable {
         case lus, ajoute
     }
 
@@ -68,6 +69,10 @@ struct RoonContentView: View {
 
                 // Greeting
                 greetingHeader
+                    .padding(.bottom, 24)
+
+                // Search bar
+                homeSearchBar
                     .padding(.bottom, 32)
 
                 // Library stats
@@ -77,7 +82,7 @@ struct RoonContentView: View {
                 }
 
                 // Dernierement (recently played / recently added)
-                if !recentPlayedTiles.isEmpty || !recentlyAddedTiles.isEmpty {
+                if !activeTiles.isEmpty {
                     dernierementSection
                         .padding(.bottom, sectionSpacing)
                 }
@@ -86,6 +91,18 @@ struct RoonContentView: View {
             }
             .frame(maxWidth: .infinity)
         }
+        .onAppear {
+            // #3: Auto-switch to AJOUTÉS when LUS is empty
+            if recentPlayedTiles.isEmpty && !recentlyAddedTiles.isEmpty {
+                dernierementTab = .ajoute
+            }
+        }
+    }
+
+    // MARK: - Active tiles for current tab
+
+    private var activeTiles: [HomeTile] {
+        dernierementTab == .lus ? recentPlayedTiles : recentlyAddedTiles
     }
 
     // MARK: - Greeting Header
@@ -97,6 +114,38 @@ struct RoonContentView: View {
             .font(.grifoM(48))
             .foregroundStyle(Color.roonText)
             .padding(.horizontal, pagePadding)
+    }
+
+    // MARK: - Home Search Bar
+
+    private var homeSearchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16))
+                .foregroundStyle(Color.roonSecondary)
+            TextField("Rechercher...", text: $homeSearchText)
+                .textFieldStyle(.plain)
+                .font(.lato(15))
+                .foregroundStyle(Color.roonText)
+                .onSubmit {
+                    let query = homeSearchText.trimmingCharacters(in: .whitespaces)
+                    guard !query.isEmpty else { return }
+                    roonService.browseSearch(query: query)
+                    selectedSection = .browse
+                    homeSearchText = ""
+                }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.roonPanel)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(Color.roonSeparator, lineWidth: 0.5)
+                )
+        )
+        .padding(.horizontal, pagePadding)
     }
 
     // MARK: - Library Stats Row
@@ -162,16 +211,22 @@ struct RoonContentView: View {
                 // Tabs
                 HStack(spacing: 0) {
                     dernierementTabButton("LUS", isSelected: dernierementTab == .lus) {
-                        dernierementTab = .lus
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            dernierementTab = .lus
+                        }
                     }
                     dernierementTabButton("AJOUTÉS", isSelected: dernierementTab == .ajoute) {
-                        dernierementTab = .ajoute
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            dernierementTab = .ajoute
+                        }
                     }
                 }
 
-                // Nav arrows
+                // #1: Nav arrows (functional scroll)
                 HStack(spacing: 8) {
-                    Button { } label: {
+                    Button {
+                        scrollByStep(forward: false)
+                    } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.9))
@@ -180,7 +235,9 @@ struct RoonContentView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Button { } label: {
+                    Button {
+                        scrollByStep(forward: true)
+                    } label: {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.9))
@@ -206,18 +263,35 @@ struct RoonContentView: View {
             }
             .padding(.horizontal, 24)
 
-            // Horizontal scroll of album cards
-            let tiles = dernierementTab == .lus ? recentPlayedTiles : recentlyAddedTiles
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 16) {
-                    ForEach(tiles, id: \.id) { tile in
-                        dernierementCard(tile)
+            // #9: Animated horizontal scroll of album cards
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 16) {
+                        ForEach(activeTiles, id: \.id) { tile in
+                            // #4: Click to play
+                            Button {
+                                playTile(tile)
+                            } label: {
+                                dernierementCard(tile)
+                            }
+                            .buttonStyle(.plain)
                             .hoverScale()
+                            .id(tile.id)
+                        }
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 4)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 4)
+                .onChange(of: scrollTarget) { _, newTarget in
+                    guard let target = newTarget else { return }
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        proxy.scrollTo(target, anchor: .leading)
+                    }
+                    scrollTarget = nil
+                }
             }
+            // #9: Animate tab switch
+            .animation(.easeInOut(duration: 0.25), value: dernierementTab)
         }
         .padding(.vertical, 24)
         .background(
@@ -225,6 +299,43 @@ struct RoonContentView: View {
                 .fill(Color.roonAccent)
         )
         .padding(.horizontal, pagePadding)
+    }
+
+    // #1: Scroll by N cards
+    private func scrollByStep(forward: Bool) {
+        let tiles = activeTiles
+        guard !tiles.isEmpty else { return }
+
+        // Find approximate current visible index based on scrollTarget or default
+        let currentIndex: Int
+        if let target = scrollTarget, let idx = tiles.firstIndex(where: { $0.id == target }) {
+            currentIndex = idx
+        } else {
+            currentIndex = forward ? 0 : tiles.count - 1
+        }
+
+        let nextIndex = forward
+            ? min(currentIndex + scrollStep, tiles.count - 1)
+            : max(currentIndex - scrollStep, 0)
+
+        scrollTarget = tiles[nextIndex].id
+    }
+
+    // #4: Play a tile
+    private func playTile(_ tile: HomeTile) {
+        if dernierementTab == .lus {
+            // History item: search and play by title/artist
+            roonService.searchAndPlay(
+                title: tile.title,
+                artist: tile.subtitle ?? "",
+                album: tile.album ?? ""
+            )
+        } else {
+            // Recently added: browse into the album via item_key
+            if let itemKey = tile.itemKey {
+                roonService.playRecentlyAddedItem(itemKey: itemKey)
+            }
+        }
     }
 
     private func dernierementTabButton(_ title: LocalizedStringKey, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -245,7 +356,7 @@ struct RoonContentView: View {
 
     private func dernierementCard(_ tile: HomeTile) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let url = roonService.imageURL(key: tile.imageKey, width: 320, height: 320) {
+            if let url = roonService.imageURL(key: tile.imageKey, width: 360, height: 360) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
@@ -290,7 +401,9 @@ struct RoonContentView: View {
                 id: item.id.uuidString,
                 title: item.title,
                 subtitle: item.artist.isEmpty ? nil : item.artist,
-                imageKey: item.image_key
+                imageKey: item.image_key,
+                itemKey: nil,
+                album: item.album
             )
         }
     }
@@ -301,7 +414,9 @@ struct RoonContentView: View {
                 id: item.item_key ?? item.title ?? UUID().uuidString,
                 title: item.title ?? "",
                 subtitle: item.subtitle,
-                imageKey: item.image_key
+                imageKey: item.image_key,
+                itemKey: item.item_key,
+                album: nil
             )
         }
     }
@@ -315,4 +430,6 @@ private struct HomeTile {
     let title: String
     let subtitle: String?
     let imageKey: String?
+    let itemKey: String?  // browse item_key for recently added
+    let album: String?    // album name for history playback
 }

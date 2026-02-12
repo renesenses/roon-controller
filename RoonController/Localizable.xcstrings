@@ -257,6 +257,22 @@
         }
       }
     },
+    "Rechercher..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher..."
+          }
+        }
+      }
+    },
     "Annuler" : {
       "localizations" : {
         "en" : {
