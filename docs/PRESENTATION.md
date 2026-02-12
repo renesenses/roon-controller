@@ -357,7 +357,7 @@ private func scheduleReconnect() {
 
 ## 7. Tests et CI/CD
 
-### 104 tests unitaires
+### 140 tests unitaires
 
 Les tests couvrent trois niveaux :
 
@@ -450,7 +450,7 @@ timeline
     Phase 1 - Prototype : Node.js backend : SwiftUI client : 5 npm packages : WebSocket relay
     Phase 2 - Natif : Rewrite Swift : SOOD + MOO/1 natifs : 0 dependances
     Phase 3 - Stabilisation : Fix SOOD : Fix MOO : POSIX sockets : Dual-socket
-    Phase 4 - CI/CD : GitHub Actions : Claude Code : 104 tests : Cron hebdo
+    Phase 4 - CI/CD : GitHub Actions : Claude Code : 140 tests : Cron hebdo
     Phase 5 - Autonome : Radio replay : Roon Bridge : Roon.app supprime : DMG distributable
     Phase 6 - Localisation : String Catalog : FR + EN : Langue systeme : .xcstrings
 ```

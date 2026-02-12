@@ -370,7 +370,7 @@ Task {
 
 ---
 
-## Tests : 36 tests unitaires
+## Tests : 140 tests unitaires
 
 ### 3 niveaux de couverture
 
@@ -384,7 +384,7 @@ Task {
 xcodebuild test \
   -scheme RoonControllerTests \
   -destination 'platform=macOS'
-# ✓ 36 tests passed
+# ✓ 140 tests passed
 ```
 
 ---

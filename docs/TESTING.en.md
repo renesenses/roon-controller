@@ -119,7 +119,7 @@ Or from Xcode: **Product > Test** (Cmd+U).
 |------|-------------|
 | `Tests/RoonModelsTests.swift` | JSON decoding of models (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
 | `Tests/RoonServiceTests.swift` | Service logic (browse guard, history, zone selection, image URL) and MOO protocol (parsing, construction, request ID) |
-| `Tests/ViewBehaviorTests.swift` | View behavior tests (104 tests total) |
+| `Tests/ViewBehaviorTests.swift` | View behavior tests (140 tests total) |
 
 ### Test Details
 

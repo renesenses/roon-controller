@@ -4,39 +4,54 @@
 
 ## Vue d'ensemble
 
-La chaine CI/CD repose sur **GitHub Actions** avec deux workflows independants :
+La chaine CI/CD repose sur **GitHub Actions** avec quatre workflows :
 
 | Workflow | Fichier | Runner | Declencheurs |
 |----------|---------|--------|--------------|
 | **CI** (build + tests) | `.github/workflows/ci.yml` | `macos-15` (Sequoia) | push, PR, cron hebdo |
 | **Claude Code** (revue IA) | `.github/workflows/claude.yml` | `ubuntu-latest` | PR, mentions `@claude` |
 | **Version Watch** (veille versions) | `.github/workflows/version-watch.yml` | `macos-15` (Sequoia) | cron hebdo, manuel |
+| **Update Homebrew** (distribution) | `.github/workflows/update-homebrew.yml` | `ubuntu-latest` | release, manuel |
 
-```
-                         ┌─────────────────────────────────────────────┐
-                         │              GitHub Actions                  │
-                         │                                             │
-  push / PR / cron ──────┤  ci.yml                                     │
-                         │  ┌─────────┐  ┌─────────┐  ┌────────────┐  │
-                         │  │ Checkout │→ │  Build   │→ │   Tests    │  │
-                         │  └─────────┘  │ (Debug)  │  │ (36 tests) │  │
-                         │               └─────────┘  └────────────┘  │
-                         │                                             │
-  PR opened / sync ──────┤  claude.yml                                 │
-  @claude mention ───────┤  ┌─────────┐  ┌──────────────────────────┐  │
-                         │  │ Checkout │→ │ Claude Code Action (v1)  │  │
-                         │  └─────────┘  │ revue auto / interactif  │  │
-                         │               └──────────────────────────┘  │
-                         │                                             │
-  cron hebdo / manuel ──┤  version-watch.yml                          │
-                         │  ┌─────────┐  ┌──────────┐  ┌───────────┐  │
-                         │  │ Checkout │→ │ Versions │→ │ Issue si  │  │
-                         │  └─────────┘  │ macOS    │  │ changement│  │
-                         │               │ Xcode    │  └───────────┘  │
-                         │               │ Swift    │                  │
-                         │               │ Roon     │                  │
-                         │               └──────────┘                  │
-                         └─────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph triggers["Declencheurs"]
+        push["push / PR"]
+        cron["cron hebdo"]
+        mention["@claude"]
+        release["release publiee"]
+        manual["manuel"]
+    end
+
+    subgraph gha["GitHub Actions"]
+        subgraph ci["ci.yml — macos-15"]
+            checkout1["Checkout"] --> build["Build Debug"]
+            build --> tests["Tests\n140 tests"]
+        end
+
+        subgraph claude["claude.yml — ubuntu"]
+            checkout2["Checkout"] --> review["Claude Code Action v1\nrevue auto / interactif"]
+        end
+
+        subgraph vwatch["version-watch.yml — macos-15"]
+            checkout3["Checkout"] --> detect["Detecter versions\nmacOS / Xcode / Swift / Roon"]
+            detect --> issue["Issue si\nchangement"]
+        end
+
+        subgraph homebrew["update-homebrew.yml — ubuntu"]
+            extract["Extraire tag + SHA256"] --> update["Mettre a jour\nCask formula"]
+            update --> pushcask["Push vers\nhomebrew tap"]
+        end
+    end
+
+    push --> ci
+    cron --> ci
+    push --> claude
+    mention --> claude
+    cron --> vwatch
+    manual --> vwatch
+    release --> homebrew
+    manual --> homebrew
 ```
 
 ## Workflow CI — Build & Tests
@@ -53,6 +68,13 @@ Le build cron hebdomadaire est essentiel : Apple met a jour Xcode sur les runner
 
 ### Etapes
 
+```mermaid
+flowchart LR
+    A["Checkout"] --> B["Versions\nXcode / Swift"]
+    B --> C["Build\nxcodebuild Debug"]
+    C --> D["Tests\nxcodebuild test\n140 tests"]
+```
+
 ```yaml
 jobs:
   build-and-test:
@@ -61,7 +83,7 @@ jobs:
       - Checkout du code
       - Affichage versions Xcode/Swift    # diagnostic en cas de regression
       - Build (xcodebuild, scheme RoonController, Debug)
-      - Tests (xcodebuild test, scheme RoonControllerTests, 36 tests)
+      - Tests (xcodebuild test, scheme RoonControllerTests, 140 tests)
 ```
 
 ### Pas de signature de code
@@ -138,6 +160,16 @@ Detecter les mises a jour de macOS, Xcode, Swift (sur les runners GitHub) et Roo
 
 ### Fonctionnement
 
+```mermaid
+flowchart TD
+    A["Cron lundi 09:00 UTC"] --> B["Detecter versions runner\nsw_vers / xcodebuild / swift"]
+    B --> C["Detecter version Roon\nAPI Discourse community.roonlabs.com"]
+    C --> D{"Changement\nvs versions.json ?"}
+    D -->|Oui| E["Creer/commenter issue\nlabel version-watch"]
+    D -->|Non| F["Aucune action"]
+    E --> G["Commit versions.json"]
+```
+
 1. **Versions runner** : `sw_vers`, `xcodebuild -version`, `swift --version` sur `macos-15`
 2. **Version Roon** : requete API Discourse sur `community.roonlabs.com` (categorie Roon Software), extraction du dernier titre contenant "Release" et un numero de build
 3. **Comparaison** : lecture de `.github/versions.json` et comparaison avec les versions detectees
@@ -162,11 +194,52 @@ Detecter les mises a jour de macOS, Xcode, Swift (sur les runners GitHub) et Roo
 - La detection Roon repose sur le forum communautaire Discourse — si la structure change, le check retournera `unknown` (pas de faux positif)
 - Les versions du runner dependent de quand GitHub met a jour ses images `macos-15`
 
+## Workflow Update Homebrew — Distribution Cask
+
+### Objectif
+
+Mettre a jour automatiquement la formule Homebrew Cask dans le tap `renesenses/homebrew-roon-controller` a chaque nouvelle release GitHub.
+
+### Declencheurs
+
+| Evenement | Condition | Raison |
+|-----------|-----------|--------|
+| `release` | `published` | Nouvelle version taguee |
+| `workflow_dispatch` | tag en parametre | Mise a jour manuelle |
+
+### Fonctionnement
+
+```mermaid
+flowchart LR
+    A["Release publiee\ntag vX.Y.Z"] --> B["Extraire version\ndu tag"]
+    B --> C["Telecharger DMG\n+ SHA256"]
+    C --> D["Checkout\nhomebrew tap"]
+    D --> E["Mettre a jour\nCasks/roon-controller.rb"]
+    E --> F["Commit + push"]
+```
+
+1. **Extraction** : le numero de version est extrait du tag (ex: `v1.0.1` → `1.0.1`)
+2. **DMG** : le DMG est telecharge depuis la release et son SHA256 est calcule
+3. **Mise a jour** : le fichier `Casks/roon-controller.rb` dans le tap Homebrew est mis a jour avec la nouvelle version, le SHA256 et l'URL de telechargement
+4. **Push** : commit automatique vers le depot `renesenses/homebrew-roon-controller`
+
+### Prerequis
+
+- **Secret `HOMEBREW_TAP_TOKEN`** : token GitHub avec acces en ecriture au depot `renesenses/homebrew-roon-controller`
+
+### Installation par les utilisateurs
+
+```bash
+brew tap renesenses/roon-controller
+brew install --cask roon-controller
+```
+
 ## Secrets
 
 | Secret | Requis par | Description |
 |--------|-----------|-------------|
 | `ANTHROPIC_API_KEY` | `claude.yml` | Cle API Anthropic (depuis [console.anthropic.com](https://console.anthropic.com)) |
+| `HOMEBREW_TAP_TOKEN` | `update-homebrew.yml` | Token GitHub avec acces ecriture au tap Homebrew |
 
 Le workflow CI ne necessite aucun secret — pas de signature de code, pas de deploiement.
 
@@ -236,3 +309,4 @@ gh workflow run ci.yml
 
 - **CI** : gratuit (minutes macOS incluses dans le plan GitHub)
 - **Claude Code** : consomme des tokens API Anthropic a chaque PR et mention `@claude`. Le budget est controle par `--max-turns 5` et `timeout-minutes: 10`. Suivi sur [console.anthropic.com/usage](https://console.anthropic.com/usage)
+- **Update Homebrew** : gratuit (runner ubuntu-latest, quelques secondes par release)

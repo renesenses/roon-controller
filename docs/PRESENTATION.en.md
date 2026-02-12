@@ -448,7 +448,7 @@ timeline
     Phase 1 - Prototype : Node.js backend : SwiftUI client : 5 npm packages : WebSocket relay
     Phase 2 - Native : Swift rewrite : SOOD + MOO/1 native : 0 dependencies
     Phase 3 - Stabilization : Fix SOOD : Fix MOO : POSIX sockets : Dual-socket
-    Phase 4 - CI/CD : GitHub Actions : Claude Code : 104 tests : Weekly cron
+    Phase 4 - CI/CD : GitHub Actions : Claude Code : 140 tests : Weekly cron
     Phase 5 - Autonomous : Radio replay : Roon Bridge : Roon.app removed : Distributable DMG
     Phase 6 - Localization : String Catalog : FR + EN : System language : .xcstrings
 ```
