@@ -17,13 +17,13 @@ struct RoonContentView: View {
             case .browse:
                 RoonBrowseContentView()
             case .queue:
-                QueueView()
+                RoonQueueView()
             case .radio:
                 RoonBrowseContentView(startWithRadio: true)
             case .history:
-                HistoryView()
+                RoonHistoryView()
             case .favorites:
-                FavoritesView()
+                RoonFavoritesView()
             case .nowPlaying:
                 RoonNowPlayingView()
             }

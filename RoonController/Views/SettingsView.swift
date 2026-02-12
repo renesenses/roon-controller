@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var roonService: RoonService
-    @AppStorage("uiMode") private var uiMode = "player"
+    @AppStorage("uiMode") private var uiMode = "roon"
     @AppStorage("appTheme") private var appTheme = "light"
     @State private var coreIP: String = ""
 

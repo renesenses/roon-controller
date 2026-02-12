@@ -48,6 +48,9 @@
 		EE8D52DC5E6762AA5F16D3A3 /* ViewBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404C1103FFA0EE042C1E70BD /* ViewBehaviorTests.swift */; };
 		F75452E0D6647FB2EF7B0ED1 /* RoonBrowseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A217A313513ACF87512AA66A /* RoonBrowseService.swift */; };
 		FC7E30D8C968297F164F4A37 /* RoonTransportBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D94E2AC22D1BDAB7D6A967 /* RoonTransportBarView.swift */; };
+		AA1B2C3D4E5F6A7B8C9D0E1F /* RoonQueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* RoonQueueView.swift */; };
+		CC3D4E5F6A7B8C9D0E1F2A3B /* RoonHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* RoonHistoryView.swift */; };
+		EE5F6A7B8C9D0E1F2A3B4C5D /* RoonFavoritesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* RoonFavoritesView.swift */; };
 		FCCC73617CB748309BD3C119 /* RoonImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBEFAB1D0DFC3EB7B52A76C /* RoonImageCache.swift */; };
 /* End PBXBuildFile section */
 
@@ -96,6 +99,9 @@
 		A3B42F23C3EEDF994180B2C8 /* RoonStatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonStatusService.swift; sourceTree = "<group>"; };
 		A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonService.swift; sourceTree = "<group>"; };
 		A9D94E2AC22D1BDAB7D6A967 /* RoonTransportBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonTransportBarView.swift; sourceTree = "<group>"; };
+		BB2C3D4E5F6A7B8C9D0E1F2A /* RoonQueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonQueueView.swift; sourceTree = "<group>"; };
+		DD4E5F6A7B8C9D0E1F2A3B4C /* RoonHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonHistoryView.swift; sourceTree = "<group>"; };
+		FF6A7B8C9D0E1F2A3B4C5D6E /* RoonFavoritesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonFavoritesView.swift; sourceTree = "<group>"; };
 		ACA398B7B0641731B7566DAC /* SOODDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOODDiscovery.swift; sourceTree = "<group>"; };
 		AEBEFAB1D0DFC3EB7B52A76C /* RoonImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonImageCache.swift; sourceTree = "<group>"; };
 		B5E297680B0437BEEA2513CD /* RoonNowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonNowPlayingView.swift; sourceTree = "<group>"; };
@@ -178,8 +184,11 @@
 			children = (
 				DBA88674B93B977E3ECA4637 /* RoonBrowseContentView.swift */,
 				806233BB77614B1725CD1517 /* RoonContentView.swift */,
+				FF6A7B8C9D0E1F2A3B4C5D6E /* RoonFavoritesView.swift */,
+				DD4E5F6A7B8C9D0E1F2A3B4C /* RoonHistoryView.swift */,
 				DBB3CECF881DB8755B583D5A /* RoonLayoutView.swift */,
 				B5E297680B0437BEEA2513CD /* RoonNowPlayingView.swift */,
+				BB2C3D4E5F6A7B8C9D0E1F2A /* RoonQueueView.swift */,
 				37B426904DE3248B6C9BA976 /* RoonSection.swift */,
 				57030999B5CF566332DAD863 /* RoonSidebarView.swift */,
 				A9D94E2AC22D1BDAB7D6A967 /* RoonTransportBarView.swift */,
@@ -422,6 +431,9 @@
 				362CA6CCC3EE01895C382627 /* RoonSidebarView.swift in Sources */,
 				13836A8383F8D63C9820E139 /* RoonStatusService.swift in Sources */,
 				FC7E30D8C968297F164F4A37 /* RoonTransportBarView.swift in Sources */,
+				AA1B2C3D4E5F6A7B8C9D0E1F /* RoonQueueView.swift in Sources */,
+				CC3D4E5F6A7B8C9D0E1F2A3B /* RoonHistoryView.swift in Sources */,
+				EE5F6A7B8C9D0E1F2A3B4C5D /* RoonFavoritesView.swift in Sources */,
 				2D6F1D2BB3A87F8C94B0CF53 /* RoonTransportService.swift in Sources */,
 				A8A4A4D0C7408CC33789698E /* SOODDiscovery.swift in Sources */,
 				C959637010EB96B877AB45F6 /* SettingsView.swift in Sources */,

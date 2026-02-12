@@ -320,6 +320,7 @@ struct RoonBrowseContentView: View {
             searchText = ""
             handleBrowseItemTap(item)
         }
+        .hoverHighlight()
         .onAppear {
             loadMoreIfNeeded(item: item)
         }

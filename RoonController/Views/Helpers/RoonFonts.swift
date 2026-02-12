@@ -70,3 +70,23 @@ extension View {
         modifier(HoverScaleModifier(scale: scale))
     }
 }
+
+// MARK: - Hover Highlight Effect (Roon-style row interaction)
+
+struct HoverHighlightModifier: ViewModifier {
+    @State private var isHovered = false
+
+    func body(content: Content) -> some View {
+        content
+            .background(isHovered ? Color.roonGrey2.opacity(0.4) : Color.clear)
+            .animation(.easeOut(duration: 0.12), value: isHovered)
+            .onHover { isHovered = $0 }
+    }
+}
+
+extension View {
+    /// Roon-style hover highlight for list rows
+    func hoverHighlight() -> some View {
+        modifier(HoverHighlightModifier())
+    }
+}

@@ -115,6 +115,9 @@ struct RoonTransportBarView: View {
 
     private func transportControls(zone: RoonZone) -> some View {
         HStack(spacing: 24) {
+            // Settings indicators (compact, only shown when active)
+            settingsIndicators(zone: zone)
+
             // Roon: w-24 h-24 rounded-full bg-zinc-800/60
             Button { roonService.previous() } label: {
                 Image(systemName: "backward.end.fill")
@@ -149,6 +152,48 @@ struct RoonTransportBarView: View {
             .buttonStyle(.plain)
             .disabled(!(zone.is_next_allowed ?? false))
             .opacity((zone.is_next_allowed ?? false) ? 1 : 0.3)
+        }
+    }
+
+    // MARK: - Settings Indicators
+
+    private func settingsIndicators(zone: RoonZone) -> some View {
+        HStack(spacing: 6) {
+            if zone.settings?.shuffle ?? false {
+                Button { roonService.setShuffle(false) } label: {
+                    Image(systemName: "shuffle")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.roonAccent)
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.plain)
+                .help("Lecture aleatoire")
+            }
+
+            if let loop = zone.settings?.loop, loop != "disabled" {
+                Button {
+                    let next: String = loop == "loop" ? "loop_one" : "disabled"
+                    roonService.setLoop(next)
+                } label: {
+                    Image(systemName: loop == "loop_one" ? "repeat.1" : "repeat")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.roonAccent)
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.plain)
+                .help("Repetition")
+            }
+
+            if zone.settings?.auto_radio ?? false {
+                Button { roonService.setAutoRadio(false) } label: {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.roonAccent)
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.plain)
+                .help("Radio automatique")
+            }
         }
     }
 

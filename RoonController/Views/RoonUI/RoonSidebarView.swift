@@ -4,6 +4,8 @@ struct RoonSidebarView: View {
     @EnvironmentObject var roonService: RoonService
     @Binding var selectedSection: RoonSection
     @State private var activeCategoryKey: String?
+    @State private var hoveredSection: RoonSection?
+    @State private var hoveredCategoryKey: String?
 
     // Classification des items par titre
     private static let explorerTitles = Set([
@@ -152,7 +154,9 @@ struct RoonSidebarView: View {
     // MARK: - Sidebar Item (fixed sections)
 
     private func sidebarItem(_ section: RoonSection) -> some View {
-        Button {
+        let isSelected = selectedSection == section && activeCategoryKey == nil
+        let isHovered = hoveredSection == section
+        return Button {
             activeCategoryKey = nil
             selectedSection = section
         } label: {
@@ -160,32 +164,37 @@ struct RoonSidebarView: View {
                 Image(systemName: section.icon)
                     .font(.system(size: 15))
                     .frame(width: 22)
-                    .foregroundStyle(selectedSection == section && activeCategoryKey == nil ? Color.roonText : Color.roonSecondary)
+                    .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
 
                 Text(section.label)
                     .font(.lato(13))
-                    .foregroundStyle(selectedSection == section && activeCategoryKey == nil ? Color.roonText : Color.roonSecondary)
+                    .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
 
                 Spacer()
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 7)
             .background(
-                (selectedSection == section && activeCategoryKey == nil)
+                isSelected
                     ? Color.roonGrey2.opacity(0.6)
-                    : Color.clear
+                    : (isHovered ? Color.roonGrey2.opacity(0.3) : Color.clear)
             )
             .animation(.easeOut(duration: 0.15), value: selectedSection)
             .animation(.easeOut(duration: 0.15), value: activeCategoryKey)
+            .animation(.easeOut(duration: 0.12), value: hoveredSection)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            hoveredSection = hovering ? section : nil
+        }
     }
 
     // MARK: - Dynamic Sidebar Item (browse categories)
 
     private func dynamicSidebarItem(_ item: BrowseItem) -> some View {
         let isSelected = activeCategoryKey == item.item_key && selectedSection == .browse
+        let isHovered = hoveredCategoryKey == item.item_key
         return Button {
             activeCategoryKey = item.item_key
             selectedSection = .browse
@@ -207,11 +216,19 @@ struct RoonSidebarView: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 7)
-            .background(isSelected ? Color.roonGrey2.opacity(0.6) : Color.clear)
+            .background(
+                isSelected
+                    ? Color.roonGrey2.opacity(0.6)
+                    : (isHovered ? Color.roonGrey2.opacity(0.3) : Color.clear)
+            )
             .animation(.easeOut(duration: 0.15), value: activeCategoryKey)
+            .animation(.easeOut(duration: 0.12), value: hoveredCategoryKey)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            hoveredCategoryKey = hovering ? item.item_key : nil
+        }
     }
 
     // MARK: - Icon Mapping

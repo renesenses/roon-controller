@@ -41,7 +41,11 @@ struct RoonNowPlayingView: View {
 
                 trackInfo(nowPlaying: nowPlaying)
 
-                Spacer().frame(height: 28)
+                Spacer().frame(height: 20)
+
+                seekBar(nowPlaying: nowPlaying)
+
+                Spacer().frame(height: 24)
 
                 settingsRow(zone: zone)
 
@@ -69,6 +73,8 @@ struct RoonNowPlayingView: View {
                 albumArt(imageKey: nowPlaying.image_key, size: artSize(for: size))
 
                 trackInfo(nowPlaying: nowPlaying)
+
+                seekBar(nowPlaying: nowPlaying)
 
                 settingsRow(zone: zone)
 
@@ -167,6 +173,52 @@ struct RoonNowPlayingView: View {
                     .foregroundStyle(Color.roonTertiary)
                     .lineLimit(1)
             }
+        }
+    }
+
+    // MARK: - Seek Bar
+
+    @ViewBuilder
+    private func seekBar(nowPlaying: NowPlaying) -> some View {
+        let position = Double(roonService.seekPosition)
+        let duration = Double(nowPlaying.length ?? 0)
+
+        if duration > 0 {
+            VStack(spacing: 6) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.roonSeparator.opacity(0.5))
+                            .frame(height: 4)
+                        Capsule()
+                            .fill(Color.roonAccent)
+                            .frame(width: geo.size.width * min(position / duration, 1.0), height: 4)
+                    }
+                    .frame(height: 4)
+                    .contentShape(Rectangle().size(width: geo.size.width, height: 20).offset(y: -8))
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                let fraction = max(0, min(1, value.location.x / geo.size.width))
+                                roonService.seek(position: Int(fraction * duration))
+                            }
+                    )
+                }
+                .frame(height: 4)
+
+                HStack {
+                    Text(formatTime(Int(position)))
+                        .font(.lato(12))
+                        .foregroundStyle(Color.roonSecondary)
+                        .monospacedDigit()
+                    Spacer()
+                    Text(formatTime(Int(duration)))
+                        .font(.lato(12))
+                        .foregroundStyle(Color.roonSecondary)
+                        .monospacedDigit()
+                }
+            }
+            .animation(.linear(duration: 1.0), value: roonService.seekPosition)
         }
     }
 
