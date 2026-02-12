@@ -66,7 +66,7 @@ struct RoonSidebarView: View {
                         sectionHeader("LISTES DE LECTURE")
 
                         ForEach(roonService.sidebarPlaylists) { item in
-                            dynamicSidebarItem(item)
+                            playlistSidebarItem(item)
                         }
                     }
                 }
@@ -214,6 +214,39 @@ struct RoonSidebarView: View {
                     : (isHovered ? Color.roonGrey2.opacity(0.3) : Color.clear)
             )
             .animation(.easeOut(duration: 0.15), value: activeCategoryKey)
+            .animation(.easeOut(duration: 0.12), value: hoveredCategoryKey)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            hoveredCategoryKey = hovering ? item.item_key : nil
+        }
+    }
+
+    // MARK: - Playlist Sidebar Item (click to play)
+
+    private func playlistSidebarItem(_ item: BrowseItem) -> some View {
+        let isHovered = hoveredCategoryKey == item.item_key
+        return Button {
+            if let key = item.item_key {
+                roonService.playItem(itemKey: key)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 15))
+                    .frame(width: 22)
+                    .foregroundStyle(Color.roonSecondary)
+
+                Text(item.title ?? "")
+                    .font(.lato(13))
+                    .foregroundStyle(Color.roonSecondary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 7)
+            .background(isHovered ? Color.roonGrey2.opacity(0.3) : Color.clear)
             .animation(.easeOut(duration: 0.12), value: hoveredCategoryKey)
             .contentShape(Rectangle())
         }
