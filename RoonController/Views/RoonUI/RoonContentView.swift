@@ -317,7 +317,7 @@ struct RoonContentView: View {
         scrollTarget = tiles[nextIndex].id
     }
 
-    // #4: Play a tile
+    // #4: Play a tile and navigate to Now Playing
     private func playTile(_ tile: HomeTile) {
         if dernierementTab == .lus {
             // History item: search and play by title/artist
@@ -332,6 +332,7 @@ struct RoonContentView: View {
                 roonService.playRecentlyAddedItem(itemKey: itemKey)
             }
         }
+        selectedSection = .nowPlaying
     }
 
     private func dernierementTabButton(_ title: LocalizedStringKey, isSelected: Bool, action: @escaping () -> Void) -> some View {
