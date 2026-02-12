@@ -149,7 +149,7 @@ struct RoonContentView: View {
             }
         }
         .padding(.vertical, 20)
-        .background(Color.roonPanel.opacity(0.5))
+        .background(Color.roonAccent.opacity(0.08))
     }
 
     private func tabButton(_ label: String, tab: RecentTab) -> some View {
