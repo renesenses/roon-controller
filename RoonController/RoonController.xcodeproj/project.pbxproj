@@ -38,7 +38,6 @@
 		A8A720BA6B2B39B2BE4319B2 /* RoonModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502C0AF9FE6B1E36CBBB5699 /* RoonModelsTests.swift */; };
 		AA9AD2B4FA8BAB22B099E117 /* RoonImageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CADCC8E2D3C2CC720381FF5 /* RoonImageProvider.swift */; };
 		AB193BDF53C3C067242F4E81 /* LocalImageServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5068474C18A874A2DD981604 /* LocalImageServer.swift */; };
-		AFE37D0C73FD49F800B1BA35 /* default.profraw in Resources */ = {isa = PBXBuildFile; fileRef = 0DCD77DD76B502A0A3EEB770 /* default.profraw */; };
 		BA76D9EE334357CA73C2ED75 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961DF94025297E364472E8E9 /* ConnectionView.swift */; };
 		C959637010EB96B877AB45F6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCEE5B31B68C21920E308DD /* SettingsView.swift */; };
 		D163747CACBB2E3A080A0765 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E5A3B5B194123E7D9AE567 /* ContentView.swift */; };
@@ -64,7 +63,6 @@
 
 /* Begin PBXFileReference section */
 		0BFD1EE34B068DB0496A9F51 /* RoonControllerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RoonControllerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		0DCD77DD76B502A0A3EEB770 /* default.profraw */ = {isa = PBXFileReference; path = default.profraw; sourceTree = "<group>"; };
 		13E5A3B5B194123E7D9AE567 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1B2F25475F39979BA3F2E470 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		307EC654890895E8FF7EC837 /* MOOTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MOOTransport.swift; sourceTree = "<group>"; };
@@ -232,7 +230,6 @@
 			isa = PBXGroup;
 			children = (
 				1B2F25475F39979BA3F2E470 /* Assets.xcassets */,
-				0DCD77DD76B502A0A3EEB770 /* default.profraw */,
 				3BA2E923AF2F882F8F06C277 /* Info.plist */,
 				6A87D6FC893EB292F4FC87ED /* Localizable.xcstrings */,
 				92A3271B5BF5E27D48F206C8 /* RoonController.entitlements */,
@@ -377,7 +374,6 @@
 				513BF3538D19A6AC7FF5A277 /* Lato-Bold.ttf in Resources */,
 				5254C61AE67F03E722A157CE /* Lato-Regular.ttf in Resources */,
 				41F44BDA484D0968AFF0E555 /* Localizable.xcstrings in Resources */,
-				AFE37D0C73FD49F800B1BA35 /* default.profraw in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

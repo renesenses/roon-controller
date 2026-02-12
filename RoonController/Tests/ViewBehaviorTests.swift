@@ -859,7 +859,7 @@ final class ViewBehaviorTests: XCTestCase {
     func testNowPlayingSectionExists() {
         // RoonSection includes .nowPlaying for the Now Playing content view
         let section = RoonSection.nowPlaying
-        XCTAssertEqual(section.label, "En lecture")
+        XCTAssertEqual(section.label, String(localized: "En lecture"))
         XCTAssertEqual(section.icon, "music.note")
     }
 

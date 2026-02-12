@@ -3,6 +3,7 @@ import SwiftUI
 struct RoonContentView: View {
     @EnvironmentObject var roonService: RoonService
     @Binding var selectedSection: RoonSection
+    var toggleSidebar: () -> Void = {}
 
     var body: some View {
         Group {
@@ -25,6 +26,19 @@ struct RoonContentView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: selectedSection)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .topLeading) {
+            Button(action: toggleSidebar) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Color.roonSecondary)
+                    .frame(width: 36, height: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 8)
+            .padding(.leading, 12)
+            .keyboardShortcut("\\", modifiers: .command)
+        }
         .background(Color.roonBackground)
     }
 
