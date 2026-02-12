@@ -4,7 +4,7 @@
 
 | Component | Minimum version |
 |-----------|----------------|
-| macOS | 15.0 (Sequoia) |
+| macOS | 15.0 (Sequoia) — compatible with macOS 26.x (Tahoe) |
 | Xcode | 16.0 |
 | Roon Core | 2.x |
 

@@ -208,6 +208,22 @@
 
 ---
 
+## 9. macOS Tahoe (26.x) Compatibility
+
+### App no longer connects after upgrading to Tahoe
+
+**Symptom**: The Core is discovered (SOOD) but the WebSocket connection fails or loops reconnecting.
+
+**Cause**: macOS Tahoe 26.3 enforces stricter local network restrictions (App Transport Security, local network privacy).
+
+**Solutions**:
+- Update to Roon Controller **v1.0.1** or later (includes Tahoe fixes)
+- If a local network permission dialog appears, click **Allow**
+- Check logs: `log stream --predicate 'subsystem == "com.bertrand.RoonController"' --info`
+- Fixes include: `NSAllowsLocalNetworking`, WebSocket handshake validation, `NSLocalNetworkUsageDescription`
+
+---
+
 ## Useful Diagnostic Commands
 
 ```bash
@@ -217,8 +233,8 @@ nc -zv <core_ip> 9330
 # Check SOOD multicast (port 9003)
 sudo tcpdump -i any udp port 9003
 
-# View app logs
-log stream --process "Roon Controller" --level debug
+# View app logs (specific category)
+log stream --predicate 'subsystem == "com.bertrand.RoonController"' --info
 
 # Clear the authorization token
 defaults delete com.bertrand.RoonController roon_core_token
