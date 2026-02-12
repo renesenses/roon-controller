@@ -194,6 +194,8 @@ class RoonService: ObservableObject {
 
         zones = allZones
 
+        let previousNowPlaying = currentZone?.now_playing
+
         if let current = currentZone {
             let updated = zonesById[current.zone_id]
             if updated != currentZone {
@@ -205,12 +207,19 @@ class RoonService: ObservableObject {
             selectZone(first)
         }
 
-        // Update seekPosition from current zone only when playing
-        // (paused/stopped zones may send seek_position:0 which would reset the bar)
-        if let zoneId = currentZone?.zone_id, let zone = zonesById[zoneId],
-           zone.state == "playing",
-           let serverSeek = zone.seek_position {
-            seekPosition = serverSeek
+        // Reset seekPosition to 0 when the track changes (next/previous),
+        // otherwise sync from server while playing.
+        // A nil now_playing in zones_changed means the field was absent (partial update),
+        // not that the track changed — so only compare when both are non-nil.
+        if let zoneId = currentZone?.zone_id, let zone = zonesById[zoneId] {
+            let trackChanged = zone.now_playing != nil
+                && previousNowPlaying != nil
+                && zone.now_playing != previousNowPlaying
+            if trackChanged {
+                seekPosition = zone.seek_position ?? 0
+            } else if zone.state == "playing", let serverSeek = zone.seek_position {
+                seekPosition = serverSeek
+            }
         }
 
         // Manage seek interpolation timer based on playback state

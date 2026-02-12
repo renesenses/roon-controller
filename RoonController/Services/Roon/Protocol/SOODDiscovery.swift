@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let soodLogger = Logger(subsystem: "com.bertrand.RoonController", category: "SOOD")
 
 // MARK: - SOOD Discovery Protocol
 
@@ -42,6 +45,11 @@ actor SOODDiscovery {
     func start() {
         stop()
         setupSockets()
+        if sendFd >= 0 && recvFd >= 0 {
+            soodLogger.info("SOOD sockets ready (send=\(self.sendFd) recv=\(self.recvFd))")
+        } else {
+            soodLogger.error("SOOD socket setup failed (send=\(self.sendFd) recv=\(self.recvFd))")
+        }
         startReceiveLoops()
         startQueryLoop()
     }
@@ -263,6 +271,7 @@ actor SOODDiscovery {
 
         if discoveredCores[serviceId] != core {
             discoveredCores[serviceId] = core
+            soodLogger.info("Core discovered: \(displayName) at \(host):\(port) (id: \(serviceId))")
             onCoreDiscovered?(core)
         }
     }

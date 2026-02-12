@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.bertrand.RoonController", category: "MOOTransport")
 
 // MARK: - MOO WebSocket Transport
 
@@ -17,7 +20,12 @@ actor MOOTransport {
 
     private(set) var state: State = .disconnected
     private var webSocket: URLSessionWebSocketTask?
-    private let session = URLSession(configuration: .default)
+    private let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.waitsForConnectivity = true
+        config.timeoutIntervalForRequest = 15
+        return URLSession(configuration: config)
+    }()
     private var pingTask: Task<Void, Never>?
     private var receiveTask: Task<Void, Never>?
 
@@ -36,7 +44,9 @@ actor MOOTransport {
 
     // MARK: - Connect / Disconnect
 
-    func connect(host: String, port: Int) {
+    /// Opens the WebSocket and waits for the handshake to complete (ping/pong)
+    /// before returning.  Throws if the handshake fails or times out.
+    func connect(host: String, port: Int) async throws {
         // Clean up previous connection without firing disconnect state change
         pingTask?.cancel()
         pingTask = nil
@@ -47,10 +57,12 @@ actor MOOTransport {
 
         let urlString = "ws://\(host):\(port)/api"
         guard let url = URL(string: urlString) else {
+            logger.error("Invalid URL: \(urlString)")
             updateState(.failed("Invalid URL: \(urlString)"))
-            return
+            throw MOOTransportError.notConnected
         }
 
+        logger.info("Connecting to \(urlString)")
         updateState(.connecting)
 
         let ws = session.webSocketTask(with: url)
@@ -58,12 +70,34 @@ actor MOOTransport {
         self.webSocket = ws
         ws.resume()
 
+        // Verify the WebSocket handshake actually completes.
+        // URLSessionWebSocketTask queues sends after resume(), but the TCP+WS
+        // handshake may be delayed by local network privacy prompts on Tahoe.
+        do {
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+                ws.sendPing { error in
+                    if let error = error {
+                        cont.resume(throwing: error)
+                    } else {
+                        cont.resume()
+                    }
+                }
+            }
+        } catch {
+            logger.error("WebSocket handshake failed: \(error.localizedDescription, privacy: .public)")
+            webSocket = nil
+            updateState(.failed("Handshake failed: \(error.localizedDescription)"))
+            throw error
+        }
+
+        logger.info("WebSocket handshake confirmed (ping/pong OK)")
         updateState(.connected)
         startReceiveLoop()
         startPingLoop()
     }
 
     func disconnect() {
+        logger.info("Disconnecting")
         pingTask?.cancel()
         pingTask = nil
         receiveTask?.cancel()
@@ -107,6 +141,7 @@ actor MOOTransport {
                     }
                 } catch {
                     if !Task.isCancelled {
+                        logger.error("Receive error: \(error.localizedDescription, privacy: .public)")
                         await self?.handleDisconnect()
                     }
                     break
@@ -137,6 +172,7 @@ actor MOOTransport {
                     }
                 } catch {
                     if !Task.isCancelled {
+                        logger.warning("Ping failed: \(error.localizedDescription, privacy: .public)")
                         await self?.handleDisconnect()
                     }
                     break
@@ -148,6 +184,7 @@ actor MOOTransport {
     // MARK: - Private
 
     private func handleDisconnect() {
+        logger.info("Transport disconnected")
         pingTask?.cancel()
         pingTask = nil
         receiveTask?.cancel()
