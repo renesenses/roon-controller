@@ -342,31 +342,84 @@ classDiagram
 
 ### Views
 
+The app has two display modes selectable in Settings:
+
+**Player mode** (default) — compact view with centered artwork:
+
 | View | Role |
 |------|------|
-| `RoonControllerApp` | Entry point, creates `RoonService`, starts connection |
-| `ContentView` | Routing: `ConnectionView` if disconnected, otherwise `NavigationSplitView` |
+| `ContentView` | Routing: `ConnectionView` if disconnected, `RoonLayoutView` if Roon mode, otherwise `NavigationSplitView` Player |
+| `PlayerView` | Player: artwork with blurred background, track info, seek bar, transport controls |
+| `SidebarView` | Sidebar with tabs: Zones, Library, Queue, History, Favorites |
+
+**Roon mode** — native Roon layout with sidebar, content and transport bar:
+
+```mermaid
+graph TD
+    subgraph RoonLayoutView["RoonLayoutView"]
+        direction TB
+        subgraph top["Main area"]
+            direction LR
+            Sidebar["RoonSidebarView<br/>220px<br/>Zone selector<br/>Dynamic categories<br/>Playlists"]
+            Content["RoonContentView<br/>switch selectedSection"]
+        end
+        Transport["RoonTransportBarView — 90px<br/>Album art + info | Play/Pause/Seek | Volume + Zone"]
+    end
+
+    Content --> Home["homeContent<br/>Greeting + Search<br/>Stats + Dernierement"]
+    Content --> Browse["RoonBrowseContentView<br/>Smart grid/list<br/>Navigation + Search"]
+    Content --> NowPlaying["RoonNowPlayingView<br/>Responsive wide/compact<br/>Shuffle/Loop/Radio/Favorite"]
+    Content --> Queue["QueueView"]
+    Content --> History["HistoryView"]
+    Content --> Favorites["FavoritesView"]
+```
+
+| View | Role |
+|------|------|
+| `RoonLayoutView` | Main container: sidebar + content + transport bar |
+| `RoonSidebarView` | Zone selector (dropdown with state indicator), dynamic categories (Explorer, Library, Playlists) |
+| `RoonContentView` | Content routing by selected section. Home: greeting, search, stats, Dernierement |
+| `RoonBrowseContentView` | Library browsing with smart grid/list, search, lazy loading |
+| `RoonNowPlayingView` | Now playing responsive (wide: side-by-side, compact: stacked), blur background, controls |
+| `RoonTransportBarView` | Fixed bottom bar: artwork + track info, play/pause/prev/next, seek, volume, zone |
+| `QueueView` | Queue list, current item highlighted |
+| `HistoryView` | Playback history, tap to replay (tracks and radio) |
+| `FavoritesView` | Radio favorites with CSV export and deletion |
+| `SettingsView` | Display mode (Player/Roon), theme (Dark/Light/System), manual Core connection |
+
+**Shared views:**
+
+| View | Role |
+|------|------|
+| `RoonControllerApp` | Entry point, creates `RoonService`, applies theme |
 | `ConnectionView` | Connection screen (status, reconnection) |
-| `PlayerView` | Player: artwork with blurred background, track info, seek bar, transport controls, shuffle/repeat/radio |
-| `SidebarView` | Sidebar with 4 tabs: Zones, Library, Queue, History |
-| `QueueView` | Queue list, current item highlighted, tap to play from a point |
-| `HistoryView` | Playback history with artwork, title, artist, zone, time. Tap to replay (tracks and radio) |
-| `SettingsView` | Manual Core connection by IP |
 
 ### Color Palette (`RoonColors.swift`)
 
-| Color | Hex | Usage |
-|-------|-----|-------|
-| `roonBackground` | #141414 | Main background |
-| `roonSurface` | #1E1E1E | Elevated surfaces |
-| `roonSidebar` | #1A1A1A | Sidebar background |
-| `roonAccent` | #4285F4 | Accent (Google blue) |
-| `roonText` | #FFFFFF | Primary text |
-| `roonSecondary` | #AAAAAA | Secondary text |
-| `roonTertiary` | #666666 | Tertiary text |
+Adaptive light/dark system using `NSColor(name:)`:
+
+| Color | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `roonBackground` | #FFFFFF | #181818 | Main background |
+| `roonSurface` | #FFFFFF | #1E1E1E | Elevated surfaces |
+| `roonSidebar` | #F7F8F9 | #181818 | Sidebar background |
+| `roonPanel` | #FAFAFA | #242424 | Panels and cards |
+| `roonAccent` | #7574F3 | #6B6ED9 | Accent (Roon Creamsicle purple) |
+| `roonText` | #2C2C2E | #FFFFFF | Primary text |
+| `roonSecondary` | #4A4A4A | #A8A8A8 | Secondary text |
+| `roonTertiary` | #8E8E93 | #666666 | Tertiary text |
+| `roonSeparator` | #E4E4E4 | #4D4E51 | Separators |
+
+### Typography (`RoonFonts.swift`)
+
+| Font | Usage |
+|------|-------|
+| Grifo M / Grifo S | Serif headings (greeting, now playing) |
+| Lato / Lato Bold | Body text, labels |
+| Inter Medium | Section headers |
 
 ### Entitlements
 
-- `com.apple.security.app-sandbox`: disabled
+- `com.apple.security.app-sandbox`: enabled
 - `com.apple.security.network.client`: outgoing connections (WebSocket, HTTP)
 - `com.apple.security.network.server`: incoming connections (local image server)

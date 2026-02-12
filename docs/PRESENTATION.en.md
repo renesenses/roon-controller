@@ -355,7 +355,7 @@ private func scheduleReconnect() {
 
 ## 7. Tests and CI/CD
 
-### 104 Unit Tests
+### 140 Unit Tests
 
 Tests cover three levels:
 
@@ -429,7 +429,7 @@ This addresses a blind spot in classic CI: the build may pass while the environm
 |--------|-------|
 | Lines of Swift | ~6,000 |
 | Swift files | 27 |
-| Unit tests | 104 |
+| Unit tests | 140 |
 | External dependencies | **0** |
 | Commits | 31 |
 | Swift actors | 4 |

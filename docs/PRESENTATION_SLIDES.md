@@ -9,7 +9,7 @@ style: |
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
   }
   h1, h2 {
-    color: #4285F4;
+    color: #7574F3;
   }
   h3 {
     color: #ffffff;
@@ -34,13 +34,13 @@ style: |
     background: #1a1a1a;
   }
   a {
-    color: #4285F4;
+    color: #7574F3;
   }
   strong {
     color: #ffffff;
   }
   blockquote {
-    border-left-color: #4285F4;
+    border-left-color: #7574F3;
     color: #a0a0a0;
   }
 ---
@@ -420,7 +420,7 @@ Lundi 09:00  Version Watch (macOS, Xcode, Swift, Roon)
 |----------|--------|
 | **Lignes Swift** | ~4 500 |
 | **Fichiers Swift** | 25 |
-| **Tests** | 36 |
+| **Tests** | 140 |
 | **Dependances** | **0** |
 | **Commits** | 26 |
 | **Actors** | 4 |

@@ -431,7 +431,7 @@ Cela repond a un angle mort du CI classique : le build peut passer alors que l'e
 |----------|--------|
 | Lignes de Swift | ~6 000 |
 | Fichiers Swift | 27 |
-| Tests unitaires | 104 |
+| Tests unitaires | 140 |
 | Dependances externes | **0** |
 | Commits | 31 |
 | Acteurs Swift | 4 |

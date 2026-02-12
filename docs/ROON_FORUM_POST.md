@@ -95,7 +95,7 @@ If you try it, please let me know:
 
 The full source code is available on GitHub: **[renesenses/roon-controller](https://github.com/renesenses/roon-controller)**
 
-104 unit tests, CI via GitHub Actions, detailed architecture documentation. Contributions welcome!
+140 unit tests, CI via GitHub Actions, Homebrew Cask distribution, detailed architecture documentation. Contributions welcome!
 
 ## Technical details (for the curious)
 
