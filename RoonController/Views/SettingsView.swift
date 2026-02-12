@@ -2,10 +2,23 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var roonService: RoonService
+    @AppStorage("uiMode") private var uiMode = "roon"
     @State private var coreIP: String = ""
 
     var body: some View {
         Form {
+            Section("Interface") {
+                Picker("Mode d'affichage", selection: $uiMode) {
+                    Text("Player").tag("player")
+                    Text("Roon").tag("roon")
+                }
+                .pickerStyle(.segmented)
+
+                Text("Player : vue compacte avec pochette centrale. Roon : layout avec barre de transport en bas.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Connexion Roon Core") {
                 HStack {
                     if roonService.connectionState == .connected {
@@ -55,6 +68,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 280)
+        .frame(width: 450, height: 350)
     }
 }

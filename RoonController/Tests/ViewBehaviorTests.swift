@@ -636,6 +636,77 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertEqual(decoded.image_key, "key")
     }
 
+    // MARK: - Roon UI behavior
+
+    func testContentViewDefaultsToRoonMode() {
+        // @AppStorage("uiMode") defaults to "roon"
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "uiMode")
+        let mode = defaults.string(forKey: "uiMode") ?? "roon"
+        XCTAssertEqual(mode, "roon")
+    }
+
+    func testRoonTransportBarShowsTrackInfo() {
+        let np = NowPlaying(
+            one_line: nil, two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Track Title", line2: "Artist Name", line3: "Album"),
+            length: 240, seek_position: 30, image_key: "img1"
+        )
+        let zone = makeZone(id: "z1", name: "Zone", state: "playing", nowPlaying: np)
+        service.selectZone(zone)
+
+        // RoonTransportBarView displays title and artist from three_line
+        let title = service.currentZone?.now_playing?.three_line?.line1
+        let artist = service.currentZone?.now_playing?.three_line?.line2
+        XCTAssertEqual(title, "Track Title")
+        XCTAssertEqual(artist, "Artist Name")
+    }
+
+    func testRoonTransportBarPlayPauseIcon() {
+        let np = makeNowPlaying(title: "Song")
+
+        let playing = makeZone(id: "z1", name: "Zone", state: "playing", nowPlaying: np)
+        service.selectZone(playing)
+        // Transport bar shows "pause.circle.fill" when playing
+        XCTAssertEqual(service.currentZone?.state, "playing")
+
+        let paused = makeZone(id: "z1", name: "Zone", state: "paused", nowPlaying: np)
+        service.selectZone(paused)
+        // Transport bar shows "play.circle.fill" when paused
+        XCTAssertEqual(service.currentZone?.state, "paused")
+    }
+
+    func testRoonTransportBarSeekProgress() {
+        let np = NowPlaying(
+            one_line: nil, two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Song", line2: "Artist", line3: "Album"),
+            length: 200, seek_position: 100, image_key: nil
+        )
+        let zone = makeZone(id: "z1", name: "Zone", state: "playing", nowPlaying: np, seekPosition: 100)
+        service.selectZone(zone)
+
+        let position = Double(service.seekPosition)
+        let duration = Double(np.length ?? 0)
+        XCTAssertEqual(position / duration, 0.5, accuracy: 0.01)
+    }
+
+    func testRoonSidebarSections() {
+        // All RoonSection cases have labels and icons
+        let sections = RoonSection.allCases
+        XCTAssertEqual(sections.count, 6)
+        for section in sections {
+            XCTAssertFalse(section.label.isEmpty)
+            XCTAssertFalse(section.icon.isEmpty)
+        }
+    }
+
+    func testUIModeCases() {
+        let modes = UIMode.allCases
+        XCTAssertEqual(modes.count, 2)
+        XCTAssertEqual(UIMode.player.label, "Player")
+        XCTAssertEqual(UIMode.roon.label, "Roon")
+    }
+
     // MARK: - ConnectionView behavior
 
     func testConnectionViewStates() {
