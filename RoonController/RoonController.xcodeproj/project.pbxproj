@@ -23,6 +23,7 @@
 		513BF3538D19A6AC7FF5A277 /* Lato-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CADF8947CD9D124C4DECAA9B /* Lato-Bold.ttf */; };
 		519F92A185C861D59BAA94A4 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6208159EBB6F3E199BC08686 /* PlayerView.swift */; };
 		5254C61AE67F03E722A157CE /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4BB5F33CBB66488501F44D04 /* Lato-Regular.ttf */; };
+		B62E9A0F38D7C41E5F0BA823 /* Inter-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7A3F82D1E49B56C0A812FD37 /* Inter-Medium.ttf */; };
 		529A895FA3C4E32038B5FF81 /* RoonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */; };
 		54911BE3A34F964675E4707E /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4926CDAEA0DDFB262E6BE81A /* QueueView.swift */; };
 		60DA9CF67D9D9E807CE91503 /* RoonSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B426904DE3248B6C9BA976 /* RoonSection.swift */; };
@@ -82,6 +83,7 @@
 		6208159EBB6F3E199BC08686 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		6418DBE0BE5F34DA15279274 /* MOOMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MOOMessage.swift; sourceTree = "<group>"; };
 		66AFF8AEECA51078FB7A69F5 /* RoonConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonConnection.swift; sourceTree = "<group>"; };
+		7A3F82D1E49B56C0A812FD37 /* Inter-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.ttf"; sourceTree = "<group>"; };
 		6A87D6FC893EB292F4FC87ED /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		6F75FB3DE82DDCA6F017225C /* RoonModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonModels.swift; sourceTree = "<group>"; };
 		723F143D953CB6B15EF90372 /* RoonTransportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonTransportService.swift; sourceTree = "<group>"; };
@@ -273,6 +275,7 @@
 			children = (
 				D8502583FE932B155420E24C /* GrifoM-Medium.otf */,
 				FA4CC50B43FC90C6F9D537D1 /* GrifoS-Medium.otf */,
+				7A3F82D1E49B56C0A812FD37 /* Inter-Medium.ttf */,
 				CADF8947CD9D124C4DECAA9B /* Lato-Bold.ttf */,
 				4BB5F33CBB66488501F44D04 /* Lato-Regular.ttf */,
 			);
@@ -370,6 +373,7 @@
 				83D2098070D56815105DD58C /* Assets.xcassets in Resources */,
 				484994E0C2D17EE3FDFE6D1D /* GrifoM-Medium.otf in Resources */,
 				29362FC5273D1A7F2D9E5A7C /* GrifoS-Medium.otf in Resources */,
+				B62E9A0F38D7C41E5F0BA823 /* Inter-Medium.ttf in Resources */,
 				513BF3538D19A6AC7FF5A277 /* Lato-Bold.ttf in Resources */,
 				5254C61AE67F03E722A157CE /* Lato-Regular.ttf in Resources */,
 				41F44BDA484D0968AFF0E555 /* Localizable.xcstrings in Resources */,

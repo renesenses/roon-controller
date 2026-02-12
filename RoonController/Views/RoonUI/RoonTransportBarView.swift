@@ -101,11 +101,11 @@ struct RoonTransportBarView: View {
     private func trackInfo(nowPlaying: NowPlaying) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(nowPlaying.three_line?.line1 ?? "")
-                .font(.latoBold(13))
+                .font(.latoBold(14))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(1)
             Text(nowPlaying.three_line?.line2 ?? "")
-                .font(.lato(12))
+                .font(.lato(13))
                 .foregroundStyle(Color.roonSecondary)
                 .lineLimit(1)
         }
@@ -114,23 +114,26 @@ struct RoonTransportBarView: View {
     // MARK: - Transport Controls
 
     private func transportControls(zone: RoonZone) -> some View {
-        HStack(spacing: 28) {
+        HStack(spacing: 24) {
+            // Roon: w-24 h-24 rounded-full bg-zinc-800/60
             Button { roonService.previous() } label: {
                 Image(systemName: "backward.end.fill")
-                    .font(.system(size: 14))
+                    .font(.system(size: 15))
                     .foregroundStyle(Color.roonText)
+                    .frame(width: 36, height: 36)
             }
             .buttonStyle(.plain)
             .disabled(!(zone.is_previous_allowed ?? false))
             .opacity((zone.is_previous_allowed ?? false) ? 1 : 0.3)
 
+            // Roon: bg-roon-primary rounded-full
             Button { roonService.playPause() } label: {
                 ZStack {
                     Circle()
                         .fill(Color.roonAccent)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 40, height: 40)
                     Image(systemName: zone.state == "playing" ? "pause.fill" : "play.fill")
-                        .font(.system(size: 14))
+                        .font(.system(size: 15))
                         .foregroundStyle(.white)
                         .offset(x: zone.state == "playing" ? 0 : 1)
                 }
@@ -139,8 +142,9 @@ struct RoonTransportBarView: View {
 
             Button { roonService.next() } label: {
                 Image(systemName: "forward.end.fill")
-                    .font(.system(size: 14))
+                    .font(.system(size: 15))
                     .foregroundStyle(Color.roonText)
+                    .frame(width: 36, height: 36)
             }
             .buttonStyle(.plain)
             .disabled(!(zone.is_next_allowed ?? false))

@@ -105,8 +105,9 @@ struct RoonNowPlayingView: View {
     // MARK: - Album Art
 
     private func artSize(for viewSize: CGSize) -> CGFloat {
-        let maxArt = min(viewSize.height * 0.6, viewSize.width * 0.4)
-        return min(max(maxArt, 200), 480)
+        // Roon: w-[40rem] = 640px for album art
+        let maxArt = min(viewSize.height * 0.65, viewSize.width * 0.45)
+        return min(max(maxArt, 240), 560)
     }
 
     @ViewBuilder
@@ -144,17 +145,17 @@ struct RoonNowPlayingView: View {
     // MARK: - Track Info
 
     private func trackInfo(nowPlaying: NowPlaying) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Title — large, brand serif
+        VStack(alignment: .leading, spacing: 10) {
+            // Title — Roon: text-[4rem] font-grifo-l (64px)
             Text(nowPlaying.three_line?.line1 ?? "")
-                .font(.grifoM(28))
+                .font(.grifoM(36))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(2)
 
-            // Artist — serif subtitle
+            // Artist — Roon: text-5xl font-grifo-s (48px)
             if let artist = nowPlaying.three_line?.line2, !artist.isEmpty {
                 Text(artist)
-                    .font(.grifoS(18))
+                    .font(.grifoS(24))
                     .foregroundStyle(Color.roonSecondary)
                     .lineLimit(1)
             }
@@ -162,7 +163,7 @@ struct RoonNowPlayingView: View {
             // Album
             if let album = nowPlaying.three_line?.line3, !album.isEmpty {
                 Text(album)
-                    .font(.lato(14))
+                    .font(.lato(16))
                     .foregroundStyle(Color.roonTertiary)
                     .lineLimit(1)
             }
@@ -230,10 +231,10 @@ struct RoonNowPlayingView: View {
     private var upNextSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !roonService.queueItems.isEmpty {
-                Text("A SUIVRE")
-                    .font(.latoBold(10))
+                Text("UP NEXT")
+                    .font(.latoBold(11))
                     .foregroundStyle(Color.roonTertiary)
-                    .tracking(1.2)
+                    .tracking(1.5)
 
                 VStack(spacing: 0) {
                     ForEach(roonService.queueItems.prefix(5), id: \.queue_item_id) { item in
@@ -303,8 +304,8 @@ struct RoonNowPlayingView: View {
             Image(systemName: "music.note")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.roonTertiary)
-            Text("Rien en lecture")
-                .font(.grifoM(18))
+            Text("Nothing Playing")
+                .font(.inter(24))
                 .foregroundStyle(Color.roonSecondary)
         }
     }

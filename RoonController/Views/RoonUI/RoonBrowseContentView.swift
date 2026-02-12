@@ -11,7 +11,7 @@ struct RoonBrowseContentView: View {
     @State private var searchItemKey: String?
     @State private var didInitRadio: Bool = false
 
-    private let gridCardSize: CGFloat = 160
+    private let gridCardSize: CGFloat = 200
 
     private var filteredBrowseItems: [BrowseItem] {
         guard let result = roonService.browseResult else { return [] }
@@ -103,8 +103,9 @@ struct RoonBrowseContentView: View {
             Text(roonService.browseStack.isEmpty
                  ? (startWithRadio ? "Radio" : "Bibliotheque")
                  : (roonService.browseStack.last ?? ""))
-                .font(.grifoM(20))
+                .font(.inter(28))
                 .foregroundStyle(Color.roonText)
+                .tracking(-0.8)
                 .lineLimit(1)
 
             if roonService.browseLoading {
@@ -191,7 +192,7 @@ struct RoonBrowseContentView: View {
         VStack(alignment: .leading, spacing: 6) {
             // Artwork
             ZStack(alignment: .bottomTrailing) {
-                if let url = roonService.imageURL(key: item.image_key, width: 400, height: 400) {
+                if let url = roonService.imageURL(key: item.image_key, width: 480, height: 480) {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let img):
@@ -201,7 +202,7 @@ struct RoonBrowseContentView: View {
                         }
                     }
                     .frame(width: gridCardSize, height: gridCardSize)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 } else {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.roonGrey2)
@@ -229,16 +230,16 @@ struct RoonBrowseContentView: View {
                 }
             }
 
-            // Title
+            // Title — Roon: font-lato text-2xl
             Text(item.title ?? "")
-                .font(.latoBold(12))
+                .font(.lato(15))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(2)
 
-            // Subtitle
+            // Subtitle — Roon: font-lato text-xl text-gray-400
             if let subtitle = item.subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.lato(11))
+                    .font(.lato(13))
                     .foregroundStyle(Color.roonSecondary)
                     .lineLimit(1)
             }
@@ -267,8 +268,8 @@ struct RoonBrowseContentView: View {
     // MARK: - Browse Row (list mode)
 
     private func browseRow(_ item: BrowseItem) -> some View {
-        HStack(spacing: 12) {
-            if let url = roonService.imageURL(key: item.image_key, width: 100, height: 100) {
+        HStack(spacing: 14) {
+            if let url = roonService.imageURL(key: item.image_key, width: 160, height: 160) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
@@ -277,18 +278,18 @@ struct RoonBrowseContentView: View {
                         Color.roonGrey2
                     }
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: 52, height: 52)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(item.title ?? "")
-                    .font(.lato(14))
+                    .font(.lato(15))
                     .foregroundStyle(Color.roonText)
                     .lineLimit(1)
                 if let subtitle = item.subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.lato(12))
+                        .font(.lato(13))
                         .foregroundStyle(Color.roonSecondary)
                         .lineLimit(1)
                 }
@@ -299,7 +300,7 @@ struct RoonBrowseContentView: View {
             if (item.hint == "action_list" || item.hint == "action"),
                let itemKey = item.item_key {
                 Image(systemName: "play.circle.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: 24))
                     .foregroundStyle(Color.roonAccent)
                     .onTapGesture {
                         roonService.playItem(itemKey: itemKey)
@@ -308,12 +309,12 @@ struct RoonBrowseContentView: View {
 
             if item.hint == "list" || item.hint == "action_list" {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color.roonTertiary)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 12)
         .contentShape(Rectangle())
         .onTapGesture {
             searchText = ""

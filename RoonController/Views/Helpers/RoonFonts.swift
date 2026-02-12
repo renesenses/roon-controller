@@ -9,7 +9,7 @@ enum RoonFonts {
     static func registerAll() {
         guard !registered else { return }
         registered = true
-        let fontNames = ["GrifoM-Medium.otf", "GrifoS-Medium.otf", "Lato-Regular.ttf", "Lato-Bold.ttf"]
+        let fontNames = ["GrifoM-Medium.otf", "GrifoS-Medium.otf", "Lato-Regular.ttf", "Lato-Bold.ttf", "Inter-Medium.ttf"]
         for name in fontNames {
             if let url = Bundle.main.url(forResource: name, withExtension: nil)
                 ?? Bundle.main.url(forResource: (name as NSString).deletingPathExtension,
@@ -42,6 +42,11 @@ extension Font {
     /// Lato Bold — emphasized body text
     static func latoBold(_ size: CGFloat) -> Font {
         .custom("Lato-Bold", size: size)
+    }
+
+    /// Inter Medium — section headers (Roon native)
+    static func inter(_ size: CGFloat) -> Font {
+        .custom("Inter Medium", size: size)
     }
 }
 

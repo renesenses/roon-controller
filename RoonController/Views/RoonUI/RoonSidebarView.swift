@@ -90,12 +90,12 @@ struct RoonSidebarView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.latoBold(10))
+            .font(.inter(10))
             .foregroundStyle(Color.roonTertiary)
-            .tracking(1.2)
+            .tracking(1.5)
             .padding(.horizontal, 18)
-            .padding(.top, 16)
-            .padding(.bottom, 4)
+            .padding(.top, 18)
+            .padding(.bottom, 6)
     }
 
     // MARK: - Zone Selector
