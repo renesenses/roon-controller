@@ -76,8 +76,8 @@ struct RoonContentView: View {
                         .padding(.bottom, sectionSpacing)
                 }
 
-                // Dernierement (recently played)
-                if !recentPlayedTiles.isEmpty {
+                // Dernierement (recently played / recently added)
+                if !recentPlayedTiles.isEmpty || !recentlyAddedTiles.isEmpty {
                     dernierementSection
                         .padding(.bottom, sectionSpacing)
                 }
@@ -164,7 +164,7 @@ struct RoonContentView: View {
                     dernierementTabButton("LUS", isSelected: dernierementTab == .lus) {
                         dernierementTab = .lus
                     }
-                    dernierementTabButton("AJOUTE", isSelected: dernierementTab == .ajoute) {
+                    dernierementTabButton("AJOUTÉS", isSelected: dernierementTab == .ajoute) {
                         dernierementTab = .ajoute
                     }
                 }
@@ -207,9 +207,10 @@ struct RoonContentView: View {
             .padding(.horizontal, 24)
 
             // Horizontal scroll of album cards
+            let tiles = dernierementTab == .lus ? recentPlayedTiles : recentlyAddedTiles
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 16) {
-                    ForEach(recentPlayedTiles, id: \.id) { tile in
+                    ForEach(tiles, id: \.id) { tile in
                         dernierementCard(tile)
                             .hoverScale()
                     }
@@ -289,6 +290,17 @@ struct RoonContentView: View {
                 id: item.id.uuidString,
                 title: item.title,
                 subtitle: item.artist.isEmpty ? nil : item.artist,
+                imageKey: item.image_key
+            )
+        }
+    }
+
+    private var recentlyAddedTiles: [HomeTile] {
+        roonService.recentlyAdded.prefix(20).map { item in
+            HomeTile(
+                id: item.item_key ?? item.title ?? UUID().uuidString,
+                title: item.title ?? "",
+                subtitle: item.subtitle,
                 imageKey: item.image_key
             )
         }

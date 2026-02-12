@@ -27,6 +27,7 @@ class RoonService: ObservableObject {
     @Published var sidebarCategories: [BrowseItem] = []
     @Published var sidebarPlaylists: [BrowseItem] = []
     @Published var libraryCounts: [String: Int] = [:]
+    var recentlyAdded: [BrowseItem] = []
 
     // MARK: - Storage
 
@@ -222,6 +223,7 @@ class RoonService: ObservableObject {
             // Fetch sidebar categories now that we have a zone for the browse API
             if sidebarCategories.isEmpty {
                 fetchSidebarCategories()
+                fetchRecentlyAdded()
             }
         }
 
@@ -652,6 +654,68 @@ class RoonService: ObservableObject {
                 }
             } catch {
                 // Sidebar fetch failed silently
+            }
+        }
+    }
+
+    // MARK: - Recently Added (Browse: Library → Albums)
+
+    private static let albumsTitles = Set(["Albums"])
+
+    func fetchRecentlyAdded() {
+        let zoneId = currentZone?.zone_id
+
+        Task {
+            do {
+                let decoder = JSONDecoder()
+                let session = RoonBrowseService(connection: connection, sessionKey: "recently_added")
+
+                // Navigate to root
+                let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
+                let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                // Navigate into Library
+                guard let libItem = rootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
+                      let libKey = libItem.item_key else { return }
+                let libResponse = try await session.browse(zoneId: zoneId, itemKey: libKey)
+                let libItems: [BrowseItem] = libResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                // Navigate into Albums
+                guard let albumsItem = libItems.first(where: { Self.albumsTitles.contains($0.title ?? "") }),
+                      let albumsKey = albumsItem.item_key else { return }
+                let albumsResponse = try await session.browse(zoneId: zoneId, itemKey: albumsKey)
+
+                // Load first 20 items (sorted by date added by default)
+                let items: [BrowseItem] = albumsResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                // If browse returned fewer than 20, try load for more
+                var allItems = items
+                if allItems.count < 20 {
+                    let loadResult = try await session.load(offset: 0, count: 20)
+                    let loadItems: [BrowseItem] = loadResult.items.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+                    if loadItems.count > allItems.count {
+                        allItems = loadItems
+                    }
+                }
+
+                await MainActor.run {
+                    objectWillChange.send()
+                    self.recentlyAdded = Array(allItems.prefix(20))
+                }
+            } catch {
+                // Recently added fetch failed silently
             }
         }
     }
