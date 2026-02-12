@@ -81,6 +81,7 @@
 		EEE5C81111DFF879D58805C8 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		F2A3B4C5D6E7F80912345679 /* ViewBehaviorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewBehaviorTests.swift; sourceTree = "<group>"; };
 		L0CA1E2A3B4C5D6E7F890AB /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		T4H03E2A1B2C3D4E5F6A7B8C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -179,6 +180,7 @@
 			isa = PBXGroup;
 			children = (
 				1B2F25475F39979BA3F2E470 /* Assets.xcassets */,
+				T4H03E2A1B2C3D4E5F6A7B8C /* Info.plist */,
 				L0CA1E2A3B4C5D6E7F890AB /* Localizable.xcstrings */,
 				92A3271B5BF5E27D48F206C8 /* RoonController.entitlements */,
 				518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */,
@@ -367,6 +369,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_GENERATION_LIBRARY = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -472,6 +475,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_GENERATION_LIBRARY = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

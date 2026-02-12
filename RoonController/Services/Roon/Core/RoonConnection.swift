@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.bertrand.RoonController", category: "RoonConnection")
 
 // MARK: - Roon Connection Orchestrator
 
@@ -63,6 +66,7 @@ actor RoonConnection {
     // MARK: - Connect
 
     func connect() async {
+        logger.info("Starting discovery...")
         shouldReconnect = true
         reconnectAttempt = 0
         updateState(.discovering)
@@ -70,6 +74,7 @@ actor RoonConnection {
     }
 
     func connectDirect(host: String, port: Int = 9330) async {
+        logger.info("Direct connect to \(host):\(port)")
         shouldReconnect = true
         reconnectAttempt = 0
         coreHost = host
@@ -130,14 +135,22 @@ actor RoonConnection {
             }
         }
 
-        await transport.connect(host: host, port: port)
-        await performRegistration()
+        do {
+            try await transport.connect(host: host, port: port)
+            logger.info("WebSocket connected to \(host):\(port)")
+            await performRegistration()
+        } catch {
+            logger.error("WebSocket connect failed: \(error.localizedDescription, privacy: .public)")
+            updateState(.failed("Connection failed: \(error.localizedDescription)"))
+            scheduleReconnect()
+        }
     }
 
     // MARK: - Registration Handshake
 
     private func performRegistration() async {
         updateState(.registering)
+        logger.info("Starting registration handshake...")
 
         do {
             // Step 1: Send registry:1/info
@@ -149,6 +162,7 @@ actor RoonConnection {
 
             if let body = infoResponse.bodyJSON {
                 parseServiceNames(from: body)
+                logger.info("Core info received, services: transport=\(self.transportServiceName ?? "nil") browse=\(self.browseServiceName ?? "nil")")
             }
 
             // Step 2: Send registry:1/register
@@ -164,13 +178,15 @@ actor RoonConnection {
                 RoonRegistration.saveToken(token, coreId: coreId)
                 coreName = name.isEmpty ? "Roon Core" : name
                 reconnectAttempt = 0
+                logger.info("Registered with Core: \(self.coreName ?? "?") (id: \(coreId))")
                 updateState(.connected(coreName: coreName ?? "Roon Core"))
                 await subscribeZones()
 
             case .notRegistered:
-                break
+                logger.warning("Registration response: not registered (awaiting user approval in Roon?)")
             }
         } catch {
+            logger.error("Registration failed: \(error.localizedDescription, privacy: .public)")
             updateState(.failed("Registration failed: \(error.localizedDescription)"))
             scheduleReconnect()
         }
