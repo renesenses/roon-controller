@@ -6,9 +6,16 @@ import XCTest
 final class ViewBehaviorTests: XCTestCase {
 
     var service: RoonService!
+    private var tempDir: URL!
 
     override func setUp() async throws {
-        service = RoonService()
+        tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        service = RoonService(storageDirectory: tempDir)
+    }
+
+    override func tearDown() async throws {
+        try? FileManager.default.removeItem(at: tempDir)
     }
 
     // MARK: - ContentView behavior
@@ -799,7 +806,7 @@ final class ViewBehaviorTests: XCTestCase {
     }
 
     func testHomeUpNextTilesFromQueue() {
-        // Home "File d'attente" tab shows up to 20 items from queueItems
+        // Queue items can be set (used by QueueView, no longer shown on home)
         let items = (0..<5).map { i in
             QueueItem(queue_item_id: i,
                       one_line: NowPlaying.LineInfo(line1: "Track \(i)", line2: nil, line3: nil),
@@ -812,7 +819,7 @@ final class ViewBehaviorTests: XCTestCase {
     }
 
     func testHomeOtherZonesFiltered() {
-        // "En lecture ailleurs" shows zones that: have now_playing AND are not currentZone
+        // Zone filtering: zones with now_playing AND not currentZone (used by zone selection)
         let np = makeNowPlaying(title: "Song")
         let z1 = makeZone(id: "z1", name: "Salon", state: "playing", nowPlaying: np)
         let z2 = makeZone(id: "z2", name: "Chambre", state: "playing", nowPlaying: np)

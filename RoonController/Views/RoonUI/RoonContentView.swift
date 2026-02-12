@@ -5,6 +5,8 @@ struct RoonContentView: View {
     @Binding var selectedSection: RoonSection
     var toggleSidebar: () -> Void = {}
 
+    @State private var dernierementTab: DernierementTab = .lus
+
     var body: some View {
         Group {
             switch selectedSection {
@@ -49,6 +51,13 @@ struct RoonContentView: View {
     private let cardSize: CGFloat = 280
     private let cardGap: CGFloat = 24
     private let cardImageRes: Int = 640
+    private let dernierementCardSize: CGFloat = 180
+
+    // MARK: - Tab Enum
+
+    private enum DernierementTab {
+        case lus, ajoute
+    }
 
     // MARK: - Home
 
@@ -57,196 +66,219 @@ struct RoonContentView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer().frame(height: 40)
 
-                // Recently Played
+                // Greeting
+                greetingHeader
+                    .padding(.bottom, 32)
+
+                // Library stats
+                if !roonService.libraryCounts.isEmpty {
+                    libraryStatsRow
+                        .padding(.bottom, sectionSpacing)
+                }
+
+                // Dernierement (recently played)
                 if !recentPlayedTiles.isEmpty {
-                    homeSection(
-                        title: "Ecoutes recemment",
-                        tiles: recentPlayedTiles
-                    )
-                    .padding(.bottom, sectionSpacing)
-                }
-
-                // Up Next (Queue)
-                if !upNextTiles.isEmpty {
-                    homeSection(
-                        title: "A suivre",
-                        tiles: upNextTiles
-                    )
-                    .padding(.bottom, sectionSpacing)
-                }
-
-                // Other zones playing
-                let otherZones = roonService.zones.filter {
-                    $0.zone_id != roonService.currentZone?.zone_id && $0.now_playing != nil
-                }
-                if !otherZones.isEmpty {
-                    zonesSection(zones: otherZones)
+                    dernierementSection
                         .padding(.bottom, sectionSpacing)
                 }
 
                 Spacer().frame(height: 40)
             }
+            .frame(maxWidth: .infinity)
         }
     }
 
-    // MARK: - Home Section (title + horizontal scroll — Roon native style)
+    // MARK: - Greeting Header
 
-    private func homeSection(title: LocalizedStringKey, tiles: [HomeTile]) -> some View {
-        VStack(alignment: .leading, spacing: 24) {
-            // Header — Roon uses font-inter text-6xl tracking-tighter
-            Text(title)
-                .font(.inter(40))
-                .foregroundStyle(Color.roonText)
-                .tracking(-1.5)
-                .padding(.horizontal, pagePadding)
+    private var greetingHeader: some View {
+        let fullName = NSFullUserName()
+        let firstName = fullName.components(separatedBy: " ").first ?? fullName
+        return Text("Bonjour, \(firstName)")
+            .font(.grifoM(48))
+            .foregroundStyle(Color.roonText)
+            .padding(.horizontal, pagePadding)
+    }
 
-            // Horizontal scroll of cards
+    // MARK: - Library Stats Row
+
+    private var libraryStatsRow: some View {
+        HStack(spacing: 16) {
+            statCard(icon: "person.2", count: roonService.libraryCounts["artists"] ?? 0, label: "ARTISTES")
+            statCard(icon: "opticaldisc", count: roonService.libraryCounts["albums"] ?? 0, label: "ALBUMS")
+            statCard(icon: "music.note", count: roonService.libraryCounts["tracks"] ?? 0, label: "MORCEAUX")
+            statCard(icon: "music.quarternote.3", count: roonService.libraryCounts["composers"] ?? 0, label: "COMPOSITEURS")
+        }
+        .padding(.horizontal, pagePadding)
+    }
+
+    private func statCard(icon: String, count: Int, label: LocalizedStringKey) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 26))
+                .foregroundStyle(Color.roonAccent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(formatCount(count))
+                    .font(.latoBold(30))
+                    .foregroundStyle(Color.roonText)
+                Text(label)
+                    .font(.lato(11))
+                    .foregroundStyle(Color.roonSecondary)
+                    .tracking(1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 18)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.roonPanel)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(Color.roonSeparator, lineWidth: 0.5)
+                )
+        )
+        .hoverScale()
+    }
+
+    private func formatCount(_ count: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale.current
+        return formatter.string(from: NSNumber(value: count)) ?? "\(count)"
+    }
+
+    // MARK: - Dernierement Section (blue accent background)
+
+    private var dernierementSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            // Header row
+            HStack(spacing: 16) {
+                Text("Dernierement")
+                    .font(.inter(28))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                // Tabs
+                HStack(spacing: 0) {
+                    dernierementTabButton("LUS", isSelected: dernierementTab == .lus) {
+                        dernierementTab = .lus
+                    }
+                    dernierementTabButton("AJOUTE", isSelected: dernierementTab == .ajoute) {
+                        dernierementTab = .ajoute
+                    }
+                }
+
+                // Nav arrows
+                HStack(spacing: 8) {
+                    Button { } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(.white.opacity(0.15)))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button { } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(.white.opacity(0.15)))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // PLUS button
+                Button {
+                    selectedSection = .history
+                } label: {
+                    Text("PLUS")
+                        .font(.latoBold(11))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .tracking(1)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(.white.opacity(0.15)))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+
+            // Horizontal scroll of album cards
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: cardGap) {
-                    ForEach(tiles, id: \.id) { tile in
-                        albumCard(tile)
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(recentPlayedTiles, id: \.id) { tile in
+                        dernierementCard(tile)
                             .hoverScale()
                     }
                 }
-                .padding(.horizontal, pagePadding)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 4)
             }
         }
+        .padding(.vertical, 24)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.roonAccent)
+        )
+        .padding(.horizontal, pagePadding)
     }
 
-    // MARK: - Album Card (Roon native: w-80 aspect-square + text-2xl lato)
+    private func dernierementTabButton(_ title: LocalizedStringKey, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.latoBold(12))
+                .foregroundStyle(.white)
+                .tracking(1)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isSelected ? .white.opacity(0.2) : .clear)
+                )
+        }
+        .buttonStyle(.plain)
+    }
 
-    private func albumCard(_ tile: HomeTile) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Album art
-            if let url = roonService.imageURL(key: tile.imageKey, width: cardImageRes, height: cardImageRes) {
+    private func dernierementCard(_ tile: HomeTile) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let url = roonService.imageURL(key: tile.imageKey, width: 320, height: 320) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
                         img.resizable().aspectRatio(contentMode: .fill)
                     default:
-                        Color.roonGrey2
+                        Color.white.opacity(0.1)
                     }
                 }
-                .frame(width: cardSize, height: cardSize)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .frame(width: dernierementCardSize, height: dernierementCardSize)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
             } else {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.roonGrey2)
-                    .frame(width: cardSize, height: cardSize)
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(.white.opacity(0.1))
+                    .frame(width: dernierementCardSize, height: dernierementCardSize)
                     .overlay {
                         Image(systemName: "music.note")
-                            .font(.system(size: 36))
-                            .foregroundStyle(Color.roonTertiary)
+                            .font(.system(size: 24))
+                            .foregroundStyle(.white.opacity(0.4))
                     }
             }
 
-            // Title — Roon: font-lato text-2xl line-clamp-1 text-white
             Text(tile.title)
-                .font(.lato(18))
-                .foregroundStyle(Color.roonText)
+                .font(.lato(13))
+                .foregroundStyle(.white)
                 .lineLimit(1)
 
-            // Subtitle — Roon: font-lato text-xl text-gray-400
             if let subtitle = tile.subtitle {
                 Text(subtitle)
-                    .font(.lato(15))
-                    .foregroundStyle(Color.roonSecondary)
+                    .font(.lato(11))
+                    .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(1)
             }
         }
-        .frame(width: cardSize)
-    }
-
-    // MARK: - Zones Section
-
-    private func zonesSection(zones: [RoonZone]) -> some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text("En lecture ailleurs")
-                .font(.inter(40))
-                .foregroundStyle(Color.roonText)
-                .tracking(-1.5)
-                .padding(.horizontal, pagePadding)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 18) {
-                    ForEach(zones) { zone in
-                        zoneCard(zone)
-                            .hoverScale()
-                    }
-                }
-                .padding(.horizontal, pagePadding)
-            }
-        }
-    }
-
-    private func zoneCard(_ zone: RoonZone) -> some View {
-        Button {
-            roonService.selectZone(zone)
-        } label: {
-            HStack(spacing: 14) {
-                if let np = zone.now_playing,
-                   let url = roonService.imageURL(key: np.image_key, width: 160, height: 160) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        default:
-                            Color.roonGrey2
-                        }
-                    }
-                    .frame(width: 56, height: 56)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                }
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(zone.display_name)
-                        .font(.latoBold(15))
-                        .foregroundStyle(Color.roonText)
-                        .lineLimit(1)
-                    if let np = zone.now_playing {
-                        Text(np.three_line?.line1 ?? "")
-                            .font(.lato(13))
-                            .foregroundStyle(Color.roonSecondary)
-                            .lineLimit(1)
-                    }
-                }
-
-                Spacer()
-
-                if let state = zone.state {
-                    stateIndicator(state)
-                }
-            }
-            .padding(14)
-            .frame(width: 300)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.roonPanel)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private func stateIndicator(_ state: String) -> some View {
-        switch state {
-        case "playing":
-            Image(systemName: "play.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(Color.roonGreen)
-        case "paused":
-            Image(systemName: "pause.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(Color.roonOrange)
-        case "loading":
-            ProgressView()
-                .controlSize(.mini)
-        default:
-            Image(systemName: "stop.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(Color.roonTertiary)
-        }
+        .frame(width: dernierementCardSize)
     }
 
     // MARK: - Tile Data
@@ -257,19 +289,6 @@ struct RoonContentView: View {
                 id: item.id.uuidString,
                 title: item.title,
                 subtitle: item.artist.isEmpty ? nil : item.artist,
-                imageKey: item.image_key
-            )
-        }
-    }
-
-    private var upNextTiles: [HomeTile] {
-        roonService.queueItems.prefix(20).map { item in
-            let title = item.three_line?.line1 ?? item.one_line?.line1 ?? ""
-            let artist = item.three_line?.line2
-            return HomeTile(
-                id: String(item.queue_item_id),
-                title: title,
-                subtitle: (artist != nil && !artist!.isEmpty) ? artist : nil,
                 imageKey: item.image_key
             )
         }

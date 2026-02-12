@@ -28,6 +28,18 @@ class RoonService: ObservableObject {
     @Published var sidebarPlaylists: [BrowseItem] = []
     @Published var libraryCounts: [String: Int] = [:]
 
+    // MARK: - Storage
+
+    private let storageDirectory: URL?
+
+    init(storageDirectory: URL? = nil) {
+        self.storageDirectory = storageDirectory
+    }
+
+    private var storageDir: URL? {
+        storageDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+    }
+
     // MARK: - Private
 
     private let connection = RoonConnection()
@@ -977,7 +989,7 @@ class RoonService: ObservableObject {
     }
 
     func loadHistory() {
-        guard let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        guard let dir = storageDir else { return }
         let path = dir.appendingPathComponent("playback_history.json")
         guard let data = try? Data(contentsOf: path) else { return }
         let decoder = JSONDecoder()
@@ -989,7 +1001,7 @@ class RoonService: ObservableObject {
     }
 
     private func saveHistory() {
-        guard let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        guard let dir = storageDir else { return }
         let path = dir.appendingPathComponent("playback_history.json")
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -1057,7 +1069,7 @@ class RoonService: ObservableObject {
     }
 
     func loadFavorites() {
-        guard let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        guard let dir = storageDir else { return }
         let path = dir.appendingPathComponent("radio_favorites.json")
         guard let data = try? Data(contentsOf: path) else { return }
         let decoder = JSONDecoder()
@@ -1068,7 +1080,7 @@ class RoonService: ObservableObject {
     }
 
     private func saveFavorites() {
-        guard let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        guard let dir = storageDir else { return }
         let path = dir.appendingPathComponent("radio_favorites.json")
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601

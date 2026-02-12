@@ -5,9 +5,16 @@ import XCTest
 final class RoonServiceTests: XCTestCase {
 
     var service: RoonService!
+    private var tempDir: URL!
 
     override func setUp() async throws {
-        service = RoonService()
+        tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        service = RoonService(storageDirectory: tempDir)
+    }
+
+    override func tearDown() async throws {
+        try? FileManager.default.removeItem(at: tempDir)
     }
 
     // MARK: - Browse duplicate guard
