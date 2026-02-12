@@ -1,0 +1,61 @@
+name: Update Homebrew Cask
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.1)"
+        required: true
+
+env:
+  TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+jobs:
+  update-cask:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.release.tag_name || github.event.inputs.tag, 'v')
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Find DMG asset name
+        id: dmg
+        run: |
+          name=$(gh release view "${TAG}" --repo "${{ github.repository }}" --json assets --jq '.assets[].name | select(endswith(".dmg"))')
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Download DMG and compute SHA256
+        id: sha
+        run: |
+          curl -fSL -o RoonController.dmg \
+            "https://github.com/${{ github.repository }}/releases/download/${TAG}/${{ steps.dmg.outputs.name }}"
+          sha=$(shasum -a 256 RoonController.dmg | awk '{print $1}')
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: renesenses/homebrew-roon-controller
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Update Cask formula
+        run: |
+          sed -i \
+            -e 's/version "[^"]*"/version "${{ steps.version.outputs.version }}"/' \
+            -e 's/sha256 "[^"]*"/sha256 "${{ steps.sha.outputs.sha256 }}"/' \
+            -e 's|/download/v[^/]*/[^"]*\.dmg|/download/v${{ steps.version.outputs.version }}/${{ steps.dmg.outputs.name }}|' \
+            Casks/roon-controller.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/roon-controller.rb
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Update roon-controller to ${{ steps.version.outputs.version }}"
+          git push
