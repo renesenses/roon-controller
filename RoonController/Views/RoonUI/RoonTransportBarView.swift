@@ -31,12 +31,12 @@ struct RoonTransportBarView: View {
 
                 Spacer()
 
-                // Right: volume + zone
+                // Right: zone selector + volume
                 HStack(spacing: 14) {
-                    volumeControl(zone: zone)
                     zoneButton
+                    volumeControl(zone: zone)
                 }
-                .frame(width: 240, alignment: .trailing)
+                .frame(width: 260, alignment: .trailing)
                 .padding(.trailing, 18)
             } else if roonService.currentZone != nil {
                 Spacer()

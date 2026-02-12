@@ -69,10 +69,6 @@ struct RoonContentView: View {
 
                 // Greeting
                 greetingHeader
-                    .padding(.bottom, 24)
-
-                // Search bar
-                homeSearchBar
                     .padding(.bottom, 32)
 
                 // Library stats

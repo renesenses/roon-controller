@@ -35,15 +35,6 @@ struct RoonSidebarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Zone selector at top
-            zoneSelector
-                .padding(.horizontal, 14)
-                .padding(.top, 10)
-                .padding(.bottom, 10)
-
-            Divider()
-                .overlay(Color.roonSeparator.opacity(0.3))
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 1) {
 
@@ -79,6 +70,7 @@ struct RoonSidebarView: View {
                         }
                     }
                 }
+                .padding(.top, 8)
                 .padding(.bottom, 8)
             }
 
