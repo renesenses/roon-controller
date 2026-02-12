@@ -659,6 +659,312 @@ final class RoonServiceTests: XCTestCase {
         XCTAssertEqual(service.seekPosition, 120, "Seek must update seekPosition immediately for responsive UI")
     }
 
+    // MARK: - Seek reset on track change
+
+    func testNextResetsSeekPositionToZero() {
+        // Setup: zone playing at seek 180
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song A", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 180, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 180,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+        XCTAssertEqual(service.seekPosition, 180)
+
+        // Action: user clicks "next"
+        service.next()
+
+        // seekPosition must immediately reset to 0
+        XCTAssertEqual(service.seekPosition, 0, "next() must reset seekPosition to 0 immediately")
+    }
+
+    func testPreviousResetsSeekPositionToZero() {
+        // Setup: zone playing at seek 240
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song B", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 240, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 240,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+        XCTAssertEqual(service.seekPosition, 240)
+
+        // Action: user clicks "previous"
+        service.previous()
+
+        // seekPosition must immediately reset to 0
+        XCTAssertEqual(service.seekPosition, 0, "previous() must reset seekPosition to 0 immediately")
+    }
+
+    func testNextWithNoZoneDoesNotCrash() {
+        // No zone selected — next() should be a no-op
+        service.seekPosition = 42
+        service.next()
+        // seekPosition unchanged (no zone, guard returns early)
+        XCTAssertEqual(service.seekPosition, 42)
+    }
+
+    func testPreviousWithNoZoneDoesNotCrash() {
+        // No zone selected — previous() should be a no-op
+        service.seekPosition = 42
+        service.previous()
+        XCTAssertEqual(service.seekPosition, 42)
+    }
+
+    func testSelectZoneResetsSeekToZonePosition() {
+        // First zone at seek 200
+        let zone1 = RoonZone(
+            zone_id: "z1", display_name: "Zone 1", state: "playing",
+            now_playing: nil, outputs: nil, settings: nil, seek_position: 200,
+            is_play_allowed: true, is_pause_allowed: nil, is_seek_allowed: nil,
+            is_previous_allowed: nil, is_next_allowed: nil
+        )
+        service.selectZone(zone1)
+        XCTAssertEqual(service.seekPosition, 200)
+
+        // Switch to zone at seek 0 (just started)
+        let zone2 = RoonZone(
+            zone_id: "z2", display_name: "Zone 2", state: "playing",
+            now_playing: nil, outputs: nil, settings: nil, seek_position: 0,
+            is_play_allowed: true, is_pause_allowed: nil, is_seek_allowed: nil,
+            is_previous_allowed: nil, is_next_allowed: nil
+        )
+        service.selectZone(zone2)
+        XCTAssertEqual(service.seekPosition, 0, "Switching zone must set seekPosition to the new zone's seek_position")
+    }
+
+    func testSelectZoneWithNilSeekResetsToZero() {
+        let zone1 = RoonZone(
+            zone_id: "z1", display_name: "Zone 1", state: "playing",
+            now_playing: nil, outputs: nil, settings: nil, seek_position: 150,
+            is_play_allowed: true, is_pause_allowed: nil, is_seek_allowed: nil,
+            is_previous_allowed: nil, is_next_allowed: nil
+        )
+        service.selectZone(zone1)
+        XCTAssertEqual(service.seekPosition, 150)
+
+        // Switch to a stopped zone with no seek
+        let zone2 = RoonZone(
+            zone_id: "z2", display_name: "Zone 2", state: "stopped",
+            now_playing: nil, outputs: nil, settings: nil, seek_position: nil,
+            is_play_allowed: true, is_pause_allowed: nil, is_seek_allowed: nil,
+            is_previous_allowed: nil, is_next_allowed: nil
+        )
+        service.selectZone(zone2)
+        XCTAssertEqual(service.seekPosition, 0, "Zone with nil seek_position must default to 0")
+    }
+
+    func testZonesChangedWithNewTrackUpdatesSeek() {
+        // Setup: zone playing track A at seek 200
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song A", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 200, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 200,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+        XCTAssertEqual(service.seekPosition, 200)
+
+        // Server sends zones_changed: new track at seek 3 (playing state)
+        let changedJSON: [String: Any] = [
+            "zones_changed": [
+                [
+                    "zone_id": "z1",
+                    "display_name": "Zone",
+                    "state": "playing",
+                    "seek_position": 3,
+                    "is_play_allowed": true,
+                    "now_playing": [
+                        "three_line": ["line1": "Song B", "line2": "Artist", "line3": "Album"],
+                        "length": 250,
+                        "seek_position": 3
+                    ]
+                ]
+            ]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: changedJSON)
+        service.handleZonesData(data)
+
+        // seekPosition must follow the server (new track, playing)
+        XCTAssertEqual(service.seekPosition, 3, "When server sends new track playing at seek 3, seekPosition must update")
+    }
+
+    func testZonesSeekChangedAloneDoesNotResetUI() {
+        // Setup: zone playing at seek 100
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 100, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 100,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+        service.seekPosition = 105 // simulating local interpolation ahead of server
+
+        // Server sends zones_seek_changed only (no zones_changed)
+        // This is the frequent seek update; it should NOT alter the UI seekPosition
+        let seekJSON: [String: Any] = [
+            "zones_seek_changed": [
+                ["zone_id": "z1", "seek_position": 102]
+            ]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: seekJSON)
+        service.handleZonesData(data)
+
+        // seekPosition stays at the local interpolated value (105), not overwritten to 102
+        XCTAssertEqual(service.seekPosition, 105, "zones_seek_changed alone must not overwrite local interpolation")
+    }
+
+    func testSeekPositionAfterNextThenServerUpdate() {
+        // Setup: playing at seek 250
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song A", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 250, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 250,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+        XCTAssertEqual(service.seekPosition, 250)
+
+        // User clicks next — seek resets to 0
+        service.next()
+        XCTAssertEqual(service.seekPosition, 0)
+
+        // Server confirms new track playing at seek 2
+        let changedJSON: [String: Any] = [
+            "zones_changed": [
+                [
+                    "zone_id": "z1",
+                    "display_name": "Zone",
+                    "state": "playing",
+                    "seek_position": 2,
+                    "is_play_allowed": true,
+                    "now_playing": [
+                        "three_line": ["line1": "Song B", "line2": "New Artist", "line3": "New Album"],
+                        "length": 200,
+                        "seek_position": 2
+                    ]
+                ]
+            ]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: changedJSON)
+        service.handleZonesData(data)
+
+        // seekPosition follows the server update for the new track
+        XCTAssertEqual(service.seekPosition, 2, "After next() + server update, seekPosition must reflect new track")
+    }
+
+    func testPlayFromHereResetsSeekPositionToZero() {
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song A", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 200, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 200,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+        XCTAssertEqual(service.seekPosition, 200)
+
+        // User clicks a queue item to play from here
+        service.playFromHere(queueItemId: 42)
+        XCTAssertEqual(service.seekPosition, 0, "playFromHere must reset seekPosition to 0")
+    }
+
+    func testTrackIdentityDiffersForDifferentTracks() {
+        let npA = NowPlaying(
+            one_line: nil, two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Song A", line2: "Artist", line3: "Album"),
+            length: 300, seek_position: 100, image_key: nil
+        )
+        let npB = NowPlaying(
+            one_line: nil, two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Song B", line2: "Artist", line3: "Album"),
+            length: 250, seek_position: 0, image_key: nil
+        )
+        // Same track at different seek positions must have same identity
+        let npA2 = NowPlaying(
+            one_line: nil, two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Song A", line2: "Artist", line3: "Album"),
+            length: 300, seek_position: 200, image_key: nil
+        )
+
+        let idA = service.trackIdentity(npA)
+        let idB = service.trackIdentity(npB)
+        let idA2 = service.trackIdentity(npA2)
+
+        XCTAssertNotEqual(idA, idB, "Different tracks must have different identity")
+        XCTAssertEqual(idA, idA2, "Same track at different seek must have same identity")
+        XCTAssertEqual(service.trackIdentity(nil), "", "nil now_playing must return empty identity")
+    }
+
+    func testAutoAdvanceResetsSeekViaZonesChanged() {
+        // Simulate: track A playing at seek 290 (near end)
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song A", line2: "Artist", line3: "Album A"),
+                length: 300, seek_position: 290, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 290,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+        XCTAssertEqual(service.seekPosition, 290)
+
+        // Track ends, server auto-advances to Song B at seek 0
+        let changedJSON: [String: Any] = [
+            "zones_changed": [
+                [
+                    "zone_id": "z1",
+                    "display_name": "Zone",
+                    "state": "playing",
+                    "seek_position": 0,
+                    "is_play_allowed": true,
+                    "now_playing": [
+                        "three_line": ["line1": "Song B", "line2": "Artist", "line3": "Album B"],
+                        "length": 240,
+                        "seek_position": 0
+                    ]
+                ]
+            ]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: changedJSON)
+        service.handleZonesData(data)
+
+        XCTAssertEqual(service.seekPosition, 0, "Auto-advance to new track must reset seekPosition to 0")
+    }
+
     // MARK: - Registration
 
     func testRegistrationResponseParsing() {

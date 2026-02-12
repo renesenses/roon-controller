@@ -33,6 +33,7 @@ class RoonService: ObservableObject {
     private var imageService: RoonImageService?
 
     private var lastTrackPerZone: [String: String] = [:]
+    private var currentTrackIdentity: String = ""
     private var isConnected = false
     private var historyPlaybackIndex: Int?
     private var zonesById: [String: RoonZone] = [:]
@@ -194,8 +195,6 @@ class RoonService: ObservableObject {
 
         zones = allZones
 
-        let previousNowPlaying = currentZone?.now_playing
-
         if let current = currentZone {
             let updated = zonesById[current.zone_id]
             if updated != currentZone {
@@ -207,17 +206,15 @@ class RoonService: ObservableObject {
             selectZone(first)
         }
 
-        // Reset seekPosition to 0 when the track changes (next/previous),
-        // otherwise sync from server while playing.
-        // A nil now_playing in zones_changed means the field was absent (partial update),
-        // not that the track changed — so only compare when both are non-nil.
+        // Detect track change and reset seek position
         if let zoneId = currentZone?.zone_id, let zone = zonesById[zoneId] {
-            let trackChanged = zone.now_playing != nil
-                && previousNowPlaying != nil
-                && zone.now_playing != previousNowPlaying
-            if trackChanged {
+            let newIdentity = trackIdentity(zone.now_playing)
+            if zone.now_playing != nil && newIdentity != currentTrackIdentity {
+                // Track changed — reset seek to server value or 0
+                currentTrackIdentity = newIdentity
                 seekPosition = zone.seek_position ?? 0
             } else if zone.state == "playing", let serverSeek = zone.seek_position {
+                // Same track, playing: sync from server
                 seekPosition = serverSeek
             }
         }
@@ -281,6 +278,8 @@ class RoonService: ObservableObject {
         }
         historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
+        objectWillChange.send()
+        seekPosition = 0
         Task { try? await transportService?.control(zoneId: zoneId, control: "next") }
     }
 
@@ -293,6 +292,8 @@ class RoonService: ObservableObject {
         }
         historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
+        objectWillChange.send()
+        seekPosition = 0
         Task { try? await transportService?.control(zoneId: zoneId, control: "previous") }
     }
 
@@ -351,6 +352,7 @@ class RoonService: ObservableObject {
         objectWillChange.send()
         currentZone = zone
         seekPosition = zone.seek_position ?? 0
+        currentTrackIdentity = trackIdentity(zone.now_playing)
         queueItems = []
         historyPlaybackIndex = nil
         subscribeQueue()
@@ -370,6 +372,8 @@ class RoonService: ObservableObject {
     func playFromHere(queueItemId: Int) {
         historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
+        objectWillChange.send()
+        seekPosition = 0
         Task { try? await transportService?.playFromHere(zoneId: zoneId, queueItemId: queueItemId) }
     }
 
@@ -978,6 +982,12 @@ class RoonService: ObservableObject {
     private func stopSeekTimer() {
         seekTimer?.invalidate()
         seekTimer = nil
+    }
+
+    /// Stable identity for a track (ignores seek_position which changes every second)
+    func trackIdentity(_ np: NowPlaying?) -> String {
+        guard let np = np, let info = np.three_line else { return "" }
+        return "\(info.line1 ?? "")|\(info.line2 ?? "")|\(info.line3 ?? "")|\(np.length ?? 0)"
     }
 
     // MARK: - Zone Encoding/Decoding Helpers
