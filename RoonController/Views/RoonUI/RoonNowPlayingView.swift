@@ -96,6 +96,7 @@ struct RoonNowPlayingView: View {
                 }
             }
             .id(imageKey)
+            .transition(.opacity)
             .ignoresSafeArea()
             .overlay(Color.roonBackground.opacity(0.65))
         }
@@ -120,6 +121,7 @@ struct RoonNowPlayingView: View {
                 }
             }
             .id(imageKey)
+            .transition(.opacity)
             .frame(width: size, height: size)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .shadow(color: .black.opacity(0.5), radius: 30, x: 0, y: 10)
@@ -143,16 +145,16 @@ struct RoonNowPlayingView: View {
 
     private func trackInfo(nowPlaying: NowPlaying) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Title — large, bold
+            // Title — large, brand serif
             Text(nowPlaying.three_line?.line1 ?? "")
-                .font(.system(size: 28, weight: .bold))
+                .font(.grifoM(28))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(2)
 
-            // Artist
+            // Artist — serif subtitle
             if let artist = nowPlaying.three_line?.line2, !artist.isEmpty {
                 Text(artist)
-                    .font(.system(size: 18))
+                    .font(.grifoS(18))
                     .foregroundStyle(Color.roonSecondary)
                     .lineLimit(1)
             }
@@ -160,7 +162,7 @@ struct RoonNowPlayingView: View {
             // Album
             if let album = nowPlaying.three_line?.line3, !album.isEmpty {
                 Text(album)
-                    .font(.system(size: 14))
+                    .font(.lato(14))
                     .foregroundStyle(Color.roonTertiary)
                     .lineLimit(1)
             }
@@ -229,7 +231,7 @@ struct RoonNowPlayingView: View {
         VStack(alignment: .leading, spacing: 10) {
             if !roonService.queueItems.isEmpty {
                 Text("A SUIVRE")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.latoBold(10))
                     .foregroundStyle(Color.roonTertiary)
                     .tracking(1.2)
 
@@ -266,12 +268,12 @@ struct RoonNowPlayingView: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.three_line?.line1 ?? item.one_line?.line1 ?? "")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.latoBold(12))
                     .foregroundStyle(Color.roonText)
                     .lineLimit(1)
                 if let artist = item.three_line?.line2, !artist.isEmpty {
                     Text(artist)
-                        .font(.system(size: 11))
+                        .font(.lato(11))
                         .foregroundStyle(Color.roonSecondary)
                         .lineLimit(1)
                 }
@@ -302,7 +304,7 @@ struct RoonNowPlayingView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(Color.roonTertiary)
             Text("Rien en lecture")
-                .font(.system(size: 18))
+                .font(.grifoM(18))
                 .foregroundStyle(Color.roonSecondary)
         }
     }

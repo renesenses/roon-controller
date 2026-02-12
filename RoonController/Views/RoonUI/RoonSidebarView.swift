@@ -90,7 +90,7 @@ struct RoonSidebarView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 10, weight: .semibold))
+            .font(.latoBold(10))
             .foregroundStyle(Color.roonTertiary)
             .tracking(1.2)
             .padding(.horizontal, 18)
@@ -123,12 +123,12 @@ struct RoonSidebarView: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(roonService.currentZone?.display_name ?? "Aucune zone")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.latoBold(13))
                         .foregroundStyle(Color.roonText)
                         .lineLimit(1)
                     if let state = roonService.currentZone?.state {
                         Text(stateLabel(state))
-                            .font(.system(size: 10))
+                            .font(.lato(10))
                             .foregroundStyle(stateColor(state))
                     }
                 }
@@ -163,7 +163,7 @@ struct RoonSidebarView: View {
                     .foregroundStyle(selectedSection == section && activeCategoryKey == nil ? Color.roonText : Color.roonSecondary)
 
                 Text(section.label)
-                    .font(.system(size: 13))
+                    .font(.lato(13))
                     .foregroundStyle(selectedSection == section && activeCategoryKey == nil ? Color.roonText : Color.roonSecondary)
 
                 Spacer()
@@ -171,10 +171,12 @@ struct RoonSidebarView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 7)
             .background(
-                selectedSection == section && activeCategoryKey == nil
+                (selectedSection == section && activeCategoryKey == nil)
                     ? Color.roonGrey2.opacity(0.6)
                     : Color.clear
             )
+            .animation(.easeOut(duration: 0.15), value: selectedSection)
+            .animation(.easeOut(duration: 0.15), value: activeCategoryKey)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -198,7 +200,7 @@ struct RoonSidebarView: View {
                     .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
 
                 Text(item.title ?? "")
-                    .font(.system(size: 13))
+                    .font(.lato(13))
                     .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
 
                 Spacer()
@@ -206,6 +208,7 @@ struct RoonSidebarView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 7)
             .background(isSelected ? Color.roonGrey2.opacity(0.6) : Color.clear)
+            .animation(.easeOut(duration: 0.15), value: activeCategoryKey)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

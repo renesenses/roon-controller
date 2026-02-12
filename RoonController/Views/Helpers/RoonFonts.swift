@@ -44,3 +44,24 @@ extension Font {
         .custom("Lato-Bold", size: size)
     }
 }
+
+// MARK: - Hover Scale Effect (Roon-style card interaction)
+
+struct HoverScaleModifier: ViewModifier {
+    @State private var isHovered = false
+    let scale: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isHovered ? scale : 1.0)
+            .animation(.easeOut(duration: 0.15), value: isHovered)
+            .onHover { isHovered = $0 }
+    }
+}
+
+extension View {
+    /// Roon-style hover scale effect for cards
+    func hoverScale(_ scale: CGFloat = 1.04) -> some View {
+        modifier(HoverScaleModifier(scale: scale))
+    }
+}

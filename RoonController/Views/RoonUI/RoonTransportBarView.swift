@@ -11,50 +11,50 @@ struct RoonTransportBarView: View {
                 Button {
                     onNowPlayingTap?()
                 } label: {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 14) {
                         albumArt(imageKey: np.image_key)
                         trackInfo(nowPlaying: np)
                     }
-                    .frame(width: 260, alignment: .leading)
+                    .frame(width: 280, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .padding(.leading, 16)
+                .padding(.leading, 18)
 
                 Spacer()
 
                 // Center: transport controls + seek bar
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
                     transportControls(zone: zone)
                     seekBar(zone: zone, nowPlaying: np)
                 }
-                .frame(maxWidth: 500)
+                .frame(maxWidth: 520)
 
                 Spacer()
 
                 // Right: volume + zone
-                HStack(spacing: 12) {
+                HStack(spacing: 14) {
                     volumeControl(zone: zone)
                     zoneButton
                 }
-                .frame(width: 220, alignment: .trailing)
-                .padding(.trailing, 16)
+                .frame(width: 240, alignment: .trailing)
+                .padding(.trailing, 18)
             } else if roonService.currentZone != nil {
                 Spacer()
                 Image(systemName: "music.note")
                     .foregroundStyle(Color.roonTertiary)
                 Text("Rien en lecture")
-                    .font(.system(size: 13))
+                    .font(.lato(14))
                     .foregroundStyle(Color.roonSecondary)
                 Spacer()
             } else {
                 Spacer()
                 Text("Aucune zone selectionnee")
-                    .font(.system(size: 13))
+                    .font(.lato(14))
                     .foregroundStyle(Color.roonSecondary)
                 Spacer()
             }
         }
-        .frame(height: 80)
+        .frame(height: 90)
         .background(Color.roonFooter)
         .overlay(alignment: .top) {
             Rectangle()
@@ -65,9 +65,11 @@ struct RoonTransportBarView: View {
 
     // MARK: - Album Art
 
+    private let artSize: CGFloat = 56
+
     @ViewBuilder
     private func albumArt(imageKey: String?) -> some View {
-        if let url = roonService.imageURL(key: imageKey, width: 120, height: 120) {
+        if let url = roonService.imageURL(key: imageKey, width: 160, height: 160) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let img):
@@ -76,20 +78,20 @@ struct RoonTransportBarView: View {
                     artPlaceholder
                 }
             }
-            .frame(width: 50, height: 50)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .frame(width: artSize, height: artSize)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         } else {
             artPlaceholder
         }
     }
 
     private var artPlaceholder: some View {
-        RoundedRectangle(cornerRadius: 4)
+        RoundedRectangle(cornerRadius: 6)
             .fill(Color.roonGrey2)
-            .frame(width: 50, height: 50)
+            .frame(width: artSize, height: artSize)
             .overlay {
                 Image(systemName: "music.note")
-                    .font(.system(size: 16))
+                    .font(.system(size: 18))
                     .foregroundStyle(Color.roonTertiary)
             }
     }
@@ -97,13 +99,13 @@ struct RoonTransportBarView: View {
     // MARK: - Track Info
 
     private func trackInfo(nowPlaying: NowPlaying) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(nowPlaying.three_line?.line1 ?? "")
-                .font(.system(size: 13, weight: .medium))
+                .font(.latoBold(13))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(1)
             Text(nowPlaying.three_line?.line2 ?? "")
-                .font(.system(size: 11))
+                .font(.lato(12))
                 .foregroundStyle(Color.roonSecondary)
                 .lineLimit(1)
         }
@@ -112,10 +114,10 @@ struct RoonTransportBarView: View {
     // MARK: - Transport Controls
 
     private func transportControls(zone: RoonZone) -> some View {
-        HStack(spacing: 24) {
+        HStack(spacing: 28) {
             Button { roonService.previous() } label: {
                 Image(systemName: "backward.end.fill")
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(Color.roonText)
             }
             .buttonStyle(.plain)
@@ -123,15 +125,21 @@ struct RoonTransportBarView: View {
             .opacity((zone.is_previous_allowed ?? false) ? 1 : 0.3)
 
             Button { roonService.playPause() } label: {
-                Image(systemName: zone.state == "playing" ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.system(size: 34))
-                    .foregroundStyle(Color.roonText)
+                ZStack {
+                    Circle()
+                        .fill(Color.roonAccent)
+                        .frame(width: 36, height: 36)
+                    Image(systemName: zone.state == "playing" ? "pause.fill" : "play.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white)
+                        .offset(x: zone.state == "playing" ? 0 : 1)
+                }
             }
             .buttonStyle(.plain)
 
             Button { roonService.next() } label: {
                 Image(systemName: "forward.end.fill")
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(Color.roonText)
             }
             .buttonStyle(.plain)
@@ -149,38 +157,41 @@ struct RoonTransportBarView: View {
 
         HStack(spacing: 8) {
             Text(formatTime(Int(position)))
-                .font(.system(size: 10))
+                .font(.lato(10))
                 .foregroundStyle(Color.roonSecondary)
                 .monospacedDigit()
-                .frame(width: 34, alignment: .trailing)
+                .frame(width: 38, alignment: .trailing)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(Color.roonSeparator.opacity(0.5))
-                        .frame(height: 3)
+                        .frame(height: 4)
                     if duration > 0 {
                         Capsule()
                             .fill(Color.roonAccent)
-                            .frame(width: geo.size.width * min(position / duration, 1.0), height: 3)
+                            .frame(width: geo.size.width * min(position / duration, 1.0), height: 4)
                     }
                 }
-                .frame(height: 3)
-                .contentShape(Rectangle())
-                .onTapGesture { location in
-                    if duration > 0 {
-                        let fraction = location.x / geo.size.width
-                        roonService.seek(position: Int(fraction * duration))
-                    }
-                }
+                .frame(height: 4)
+                .contentShape(Rectangle().size(width: geo.size.width, height: 20).offset(y: -8))
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            if duration > 0 {
+                                let fraction = max(0, min(1, value.location.x / geo.size.width))
+                                roonService.seek(position: Int(fraction * duration))
+                            }
+                        }
+                )
             }
-            .frame(height: 3)
+            .frame(height: 4)
 
             Text(formatTime(Int(duration)))
-                .font(.system(size: 10))
+                .font(.lato(10))
                 .foregroundStyle(Color.roonSecondary)
                 .monospacedDigit()
-                .frame(width: 34, alignment: .leading)
+                .frame(width: 38, alignment: .leading)
         }
         .animation(.linear(duration: 1.0), value: roonService.seekPosition)
     }
@@ -199,9 +210,9 @@ struct RoonTransportBarView: View {
                     roonService.toggleMute(outputId: output.output_id)
                 } label: {
                     Image(systemName: volumeIcon(value: value, isMuted: volume.is_muted ?? false, max: max))
-                        .font(.system(size: 12))
+                        .font(.system(size: 13))
                         .foregroundStyle((volume.is_muted ?? false) ? Color.roonRed : Color.roonSecondary)
-                        .frame(width: 18)
+                        .frame(width: 20)
                 }
                 .buttonStyle(.plain)
 
@@ -215,10 +226,10 @@ struct RoonTransportBarView: View {
                 )
                 .controlSize(.mini)
                 .tint(Color.roonAccent)
-                .frame(width: 80)
+                .frame(width: 90)
 
                 Text("\(Int(value))")
-                    .font(.system(size: 10))
+                    .font(.lato(10))
                     .monospacedDigit()
                     .foregroundStyle(Color.roonSecondary)
                     .frame(width: 26, alignment: .trailing)
@@ -246,9 +257,9 @@ struct RoonTransportBarView: View {
             Image(systemName: "hifispeaker.2")
                 .font(.system(size: 14))
                 .foregroundStyle(Color.roonSecondary)
-                .padding(6)
+                .padding(7)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 6)
                         .fill(Color.roonGrey2.opacity(0.5))
                 )
         }
