@@ -3,6 +3,33 @@ import SwiftUI
 struct RoonSidebarView: View {
     @EnvironmentObject var roonService: RoonService
     @Binding var selectedSection: RoonSection
+    @State private var activeCategoryKey: String?
+
+    // Classification des items par titre
+    private static let explorerTitles = Set([
+        "Genres", "TIDAL", "Qobuz", "KKBOX", "nugs.net",
+        "Live Radio", "Écouter plus tard", "Étiquettes", "Tags",
+        "Historique", "History"
+    ])
+    private static let libraryTitles = Set([
+        "Albums", "Artistes", "Artists", "Morceaux", "Tracks",
+        "Compositeurs", "Composers", "Compositions",
+        "Mes Live Radios", "My Live Radio", "Répertoires", "Folders"
+    ])
+
+    private var explorerItems: [BrowseItem] {
+        roonService.sidebarCategories.filter {
+            let title = $0.title ?? ""
+            return Self.explorerTitles.contains(title)
+                || !Self.libraryTitles.contains(title)
+        }
+    }
+
+    private var libraryItems: [BrowseItem] {
+        roonService.sidebarCategories.filter {
+            Self.libraryTitles.contains($0.title ?? "")
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -17,24 +44,38 @@ struct RoonSidebarView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 1) {
-                    // Home
+
+                    // MARK: - EXPLORER
+                    sectionHeader("EXPLORER")
+
+                    // Accueil (always present)
                     sidebarItem(.home)
-                        .padding(.top, 6)
 
-                    // Section header
-                    Text("MA BIBLIOTHEQUE")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color.roonTertiary)
-                        .tracking(1.2)
-                        .padding(.horizontal, 18)
-                        .padding(.top, 16)
-                        .padding(.bottom, 4)
+                    // Dynamic explorer items
+                    ForEach(explorerItems) { item in
+                        dynamicSidebarItem(item)
+                    }
 
-                    sidebarItem(.browse)
-                    sidebarItem(.radio)
+                    // MARK: - MA BIBLIOTHEQUE MUSICALE
+                    sectionHeader("MA BIBLIOTHEQUE MUSICALE")
+
+                    // Dynamic library items
+                    ForEach(libraryItems) { item in
+                        dynamicSidebarItem(item)
+                    }
+
+                    // Fixed items
                     sidebarItem(.queue)
-                    sidebarItem(.history)
                     sidebarItem(.favorites)
+
+                    // MARK: - LISTES DE LECTURE
+                    if !roonService.sidebarPlaylists.isEmpty {
+                        sectionHeader("LISTES DE LECTURE")
+
+                        ForEach(roonService.sidebarPlaylists) { item in
+                            dynamicSidebarItem(item)
+                        }
+                    }
                 }
                 .padding(.bottom, 8)
             }
@@ -43,6 +84,18 @@ struct RoonSidebarView: View {
         }
         .frame(width: 220)
         .background(Color.roonSidebar)
+    }
+
+    // MARK: - Section Header
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(Color.roonTertiary)
+            .tracking(1.2)
+            .padding(.horizontal, 18)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
     }
 
     // MARK: - Zone Selector
@@ -96,34 +149,89 @@ struct RoonSidebarView: View {
         .menuStyle(.borderlessButton)
     }
 
-    // MARK: - Sidebar Item
+    // MARK: - Sidebar Item (fixed sections)
 
     private func sidebarItem(_ section: RoonSection) -> some View {
         Button {
+            activeCategoryKey = nil
             selectedSection = section
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: section.icon)
                     .font(.system(size: 15))
                     .frame(width: 22)
-                    .foregroundStyle(selectedSection == section ? Color.roonText : Color.roonSecondary)
+                    .foregroundStyle(selectedSection == section && activeCategoryKey == nil ? Color.roonText : Color.roonSecondary)
 
                 Text(section.label)
                     .font(.system(size: 13))
-                    .foregroundStyle(selectedSection == section ? Color.roonText : Color.roonSecondary)
+                    .foregroundStyle(selectedSection == section && activeCategoryKey == nil ? Color.roonText : Color.roonSecondary)
 
                 Spacer()
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 7)
             .background(
-                selectedSection == section
+                selectedSection == section && activeCategoryKey == nil
                     ? Color.roonGrey2.opacity(0.6)
                     : Color.clear
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Dynamic Sidebar Item (browse categories)
+
+    private func dynamicSidebarItem(_ item: BrowseItem) -> some View {
+        let isSelected = activeCategoryKey == item.item_key && selectedSection == .browse
+        return Button {
+            activeCategoryKey = item.item_key
+            selectedSection = .browse
+            if let key = item.item_key {
+                roonService.browseToCategory(itemKey: key)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: iconForTitle(item.title ?? ""))
+                    .font(.system(size: 15))
+                    .frame(width: 22)
+                    .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
+
+                Text(item.title ?? "")
+                    .font(.system(size: 13))
+                    .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 7)
+            .background(isSelected ? Color.roonGrey2.opacity(0.6) : Color.clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Icon Mapping
+
+    private func iconForTitle(_ title: String) -> String {
+        switch title {
+        case "Genres": return "guitars"
+        case "TIDAL": return "waveform"
+        case "Qobuz": return "headphones"
+        case "KKBOX", "nugs.net": return "waveform"
+        case "Live Radio": return "antenna.radiowaves.left.and.right"
+        case "Écouter plus tard": return "bookmark"
+        case "Étiquettes", "Tags": return "tag"
+        case "Historique", "History": return "clock"
+        case "Albums": return "opticaldisc"
+        case "Artistes", "Artists": return "music.mic"
+        case "Morceaux", "Tracks": return "music.note"
+        case "Compositeurs", "Composers": return "music.quarternote.3"
+        case "Compositions": return "music.note.list"
+        case "Mes Live Radios", "My Live Radio": return "radio"
+        case "Répertoires", "Folders": return "folder"
+        default: return "music.note.list"
+        }
     }
 
     // MARK: - Helpers

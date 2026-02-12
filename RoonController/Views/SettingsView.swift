@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var roonService: RoonService
     @AppStorage("uiMode") private var uiMode = "roon"
+    @AppStorage("appTheme") private var appTheme = "light"
     @State private var coreIP: String = ""
 
     var body: some View {
@@ -17,6 +18,13 @@ struct SettingsView: View {
                 Text("Player : vue compacte avec pochette centrale. Roon : layout avec barre de transport en bas.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Picker("Theme", selection: $appTheme) {
+                    ForEach(AppTheme.allCases, id: \.rawValue) { theme in
+                        Text(theme.label).tag(theme.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
 
             Section("Connexion Roon Core") {

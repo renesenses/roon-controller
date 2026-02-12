@@ -24,6 +24,9 @@ class RoonService: ObservableObject {
     @Published var browseLoading: Bool = false
     @Published var playlistCreationStatus: String?
     @Published var lastError: String?
+    @Published var sidebarCategories: [BrowseItem] = []
+    @Published var sidebarPlaylists: [BrowseItem] = []
+    @Published var libraryCounts: [String: Int] = [:]
 
     // MARK: - Private
 
@@ -204,6 +207,10 @@ class RoonService: ObservableObject {
 
         if currentZone == nil, let first = zones.first {
             selectZone(first)
+            // Fetch sidebar categories now that we have a zone for the browse API
+            if sidebarCategories.isEmpty {
+                fetchSidebarCategories()
+            }
         }
 
         // Detect track change and reset seek position
@@ -516,6 +523,154 @@ class RoonService: ObservableObject {
                 items: newItems,
                 offset: 0
             )
+        }
+    }
+
+    // MARK: - Sidebar Categories
+
+    private static let playlistTitles = Set(["Listes de lecture", "Playlists"])
+
+    // Mapping from Roon titles (FR/EN) to normalized keys for libraryCounts
+    private static let countKeyMap: [String: String] = [
+        "Albums": "albums", "Artistes": "artists", "Artists": "artists",
+        "Morceaux": "tracks", "Tracks": "tracks",
+        "Compositeurs": "composers", "Composers": "composers"
+    ]
+
+    private static let libraryTitles = Set(["Library", "Bibliothèque"])
+    private static let hiddenTitles = Set(["Settings", "Paramètres"])
+
+    func fetchSidebarCategories() {
+        let zoneId = currentZone?.zone_id
+
+        Task {
+            do {
+                let decoder = JSONDecoder()
+
+                // Session 1: Browse root → then into Library (same session so item_key is valid)
+                let rootSession = RoonBrowseService(connection: connection, sessionKey: "sidebar")
+                let rootResponse = try await rootSession.browse(zoneId: zoneId, popAll: true)
+                let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                // Navigate into Library using the SAME session (item_key is session-bound)
+                var libraryItems: [BrowseItem] = []
+                if let libItem = rootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
+                   let libKey = libItem.item_key {
+                    let libResponse = try await rootSession.browse(zoneId: zoneId, itemKey: libKey)
+                    libraryItems = libResponse.items.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+                }
+
+                // Session 2: Browse root → then into Playlists
+                var playlists: [BrowseItem] = []
+                let plSession = RoonBrowseService(connection: connection, sessionKey: "sidebar_pl")
+                let plRootResponse = try await plSession.browse(zoneId: zoneId, popAll: true)
+                let plRootItems: [BrowseItem] = plRootResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+                if let plItem = plRootItems.first(where: { Self.playlistTitles.contains($0.title ?? "") }),
+                   let plKey = plItem.item_key {
+                    let plResponse = try await plSession.browse(zoneId: zoneId, itemKey: plKey)
+                    playlists = plResponse.items.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+                }
+
+                // Merge: root items (except Library, Settings, Playlists, search) + library sub-items
+                var allItems: [BrowseItem] = rootItems.filter {
+                    let t = $0.title ?? ""
+                    return $0.input_prompt == nil
+                        && !Self.libraryTitles.contains(t)
+                        && !Self.playlistTitles.contains(t)
+                        && !Self.hiddenTitles.contains(t)
+                }
+                allItems.append(contentsOf: libraryItems.filter { $0.input_prompt == nil })
+
+                await MainActor.run {
+                    self.sidebarCategories = allItems
+                    self.sidebarPlaylists = playlists
+                }
+
+                // Session 3: Fetch library counts — navigate root → Library, then each sub-item
+                if !libraryItems.isEmpty {
+                    let countSession = RoonBrowseService(connection: connection, sessionKey: "sidebar_counts")
+                    // Navigate to Library level
+                    let cRoot = try await countSession.browse(zoneId: zoneId, popAll: true)
+                    let cRootItems: [BrowseItem] = cRoot.items.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+                    if let libItem = cRootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
+                       let libKey = libItem.item_key {
+                        let cLib = try await countSession.browse(zoneId: zoneId, itemKey: libKey)
+                        let cLibItems: [BrowseItem] = cLib.items.compactMap { dict in
+                            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                            return try? decoder.decode(BrowseItem.self, from: data)
+                        }
+
+                        var counts: [String: Int] = [:]
+                        for item in cLibItems {
+                            guard let title = item.title,
+                                  let normalizedKey = Self.countKeyMap[title],
+                                  counts[normalizedKey] == nil,
+                                  let key = item.item_key else { continue }
+                            do {
+                                let catResponse = try await countSession.browse(zoneId: zoneId, itemKey: key)
+                                if let list = catResponse.list, let count = list["count"] as? Int {
+                                    counts[normalizedKey] = count
+                                }
+                                // Pop back to Library level for next item
+                                _ = try await countSession.browse(zoneId: zoneId, popLevels: 1)
+                            } catch {
+                                // Count fetch failed for this item, continue
+                            }
+                        }
+
+                        await MainActor.run {
+                            self.libraryCounts = counts
+                        }
+                    }
+                }
+            } catch {
+                // Sidebar fetch failed silently
+            }
+        }
+    }
+
+    func browseToCategory(itemKey: String) {
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+
+        pendingBrowseKey = nil
+        browseStack.removeAll()
+        browseResult = nil
+        browseLoading = true
+
+        currentBrowseTask?.cancel()
+        currentBrowseTask = Task {
+            do {
+                // Reset to root first
+                _ = try await browseService.browse(zoneId: zoneId, popAll: true)
+                guard !Task.isCancelled else { return }
+                // Navigate into the category
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
+                guard !Task.isCancelled else { return }
+                DispatchQueue.main.async { [weak self] in
+                    self?.handleBrowseResponse(response, isPageLoad: false)
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                DispatchQueue.main.async { [weak self] in
+                    self?.browseLoading = false
+                }
+            }
         }
     }
 

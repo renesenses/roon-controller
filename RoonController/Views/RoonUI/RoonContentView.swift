@@ -67,23 +67,29 @@ struct RoonContentView: View {
 
     private var libraryStats: some View {
         HStack(spacing: 12) {
-            statCard(icon: "person.2", count: roonService.playbackHistory.reduce(into: Set<String>()) { $0.insert($1.artist) }.count, label: "ARTISTES")
-            statCard(icon: "opticaldisc", count: roonService.playbackHistory.reduce(into: Set<String>()) { if !$1.album.isEmpty { $0.insert($1.album) } }.count, label: "ALBUMS")
-            statCard(icon: "music.note", count: roonService.playbackHistory.count, label: "ECOUTES")
-            statCard(icon: "music.quarternote.3", count: roonService.queueItems.count, label: "EN FILE")
+            statCard(icon: "music.mic", count: roonService.libraryCounts["artists"], label: "ARTISTES")
+            statCard(icon: "opticaldisc", count: roonService.libraryCounts["albums"], label: "ALBUMS")
+            statCard(icon: "music.note", count: roonService.libraryCounts["tracks"], label: "MORCEAUX")
+            statCard(icon: "music.quarternote.3", count: roonService.libraryCounts["composers"], label: "COMPOSITEURS")
         }
     }
 
-    private func statCard(icon: String, count: Int, label: String) -> some View {
+    private func statCard(icon: String, count: Int?, label: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: 18))
                 .foregroundStyle(Color.roonSecondary)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(count)")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Color.roonText)
+                if let count = count {
+                    Text("\(count)")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.roonText)
+                } else {
+                    Text("—")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.roonTertiary)
+                }
                 Text(label)
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(Color.roonTertiary)
