@@ -19,7 +19,7 @@ struct RoonControllerApp: App {
                 .task {
                     roonService.connect()
                 }
-                .onAppear { applyAppearance() }
+                .onAppear { RoonFonts.registerAll(); applyAppearance() }
                 .onChange(of: appTheme) { _, _ in applyAppearance() }
         }
         .defaultSize(width: 1200, height: 800)

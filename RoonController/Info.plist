@@ -9,5 +9,7 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Roon Controller se connecte au Roon Core sur votre reseau local pour controler la lecture audio.</string>
+	<key>ATSApplicationFontsPath</key>
+	<string>Fonts</string>
 </dict>
 </plist>

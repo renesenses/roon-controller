@@ -10,17 +10,23 @@
 		00C7C22D31117F9825E7C1A6 /* RoonLayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB3CECF881DB8755B583D5A /* RoonLayoutView.swift */; };
 		0206ACCC748F3AC269561DEE /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE5C81111DFF879D58805C8 /* SidebarView.swift */; };
 		13836A8383F8D63C9820E139 /* RoonStatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3B42F23C3EEDF994180B2C8 /* RoonStatusService.swift */; };
+		1540A4E5D3B490DD7C797ADB /* RoonFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C88D71A429FED4E13F94C201 /* RoonFonts.swift */; };
 		1B8ED7007A513DE7BE8C3510 /* FavoritesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8719F885AA45D3872267369A /* FavoritesView.swift */; };
+		29362FC5273D1A7F2D9E5A7C /* GrifoS-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = FA4CC50B43FC90C6F9D537D1 /* GrifoS-Medium.otf */; };
 		2D6F1D2BB3A87F8C94B0CF53 /* RoonTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 723F143D953CB6B15EF90372 /* RoonTransportService.swift */; };
 		2DE2B462A57FF4EF158CA59C /* RoonImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D0472C6296AD7408B6343BC /* RoonImageService.swift */; };
 		31D8FDDCB97A9EC2F22CCDF4 /* RoonModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F75FB3DE82DDCA6F017225C /* RoonModels.swift */; };
 		362CA6CCC3EE01895C382627 /* RoonSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57030999B5CF566332DAD863 /* RoonSidebarView.swift */; };
 		41F44BDA484D0968AFF0E555 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 6A87D6FC893EB292F4FC87ED /* Localizable.xcstrings */; };
+		484994E0C2D17EE3FDFE6D1D /* GrifoM-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = D8502583FE932B155420E24C /* GrifoM-Medium.otf */; };
 		499F184FF6A98B535C8A0773 /* RoonColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C612F323088B23891CBC08 /* RoonColors.swift */; };
+		513BF3538D19A6AC7FF5A277 /* Lato-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CADF8947CD9D124C4DECAA9B /* Lato-Bold.ttf */; };
 		519F92A185C861D59BAA94A4 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6208159EBB6F3E199BC08686 /* PlayerView.swift */; };
+		5254C61AE67F03E722A157CE /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4BB5F33CBB66488501F44D04 /* Lato-Regular.ttf */; };
 		529A895FA3C4E32038B5FF81 /* RoonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */; };
 		54911BE3A34F964675E4707E /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4926CDAEA0DDFB262E6BE81A /* QueueView.swift */; };
 		60DA9CF67D9D9E807CE91503 /* RoonSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B426904DE3248B6C9BA976 /* RoonSection.swift */; };
+		69CF7CC46022D5368E19D7BC /* RoonNowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E297680B0437BEEA2513CD /* RoonNowPlayingView.swift */; };
 		6D266F7B099DE5C6965D385F /* RoonRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBB7AF253E773CF41F680C9B /* RoonRegistration.swift */; };
 		7942CCCA7D7743C2015EECA1 /* RoonBrowseContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBA88674B93B977E3ECA4637 /* RoonBrowseContentView.swift */; };
 		83D2098070D56815105DD58C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1B2F25475F39979BA3F2E470 /* Assets.xcassets */; };
@@ -67,6 +73,7 @@
 		4154732D9AD241A718F6DFE0 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		47815C3C2FB6ED9B1402F795 /* RoonController.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RoonController.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4926CDAEA0DDFB262E6BE81A /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
+		4BB5F33CBB66488501F44D04 /* Lato-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Regular.ttf"; sourceTree = "<group>"; };
 		4FCEE5B31B68C21920E308DD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		502C0AF9FE6B1E36CBBB5699 /* RoonModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonModelsTests.swift; sourceTree = "<group>"; };
 		5068474C18A874A2DD981604 /* LocalImageServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalImageServer.swift; sourceTree = "<group>"; };
@@ -91,14 +98,27 @@
 		A9D94E2AC22D1BDAB7D6A967 /* RoonTransportBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonTransportBarView.swift; sourceTree = "<group>"; };
 		ACA398B7B0641731B7566DAC /* SOODDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOODDiscovery.swift; sourceTree = "<group>"; };
 		AEBEFAB1D0DFC3EB7B52A76C /* RoonImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonImageCache.swift; sourceTree = "<group>"; };
+		B5E297680B0437BEEA2513CD /* RoonNowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonNowPlayingView.swift; sourceTree = "<group>"; };
 		BBB7AF253E773CF41F680C9B /* RoonRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonRegistration.swift; sourceTree = "<group>"; };
+		C88D71A429FED4E13F94C201 /* RoonFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonFonts.swift; sourceTree = "<group>"; };
+		CADF8947CD9D124C4DECAA9B /* Lato-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Bold.ttf"; sourceTree = "<group>"; };
+		D8502583FE932B155420E24C /* GrifoM-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GrifoM-Medium.otf"; sourceTree = "<group>"; };
 		DBA88674B93B977E3ECA4637 /* RoonBrowseContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonBrowseContentView.swift; sourceTree = "<group>"; };
 		DBB3CECF881DB8755B583D5A /* RoonLayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonLayoutView.swift; sourceTree = "<group>"; };
 		ED2B62A70A4641D8240F8444 /* RoonServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonServiceTests.swift; sourceTree = "<group>"; };
 		EEE5C81111DFF879D58805C8 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		FA4CC50B43FC90C6F9D537D1 /* GrifoS-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GrifoS-Medium.otf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		0C5E0AC3BE53A9BCFA3E1962 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E2F376AC16D370C799F08488 /* Fonts */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		0D878111769E34072232B468 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -122,6 +142,7 @@
 			isa = PBXGroup;
 			children = (
 				89C612F323088B23891CBC08 /* RoonColors.swift */,
+				C88D71A429FED4E13F94C201 /* RoonFonts.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -158,6 +179,7 @@
 				DBA88674B93B977E3ECA4637 /* RoonBrowseContentView.swift */,
 				806233BB77614B1725CD1517 /* RoonContentView.swift */,
 				DBB3CECF881DB8755B583D5A /* RoonLayoutView.swift */,
+				B5E297680B0437BEEA2513CD /* RoonNowPlayingView.swift */,
 				37B426904DE3248B6C9BA976 /* RoonSection.swift */,
 				57030999B5CF566332DAD863 /* RoonSidebarView.swift */,
 				A9D94E2AC22D1BDAB7D6A967 /* RoonTransportBarView.swift */,
@@ -214,6 +236,7 @@
 				92A3271B5BF5E27D48F206C8 /* RoonController.entitlements */,
 				518520D9EE07BDDE1F23879A /* RoonControllerApp.swift */,
 				C386E6C9C18E39CC8E474385 /* Models */,
+				0C5E0AC3BE53A9BCFA3E1962 /* Resources */,
 				5CD54845E7E35CE717F3994E /* Services */,
 				5BFD6DA1FCF413299E25BF32 /* Views */,
 			);
@@ -236,12 +259,24 @@
 			isa = PBXGroup;
 			children = (
 				C386E6C9C18E39CC8E474385 /* Models */,
+				0C5E0AC3BE53A9BCFA3E1962 /* Resources */,
 				CAB6FEEBE53B9F2C8A3D473A /* RoonController */,
 				5CD54845E7E35CE717F3994E /* Services */,
 				0D878111769E34072232B468 /* Tests */,
 				5BFD6DA1FCF413299E25BF32 /* Views */,
 				F52F554ADB65682218CA9C0B /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		E2F376AC16D370C799F08488 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				D8502583FE932B155420E24C /* GrifoM-Medium.otf */,
+				FA4CC50B43FC90C6F9D537D1 /* GrifoS-Medium.otf */,
+				CADF8947CD9D124C4DECAA9B /* Lato-Bold.ttf */,
+				4BB5F33CBB66488501F44D04 /* Lato-Regular.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		F52F554ADB65682218CA9C0B /* Products */ = {
@@ -333,6 +368,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				83D2098070D56815105DD58C /* Assets.xcassets in Resources */,
+				484994E0C2D17EE3FDFE6D1D /* GrifoM-Medium.otf in Resources */,
+				29362FC5273D1A7F2D9E5A7C /* GrifoS-Medium.otf in Resources */,
+				513BF3538D19A6AC7FF5A277 /* Lato-Bold.ttf in Resources */,
+				5254C61AE67F03E722A157CE /* Lato-Regular.ttf in Resources */,
 				41F44BDA484D0968AFF0E555 /* Localizable.xcstrings in Resources */,
 				AFE37D0C73FD49F800B1BA35 /* default.profraw in Resources */,
 			);
@@ -370,11 +409,13 @@
 				A274251364A81D4729548FC9 /* RoonConnection.swift in Sources */,
 				DA5987422ABD71478D5BFD3F /* RoonContentView.swift in Sources */,
 				E3D11AF841A9512B0BBD7998 /* RoonControllerApp.swift in Sources */,
+				1540A4E5D3B490DD7C797ADB /* RoonFonts.swift in Sources */,
 				FCCC73617CB748309BD3C119 /* RoonImageCache.swift in Sources */,
 				AA9AD2B4FA8BAB22B099E117 /* RoonImageProvider.swift in Sources */,
 				2DE2B462A57FF4EF158CA59C /* RoonImageService.swift in Sources */,
 				00C7C22D31117F9825E7C1A6 /* RoonLayoutView.swift in Sources */,
 				31D8FDDCB97A9EC2F22CCDF4 /* RoonModels.swift in Sources */,
+				69CF7CC46022D5368E19D7BC /* RoonNowPlayingView.swift in Sources */,
 				6D266F7B099DE5C6965D385F /* RoonRegistration.swift in Sources */,
 				60DA9CF67D9D9E807CE91503 /* RoonSection.swift in Sources */,
 				529A895FA3C4E32038B5FF81 /* RoonService.swift in Sources */,

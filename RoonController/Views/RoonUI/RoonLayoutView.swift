@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RoonLayoutView: View {
     @EnvironmentObject var roonService: RoonService
-    @State private var selectedSection: RoonSection = .browse
+    @State private var selectedSection: RoonSection = .home
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,7 +17,9 @@ struct RoonLayoutView: View {
             }
 
             // Footer transport bar
-            RoonTransportBarView()
+            RoonTransportBarView {
+                selectedSection = .nowPlaying
+            }
         }
         .background(Color.roonBackground)
     }

@@ -2,16 +2,22 @@ import SwiftUI
 
 struct RoonTransportBarView: View {
     @EnvironmentObject var roonService: RoonService
+    var onNowPlayingTap: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 0) {
             if let zone = roonService.currentZone, let np = zone.now_playing {
-                // Left: album art + track info
-                HStack(spacing: 12) {
-                    albumArt(imageKey: np.image_key)
-                    trackInfo(nowPlaying: np)
+                // Left: album art + track info (clickable → Now Playing)
+                Button {
+                    onNowPlayingTap?()
+                } label: {
+                    HStack(spacing: 12) {
+                        albumArt(imageKey: np.image_key)
+                        trackInfo(nowPlaying: np)
+                    }
+                    .frame(width: 260, alignment: .leading)
                 }
-                .frame(width: 260, alignment: .leading)
+                .buttonStyle(.plain)
                 .padding(.leading, 16)
 
                 Spacer()
