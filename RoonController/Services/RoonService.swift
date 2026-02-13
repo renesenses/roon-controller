@@ -1215,11 +1215,9 @@ class RoonService: ObservableObject {
 
     func connectCore(ip: String) {
         saveCoreIP(ip)
-        connectionState = .connecting
-        Task {
-            await connection.disconnect()
-            await connection.connectDirect(host: ip, port: 9330)
-        }
+        disconnect()
+        // Re-use connect() which will pick up the saved IP
+        connect()
     }
 
     // MARK: - Image URL

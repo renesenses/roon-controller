@@ -100,7 +100,12 @@ struct ConnectionView: View {
 
                 Button("Reconnecter") {
                     roonService.disconnect()
-                    roonService.connect()
+                    let ip = coreIP.trimmingCharacters(in: .whitespaces)
+                    if !ip.isEmpty {
+                        roonService.connectCore(ip: ip)
+                    } else {
+                        roonService.connect()
+                    }
                 }
                 .buttonStyle(.bordered)
                 .tint(Color.roonAccent)

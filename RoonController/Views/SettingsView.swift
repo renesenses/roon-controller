@@ -4,7 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject var roonService: RoonService
     @AppStorage("uiMode") private var uiMode = "player"
     @AppStorage("appTheme") private var appTheme = "light"
-    @State private var coreIP: String = ""
+    @State private var coreIP: String = RoonService.savedCoreIP ?? ""
 
     var body: some View {
         Form {
@@ -59,7 +59,12 @@ struct SettingsView: View {
 
                     Button("Reconnecter") {
                         roonService.disconnect()
-                        roonService.connect()
+                        let ip = coreIP.trimmingCharacters(in: .whitespaces)
+                        if !ip.isEmpty {
+                            roonService.connectCore(ip: ip)
+                        } else {
+                            roonService.connect()
+                        }
                     }
                 }
 
