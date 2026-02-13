@@ -29,10 +29,10 @@ xcodebuild test -scheme RoonController -destination 'platform=macOS'
 ## Deploy
 
 ```bash
-# Build Release, copier dans /Applications, generer DMG
-xcodebuild build -scheme RoonController -destination 'platform=macOS' -configuration Release -quiet
+# Build Release (Universal Binary arm64+x86_64), copier dans /Applications, generer DMG
+xcodebuild build -scheme RoonController -destination 'generic/platform=macOS' -configuration Release -quiet
 rm -rf "/Applications/Roon Controller.app"
-cp -R "$(xcodebuild -scheme RoonController -showBuildSettings 2>/dev/null | grep ' BUILD_DIR' | awk '{print $3}')/Release/Roon Controller.app" /Applications/
+cp -R "$(xcodebuild -scheme RoonController -configuration Release -showBuildSettings 2>/dev/null | grep ' BUILD_DIR' | awk '{print $3}')/Release/Roon Controller.app" /Applications/
 hdiutil create -volname "Roon Controller" -srcfolder "/Applications/Roon Controller.app" -ov -format UDZO ~/Desktop/RoonController.dmg
 ```
 
