@@ -6,6 +6,7 @@ enum RoonState: String, Codable {
     case connected
     case disconnected
     case connecting
+    case waitingForApproval
 }
 
 // MARK: - Zone

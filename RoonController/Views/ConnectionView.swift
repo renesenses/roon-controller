@@ -37,6 +37,23 @@ struct ConnectionView: View {
                             Text("Connexion au Roon Core...")
                                 .foregroundStyle(Color.roonSecondary)
                         }
+                    case .waitingForApproval:
+                        VStack(spacing: 8) {
+                            Label("Core Roon trouve", systemImage: "checkmark.circle")
+                                .foregroundStyle(.green)
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(Color.roonAccent)
+                                Text("En attente d'approbation...")
+                                    .foregroundStyle(Color.roonAccent)
+                                    .fontWeight(.medium)
+                            }
+                            Text("Ouvrez Roon, allez dans Parametres > Extensions\net autorisez « Roon Controller ».")
+                                .foregroundStyle(Color.roonSecondary)
+                                .multilineTextAlignment(.center)
+                                .font(.caption)
+                        }
                     case .disconnected:
                         Label("Deconnecte du Roon Core", systemImage: "xmark.circle")
                             .foregroundStyle(.red)

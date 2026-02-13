@@ -27,10 +27,24 @@ struct RoonBrowseContentView: View {
         }
     }
 
+    /// Detect playlist/album detail view: list has artwork and most items are tracks
+    private var isPlaylistView: Bool {
+        guard let list = roonService.browseResult?.list,
+              list.image_key != nil else { return false }
+        let items = filteredBrowseItems
+        guard items.count >= 2 else { return false }
+        let sample = items.prefix(20)
+        let actionCount = sample.filter { $0.hint == "action" || $0.hint == "action_list" }.count
+        return actionCount > sample.count / 2
+    }
+
     /// Show grid when most items have artwork (albums, artists, playlists)
     private var shouldShowGrid: Bool {
         let items = filteredBrowseItems
         guard items.count >= 3 else { return false }
+        // If most items are playable actions (tracks), show as list
+        let actionCount = items.prefix(20).filter { $0.hint == "action" || $0.hint == "action_list" }.count
+        if actionCount > items.prefix(20).count / 2 { return false }
         let withImage = items.prefix(20).filter { $0.image_key != nil }.count
         return withImage > items.prefix(20).count / 2
     }
@@ -53,6 +67,8 @@ struct RoonBrowseContentView: View {
                 let items = filteredBrowseItems
                 if items.isEmpty && !searchText.isEmpty {
                     emptySearchState
+                } else if isPlaylistView && searchText.isEmpty {
+                    playlistContent(items: items)
                 } else if shouldShowGrid {
                     gridContent(items: items)
                 } else {
@@ -358,6 +374,192 @@ struct RoonBrowseContentView: View {
             .tint(Color.roonAccent)
             Spacer()
         }
+    }
+
+    // MARK: - Playlist / Album Detail View
+
+    /// Splits "Artist - Album" subtitle into (artist, album). Falls back gracefully.
+    private func parseSubtitle(_ subtitle: String?) -> (artist: String, album: String) {
+        guard let subtitle = subtitle, !subtitle.isEmpty else { return ("", "") }
+        if let range = subtitle.range(of: " - ") {
+            let artist = String(subtitle[subtitle.startIndex..<range.lowerBound])
+            let album = String(subtitle[range.upperBound...])
+            return (artist, album)
+        }
+        return (subtitle, "")
+    }
+
+    private func playlistHeader(items: [BrowseItem]) -> some View {
+        let list = roonService.browseResult?.list
+        return HStack(alignment: .top, spacing: 24) {
+            // Large artwork
+            if let url = roonService.imageURL(key: list?.image_key, width: 480, height: 480) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        Color.roonGrey2
+                    }
+                }
+                .frame(width: 180, height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Spacer().frame(height: 8)
+
+                // Title
+                Text(list?.title ?? "")
+                    .font(.inter(28))
+                    .foregroundStyle(Color.roonText)
+                    .tracking(-0.8)
+                    .lineLimit(2)
+
+                // Track count
+                if let count = list?.count {
+                    Text("\(count) morceaux")
+                        .font(.lato(14))
+                        .foregroundStyle(Color.roonSecondary)
+                }
+
+                // "Lire maintenant" button
+                if let firstItem = items.first, let itemKey = firstItem.item_key {
+                    Button {
+                        roonService.playInCurrentSession(itemKey: itemKey)
+                    } label: {
+                        Text("Lire maintenant")
+                            .font(.latoBold(13))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(Color.roonAccent)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
+                }
+
+                Spacer()
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+    }
+
+    private var trackTableHeader: some View {
+        HStack(spacing: 0) {
+            Text("#")
+                .frame(width: 36, alignment: .trailing)
+            Spacer().frame(width: 14)
+            // thumbnail placeholder
+            Spacer().frame(width: 40)
+            Spacer().frame(width: 12)
+            Text("Morceau")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("Artiste")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("Album")
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .font(.latoBold(11))
+        .foregroundStyle(Color.roonTertiary)
+        .textCase(.uppercase)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 6)
+    }
+
+    private func playlistTrackRow(_ item: BrowseItem, index: Int) -> some View {
+        let parsed = parseSubtitle(item.subtitle)
+        return HStack(spacing: 0) {
+            Text("\(index + 1)")
+                .font(.lato(13))
+                .foregroundStyle(Color.roonTertiary)
+                .frame(width: 36, alignment: .trailing)
+
+            Spacer().frame(width: 14)
+
+            // Thumbnail
+            if let url = roonService.imageURL(key: item.image_key, width: 120, height: 120) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        Color.roonGrey2
+                    }
+                }
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.roonGrey2)
+                    .frame(width: 40, height: 40)
+            }
+
+            Spacer().frame(width: 12)
+
+            // Title
+            Text(item.title ?? "")
+                .font(.lato(14))
+                .foregroundStyle(Color.roonText)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Artist
+            Text(parsed.artist)
+                .font(.lato(13))
+                .foregroundStyle(Color.roonSecondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Album
+            Text(parsed.album)
+                .font(.lato(13))
+                .foregroundStyle(Color.roonSecondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if let itemKey = item.item_key {
+                roonService.playInCurrentSession(itemKey: itemKey)
+            }
+        }
+        .hoverHighlight()
+        .onAppear {
+            loadMoreIfNeeded(item: item)
+        }
+    }
+
+    private func playlistContent(items: [BrowseItem]) -> some View {
+        ScrollView {
+            playlistHeader(items: items)
+
+            Divider()
+                .overlay(Color.roonSeparator.opacity(0.3))
+                .padding(.horizontal, 28)
+
+            trackTableHeader
+
+            Divider()
+                .overlay(Color.roonSeparator.opacity(0.3))
+                .padding(.horizontal, 28)
+
+            LazyVStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    playlistTrackRow(item, index: index)
+                }
+            }
+        }
+        .id(browseListId)
     }
 
     // MARK: - Helpers

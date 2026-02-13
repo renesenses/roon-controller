@@ -17,6 +17,7 @@ actor RoonConnection {
         case discovering
         case connecting
         case registering
+        case waitingForApproval
         case connected(coreName: String)
         case failed(String)
     }
@@ -91,6 +92,7 @@ actor RoonConnection {
         pendingRequests.values.forEach { $0.resume(throwing: MOOTransportError.notConnected) }
         pendingRequests.removeAll()
         zoneSubscriptionRequestId = nil
+        registerRequestId = nil
         queueSubscriptions.removeAll()
         updateState(.disconnected)
     }
@@ -148,6 +150,9 @@ actor RoonConnection {
 
     // MARK: - Registration Handshake
 
+    /// Request ID used for the register call, kept alive for the approval CONTINUE.
+    private var registerRequestId: Int?
+
     private func performRegistration() async {
         updateState(.registering)
         logger.info("Starting registration handshake...")
@@ -165,30 +170,46 @@ actor RoonConnection {
                 logger.info("Core info received, services: transport=\(self.transportServiceName ?? "nil") browse=\(self.browseServiceName ?? "nil")")
             }
 
-            // Step 2: Send registry:1/register
+            // Step 2: Send registry:1/register — fire-and-forget (no timeout).
+            // The Core replies with CONTINUE messages:
+            //   - First CONTINUE: either has a token (already paired) or not (needs approval).
+            //   - If not paired, a second CONTINUE arrives when the user approves.
+            // Both are handled in handleRegistrationContinue().
             let registerBody = try JSONSerialization.data(withJSONObject: RoonRegistration.registerRequestBody())
-            let registerResponse = try await sendRequestData(
+            let reqId = requestIds.next()
+            registerRequestId = reqId
+            let data = MOOMessage.request(
                 name: "com.roonlabs.registry:1/register",
-                bodyData: registerBody
+                requestId: reqId,
+                body: registerBody
             )
-
-            let result = RoonRegistration.parseRegistrationResponse(registerResponse.bodyJSON)
-            switch result {
-            case .registered(let token, let coreId, let name):
-                RoonRegistration.saveToken(token, coreId: coreId)
-                coreName = name.isEmpty ? "Roon Core" : name
-                reconnectAttempt = 0
-                logger.info("Registered with Core: \(self.coreName ?? "?") (id: \(coreId))")
-                updateState(.connected(coreName: coreName ?? "Roon Core"))
-                await subscribeZones()
-
-            case .notRegistered:
-                logger.warning("Registration response: not registered (awaiting user approval in Roon?)")
-            }
+            try await transport.send(data)
+            logger.info("Register request sent (id=\(reqId)), waiting for Core response...")
         } catch {
             logger.error("Registration failed: \(error.localizedDescription, privacy: .public)")
             updateState(.failed("Registration failed: \(error.localizedDescription)"))
             scheduleReconnect()
+        }
+    }
+
+    /// Handle a CONTINUE on the register request ID.
+    private func handleRegistrationContinue(_ message: MOOMessage) {
+        let result = RoonRegistration.parseRegistrationResponse(message.bodyJSON)
+        switch result {
+        case .registered(let token, let coreId, let name):
+            RoonRegistration.saveToken(token, coreId: coreId)
+            coreName = name.isEmpty ? "Roon Core" : name
+            reconnectAttempt = 0
+            registerRequestId = nil
+            logger.info("Registered with Core: \(self.coreName ?? "?") (id: \(coreId))")
+            updateState(.connected(coreName: coreName ?? "Roon Core"))
+            Task { await self.subscribeZones() }
+
+        case .notRegistered:
+            logger.info("Awaiting user approval in Roon > Settings > Extensions...")
+            updateState(.waitingForApproval)
+            // Keep registerRequestId alive — the Core will send another CONTINUE
+            // on the same request ID when the user approves.
         }
     }
 
@@ -215,16 +236,12 @@ actor RoonConnection {
                 handleQueueSubscriptionUpdate(message, zoneId: zoneId)
                 return
             }
-            // Could be a delayed registration response (or the initial one as Continue)
-            if message.name.contains("register") || message.name == "Registered" {
-                let result = RoonRegistration.parseRegistrationResponse(message.bodyJSON)
-                if case .registered(let token, let coreId, let name) = result {
-                    RoonRegistration.saveToken(token, coreId: coreId)
-                    coreName = name.isEmpty ? "Roon Core" : name
-                    updateState(.connected(coreName: coreName ?? "Roon Core"))
-                    Task { await self.subscribeZones() }
-                }
-                // Fall through to also resume pending continuation (prevents 30s timeout)
+            // Registration CONTINUE — handle without consuming a pending request.
+            // The Core sends CONTINUEs (not COMPLETEs) for registration so the
+            // request stays open and can receive the approval later.
+            if requestId == registerRequestId {
+                handleRegistrationContinue(message)
+                return
             }
         }
 
@@ -368,6 +385,7 @@ actor RoonConnection {
         pendingRequests.values.forEach { $0.resume(throwing: MOOTransportError.notConnected) }
         pendingRequests.removeAll()
         zoneSubscriptionRequestId = nil
+        registerRequestId = nil
         queueSubscriptions.removeAll()
 
         updateState(.disconnected)

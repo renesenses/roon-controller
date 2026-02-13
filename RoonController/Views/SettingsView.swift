@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var roonService: RoonService
-    @AppStorage("uiMode") private var uiMode = "roon"
+    @AppStorage("uiMode") private var uiMode = "player"
     @AppStorage("appTheme") private var appTheme = "light"
     @State private var coreIP: String = ""
 
@@ -40,6 +40,14 @@ struct SettingsView: View {
                             Text("Connexion en cours...")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                        }
+                    } else if roonService.connectionState == .waitingForApproval {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("En attente d'approbation dans Roon...")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
                         }
                     } else {
                         Label("Deconnecte", systemImage: "xmark.circle")

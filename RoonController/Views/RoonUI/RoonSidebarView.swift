@@ -6,6 +6,7 @@ struct RoonSidebarView: View {
     @State private var activeCategoryKey: String?
     @State private var hoveredSection: RoonSection?
     @State private var hoveredCategoryKey: String?
+    @State private var searchText: String = ""
 
     // Classification des items par titre
     private static let explorerTitles = Set([
@@ -65,8 +66,10 @@ struct RoonSidebarView: View {
                     if !roonService.sidebarPlaylists.isEmpty {
                         sectionHeader("LISTES DE LECTURE")
 
+                        sidebarSearchField
+
                         ForEach(roonService.sidebarPlaylists) { item in
-                            dynamicSidebarItem(item)
+                            playlistSidebarItem(item)
                         }
                     }
                 }
@@ -221,6 +224,81 @@ struct RoonSidebarView: View {
         .onHover { hovering in
             hoveredCategoryKey = hovering ? item.item_key : nil
         }
+    }
+
+    // MARK: - Playlist Sidebar Item (browse into playlist)
+
+    private func playlistSidebarItem(_ item: BrowseItem) -> some View {
+        let isSelected = activeCategoryKey == item.item_key && selectedSection == .browse
+        let isHovered = hoveredCategoryKey == item.item_key
+        return Button {
+            activeCategoryKey = item.item_key
+            selectedSection = .browse
+            if let title = item.title {
+                roonService.browsePlaylist(title: title)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 15))
+                    .frame(width: 22)
+                    .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
+
+                Text(item.title ?? "")
+                    .font(.lato(13))
+                    .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 7)
+            .background(
+                isSelected
+                    ? Color.roonGrey2.opacity(0.6)
+                    : (isHovered ? Color.roonGrey2.opacity(0.3) : Color.clear)
+            )
+            .animation(.easeOut(duration: 0.15), value: activeCategoryKey)
+            .animation(.easeOut(duration: 0.12), value: hoveredCategoryKey)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            hoveredCategoryKey = hovering ? item.item_key : nil
+        }
+    }
+
+    // MARK: - Sidebar Search
+
+    private var sidebarSearchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.roonSecondary)
+            TextField("Rechercher...", text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.lato(13))
+                .foregroundStyle(Color.roonText)
+                .onSubmit {
+                    let query = searchText.trimmingCharacters(in: .whitespaces)
+                    guard !query.isEmpty else { return }
+                    roonService.browseSearch(query: query)
+                    activeCategoryKey = nil
+                    selectedSection = .browse
+                    searchText = ""
+                }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.roonPanel)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(Color.roonSeparator, lineWidth: 0.5)
+                )
+        )
+        .padding(.horizontal, 12)
+        .padding(.top, 4)
     }
 
     // MARK: - Icon Mapping
