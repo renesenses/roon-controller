@@ -3,11 +3,16 @@ import SwiftUI
 struct RoonNowPlayingView: View {
     @EnvironmentObject var roonService: RoonService
 
+    /// Resolve album art key via service (now_playing + queue cache fallback)
+    private func artImageKey(for np: NowPlaying) -> String? {
+        roonService.resolvedImageKey(for: np)
+    }
+
     var body: some View {
         ZStack {
             if let zone = roonService.currentZone, let np = zone.now_playing {
                 // Blurred album art background
-                blurredBackground(imageKey: np.image_key)
+                blurredBackground(imageKey: artImageKey(for: np))
 
                 GeometryReader { geo in
                     let isWide = geo.size.width > 700
@@ -33,7 +38,7 @@ struct RoonNowPlayingView: View {
             Spacer(minLength: 20)
 
             // Album art
-            albumArt(imageKey: nowPlaying.image_key, size: artSize(for: size))
+            albumArt(imageKey: artImageKey(for: nowPlaying), size: artSize(for: size))
 
             // Track info + settings
             VStack(alignment: .leading, spacing: 0) {
@@ -70,7 +75,7 @@ struct RoonNowPlayingView: View {
             VStack(spacing: 24) {
                 Spacer(minLength: 10)
 
-                albumArt(imageKey: nowPlaying.image_key, size: artSize(for: size))
+                albumArt(imageKey: artImageKey(for: nowPlaying), size: artSize(for: size))
 
                 trackInfo(nowPlaying: nowPlaying)
 

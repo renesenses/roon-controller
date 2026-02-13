@@ -33,6 +33,11 @@ struct RoonZone: Codable, Identifiable, Equatable {
             && lhs.state == rhs.state
             && lhs.now_playing == rhs.now_playing
             && lhs.settings == rhs.settings
+            && lhs.is_play_allowed == rhs.is_play_allowed
+            && lhs.is_pause_allowed == rhs.is_pause_allowed
+            && lhs.is_seek_allowed == rhs.is_seek_allowed
+            && lhs.is_previous_allowed == rhs.is_previous_allowed
+            && lhs.is_next_allowed == rhs.is_next_allowed
     }
 }
 

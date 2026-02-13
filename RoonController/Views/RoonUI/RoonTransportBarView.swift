@@ -12,7 +12,7 @@ struct RoonTransportBarView: View {
                     onNowPlayingTap?()
                 } label: {
                     HStack(spacing: 14) {
-                        albumArt(imageKey: np.image_key)
+                        albumArt(imageKey: roonService.resolvedImageKey(for: np))
                         trackInfo(nowPlaying: np)
                     }
                     .frame(width: 280, alignment: .leading)
@@ -126,8 +126,8 @@ struct RoonTransportBarView: View {
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(.plain)
-            .disabled(!(zone.is_previous_allowed ?? false))
-            .opacity((zone.is_previous_allowed ?? false) ? 1 : 0.3)
+            .disabled(!(zone.is_previous_allowed ?? true))
+            .opacity((zone.is_previous_allowed ?? true) ? 1 : 0.3)
 
             // Roon: bg-roon-primary rounded-full
             Button { roonService.playPause() } label: {
@@ -150,8 +150,8 @@ struct RoonTransportBarView: View {
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(.plain)
-            .disabled(!(zone.is_next_allowed ?? false))
-            .opacity((zone.is_next_allowed ?? false) ? 1 : 0.3)
+            .disabled(!(zone.is_next_allowed ?? true))
+            .opacity((zone.is_next_allowed ?? true) ? 1 : 0.3)
         }
     }
 

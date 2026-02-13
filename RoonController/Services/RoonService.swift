@@ -35,6 +35,9 @@ class RoonService: ObservableObject {
 
     init(storageDirectory: URL? = nil) {
         self.storageDirectory = storageDirectory
+        self.trackImageKeyCache = Self.loadImageKeyCache(
+            from: storageDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+        )
     }
 
     private var storageDir: URL? {
@@ -48,6 +51,8 @@ class RoonService: ObservableObject {
     private var browseService: RoonBrowseService?
     private var imageService: RoonImageService?
 
+    /// Cache of track title → image_key, built from queue items (persisted to disk)
+    private var trackImageKeyCache: [String: String] = [:]
     private var lastTrackPerZone: [String: String] = [:]
     private var currentTrackIdentity: String = ""
     private var isConnected = false
@@ -270,6 +275,17 @@ class RoonService: ObservableObject {
                 guard let itemData = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
                 return try? decoder.decode(QueueItem.self, from: itemData)
             }
+            // Cache image keys for fallback when now_playing.image_key is nil
+            var cacheChanged = false
+            for item in decodedItems {
+                if let title = item.three_line?.line1 ?? item.one_line?.line1,
+                   let key = item.image_key,
+                   trackImageKeyCache[title] != key {
+                    trackImageKeyCache[title] = key
+                    cacheChanged = true
+                }
+            }
+            if cacheChanged { saveImageKeyCache() }
             objectWillChange.send()
             queueItems = decodedItems
         } else if body["changes"] != nil {
@@ -1193,6 +1209,23 @@ class RoonService: ObservableObject {
         return LocalImageServer.imageURL(key: key, width: width, height: height)
     }
 
+    /// Resolve image key for now_playing, with queue fallbacks
+    func resolvedImageKey(for np: NowPlaying) -> String? {
+        if let key = np.image_key { return key }
+        let title = np.three_line?.line1 ?? np.one_line?.line1
+        // 1. Look up from persistent cache
+        if let title = title, let key = trackImageKeyCache[title] { return key }
+        // 2. Search current queue items
+        if let title = title {
+            let match = queueItems.first {
+                ($0.three_line?.line1 ?? $0.one_line?.line1) == title
+            }
+            if let key = match?.image_key { return key }
+        }
+        // 3. Last resort: first queue item (likely current track)
+        return queueItems.first?.image_key
+    }
+
     // MARK: - Playback History
 
     private func trackPlaybackHistory(zone: RoonZone) {
@@ -1246,6 +1279,26 @@ class RoonService: ObservableObject {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         if let data = try? encoder.encode(playbackHistory) {
+            try? data.write(to: path)
+        }
+    }
+
+    // MARK: - Image Key Cache Persistence
+
+    private static let imageKeyCacheFile = "track_image_keys.json"
+
+    private static func loadImageKeyCache(from dir: URL?) -> [String: String] {
+        guard let dir = dir else { return [:] }
+        let path = dir.appendingPathComponent(imageKeyCacheFile)
+        guard let data = try? Data(contentsOf: path),
+              let dict = try? JSONDecoder().decode([String: String].self, from: data) else { return [:] }
+        return dict
+    }
+
+    private func saveImageKeyCache() {
+        guard let dir = storageDir else { return }
+        let path = dir.appendingPathComponent(Self.imageKeyCacheFile)
+        if let data = try? JSONEncoder().encode(trackImageKeyCache) {
             try? data.write(to: path)
         }
     }

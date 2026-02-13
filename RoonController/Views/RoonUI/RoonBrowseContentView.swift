@@ -484,8 +484,9 @@ struct RoonBrowseContentView: View {
 
             Spacer().frame(width: 14)
 
-            // Thumbnail
-            if let url = roonService.imageURL(key: item.image_key, width: 120, height: 120) {
+            // Thumbnail — fall back to playlist artwork if track has no image
+            let imageKey = item.image_key ?? roonService.browseResult?.list?.image_key
+            if let url = roonService.imageURL(key: imageKey, width: 120, height: 120) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):

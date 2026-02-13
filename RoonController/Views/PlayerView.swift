@@ -12,7 +12,7 @@ struct PlayerView: View {
             if let zone = roonService.currentZone {
                 if let nowPlaying = zone.now_playing {
                     // Blurred album art background
-                    albumArtBackground(imageKey: nowPlaying.image_key)
+                    albumArtBackground(imageKey: roonService.resolvedImageKey(for: nowPlaying))
 
                     playerContent(zone: zone, nowPlaying: nowPlaying)
                 } else {
@@ -56,7 +56,7 @@ struct PlayerView: View {
             Spacer(minLength: 20)
 
             // Album Art
-            albumArt(imageKey: nowPlaying.image_key)
+            albumArt(imageKey: roonService.resolvedImageKey(for: nowPlaying))
 
             // Track Info
             trackInfo(nowPlaying: nowPlaying)
@@ -210,8 +210,8 @@ struct PlayerView: View {
                     .foregroundStyle(Color.roonText)
             }
             .buttonStyle(.plain)
-            .disabled(!(zone.is_previous_allowed ?? false))
-            .opacity((zone.is_previous_allowed ?? false) ? 1 : 0.3)
+            .disabled(!(zone.is_previous_allowed ?? true))
+            .opacity((zone.is_previous_allowed ?? true) ? 1 : 0.3)
 
             Button { roonService.playPause() } label: {
                 Image(systemName: zone.state == "playing" ? "pause.circle.fill" : "play.circle.fill")
@@ -226,8 +226,8 @@ struct PlayerView: View {
                     .foregroundStyle(Color.roonText)
             }
             .buttonStyle(.plain)
-            .disabled(!(zone.is_next_allowed ?? false))
-            .opacity((zone.is_next_allowed ?? false) ? 1 : 0.3)
+            .disabled(!(zone.is_next_allowed ?? true))
+            .opacity((zone.is_next_allowed ?? true) ? 1 : 0.3)
         }
         .animation(.easeInOut(duration: 0.2), value: zone.state)
     }
