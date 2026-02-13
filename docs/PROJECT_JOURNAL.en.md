@@ -39,20 +39,32 @@ gantt
 
 ### Activities
 
-- Created lightweight PRINCE2 documentation: changelog, journal, issue register, lessons learned (`e3404d4`)
-- Project management index with PRINCE2 methodology explanation
-- Mermaid diagrams in all documents (timeline, gantt, pie, mindmap, flowchart, xychart)
-- Planned v1.1.0 roadmap: 3 workstreams, 16 tasks
+- Created 10 bilingual (FR/EN) lightweight PRINCE2 documentation files (`e3404d4`):
+  - **CHANGELOG**: 4 versions (v1.0.0 to v1.0.3) in Keep a Changelog format
+  - **PROJECT_JOURNAL**: 4 days of retroactive entries (Feb 10-13)
+  - **ISSUES**: consolidated register of 16 incidents (3 critical, 6 major, 7 minor)
+  - **LESSONS_LEARNED**: 19 lessons across 5 themes (protocols, Swift, macOS, CI/CD, methodology)
+  - **PROJECT_MANAGEMENT**: methodology index explaining the PRINCE2 adaptation
+- Added Mermaid diagrams to all documents: timeline, gantt, pie, mindmap, flowchart, xychart
+- Updated Documentation tables in README.md and README.en.md (6 new entries)
+- Planned v1.1.0 roadmap: 3 workstreams, 16 tasks with priority and complexity (`fab0b02`)
+- Populated the changelog `[Unreleased]` section
 
 ### Decisions
 
-- Adopt lightweight PRINCE2 methodology with 4 artifacts (instead of the official 26)
-- Structure v1.1.0 into 3 workstreams: Roon UI, Core Settings, Radio Favorites
-- Prioritize artist/album pages (UI-01) and Browse API favorites playback (FAV-02) as high-priority tasks
+- Adopt lightweight PRINCE2 methodology with 5 artifacts (instead of the official 26)
+- Structure v1.1.0 into 3 workstreams: Roon native UI (6 tasks), Core Settings (6 tasks), Radio Favorites (4 tasks)
+- Prioritize artist/album pages and Browse API favorites playback as high-priority tasks
+- Use GitHub Issues for active tracking and markdown files for consolidation
 
 ### Issues
 
 - No new issues
+
+### Commits
+
+- `e3404d4` — Add PRINCE2 lightweight project management docs with Mermaid diagrams (10 files, +1286 lines)
+- `fab0b02` — Add v1.1.0 roadmap: 3 workstreams, 16 tasks with Mermaid Gantt (6 files, +262 lines)
 
 ---
 

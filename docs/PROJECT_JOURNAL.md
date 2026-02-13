@@ -39,20 +39,32 @@ gantt
 
 ### Activites
 
-- Creation de la documentation PRINCE2 legere : changelog, journal, registre incidents, lecons apprises (`e3404d4`)
-- Index de gestion de projet avec explication de la methodologie PRINCE2 adaptee
-- Diagrammes Mermaid dans tous les documents (timeline, gantt, pie, mindmap, flowchart, xychart)
-- Planification de la roadmap v1.1.0 : 3 chantiers, 16 taches
+- Creation de 10 fichiers de documentation PRINCE2 legere bilingue (FR/EN) (`e3404d4`) :
+  - **CHANGELOG** : 4 versions (v1.0.0 a v1.0.3) au format Keep a Changelog
+  - **PROJECT_JOURNAL** : 4 jours d'entrees retroactives (10-13 fev.)
+  - **ISSUES** : registre consolide de 16 incidents (3 critiques, 6 majeurs, 7 mineurs)
+  - **LESSONS_LEARNED** : 19 lecons en 5 themes (protocoles, Swift, macOS, CI/CD, methodologie)
+  - **PROJECT_MANAGEMENT** : index methodologique expliquant l'adaptation PRINCE2
+- Ajout de diagrammes Mermaid dans tous les documents : timeline, gantt, pie, mindmap, flowchart, xychart
+- Mise a jour des tables Documentation dans README.md et README.en.md (6 nouvelles entrees)
+- Planification de la roadmap v1.1.0 : 3 chantiers, 16 taches avec priorite et complexite (`fab0b02`)
+- Peuplement de la section `[Unreleased]` du changelog
 
 ### Decisions
 
-- Adopter une methodologie PRINCE2 legere avec 4 artefacts (au lieu des 26 officiels)
-- Structurer la v1.1.0 en 3 chantiers : UI Roon, Settings Core, Favoris radio
-- Prioriser les pages artiste/album (UI-01) et la lecture Browse API des favoris (FAV-02) comme taches haute priorite
+- Adopter une methodologie PRINCE2 legere avec 5 artefacts (au lieu des 26 officiels)
+- Structurer la v1.1.0 en 3 chantiers : UI Roon native (6 taches), Settings Core (6 taches), Favoris radio (4 taches)
+- Prioriser les pages artiste/album et la lecture Browse API des favoris comme taches haute priorite
+- Utiliser GitHub Issues pour le suivi actif et les fichiers markdown pour la consolidation
 
 ### Problemes
 
 - Aucun nouveau probleme
+
+### Commits
+
+- `e3404d4` — Add PRINCE2 lightweight project management docs with Mermaid diagrams (10 fichiers, +1286 lignes)
+- `fab0b02` — Add v1.1.0 roadmap: 3 workstreams, 16 tasks with Mermaid Gantt (6 fichiers, +262 lignes)
 
 ---
 
