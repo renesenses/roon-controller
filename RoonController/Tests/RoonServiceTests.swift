@@ -1175,4 +1175,270 @@ final class RoonServiceTests: XCTestCase {
             XCTFail("Expected .notRegistered for nil body")
         }
     }
+
+    // MARK: - Registration edge cases
+
+    func testRegistrationResponseMissingCoreIdDefaultsToEmpty() {
+        let result = RoonRegistration.parseRegistrationResponse([
+            "token": "tok123"
+        ])
+        if case .registered(let token, let coreId, let coreName) = result {
+            XCTAssertEqual(token, "tok123")
+            XCTAssertEqual(coreId, "", "Missing core_id must default to empty string")
+            XCTAssertEqual(coreName, "", "Missing display_name must default to empty string")
+        } else {
+            XCTFail("Expected .registered")
+        }
+    }
+
+    func testRegistrationResponseTokenTypeMismatch() {
+        // token is an Int instead of String — should be .notRegistered
+        let result = RoonRegistration.parseRegistrationResponse([
+            "token": 12345
+        ])
+        if case .notRegistered = result {
+            // OK — token must be a String
+        } else {
+            XCTFail("Expected .notRegistered when token is not a String")
+        }
+    }
+
+    func testRegistrationInfoRequestBodyIsEmpty() {
+        let body = RoonRegistration.infoRequestBody()
+        XCTAssertTrue(body.isEmpty, "info request body must be empty dictionary")
+    }
+
+    func testRegistrationStatusBody() {
+        let ready = RoonRegistration.statusBody()
+        XCTAssertEqual(ready["message"] as? String, "Ready")
+        XCTAssertEqual(ready["is_error"] as? Bool, false)
+
+        let error = RoonRegistration.statusBody(message: "Connection lost", isError: true)
+        XCTAssertEqual(error["message"] as? String, "Connection lost")
+        XCTAssertEqual(error["is_error"] as? Bool, true)
+    }
+
+    func testRegistrationDisplayVersion() {
+        XCTAssertEqual(RoonRegistration.displayVersion, "1.0.3")
+    }
+
+    func testRegistrationExtensionId() {
+        XCTAssertEqual(RoonRegistration.extensionId, "com.bertrand.rooncontroller")
+    }
+
+    // MARK: - MOO Message edge cases
+
+    func testMOOMessageParseWithColonInHeaderValue() {
+        let raw = "MOO/1 REQUEST test/method\nRequest-Id: 1\nCustom-Header: value:with:colons\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.headers["Custom-Header"], "value:with:colons",
+                       "Header values with colons must be preserved")
+    }
+
+    func testMOOMessageParseWithMultipleHeaders() {
+        let raw = "MOO/1 COMPLETE Success\nRequest-Id: 42\nRoon-Status: success\nContent-Type: application/json\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.requestId, 42)
+        XCTAssertEqual(msg?.headers["Roon-Status"], "success")
+        XCTAssertEqual(msg?.headers["Content-Type"], "application/json")
+        XCTAssertTrue(msg?.isSuccess ?? false)
+        XCTAssertTrue(msg?.isJSON ?? false)
+    }
+
+    func testMOOMessageIsSuccessWhenNoRoonStatus() {
+        let raw = "MOO/1 COMPLETE Done\nRequest-Id: 1\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNotNil(msg)
+        XCTAssertTrue(msg?.isSuccess ?? false, "Missing Roon-Status header means success")
+    }
+
+    func testMOOMessageIsNotSuccessWhenFailed() {
+        let raw = "MOO/1 COMPLETE Error\nRequest-Id: 1\nRoon-Status: failed\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNotNil(msg)
+        XCTAssertFalse(msg?.isSuccess ?? true, "Roon-Status: failed means not success")
+    }
+
+    func testMOOMessageIsJSONWithContentType() {
+        let body = "{\"key\":\"val\"}"
+        let raw = "MOO/1 COMPLETE Success\nRequest-Id: 1\nContent-Type: application/json\nContent-Length: \(body.utf8.count)\n\n\(body)"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertTrue(msg?.isJSON ?? false)
+    }
+
+    func testMOOMessageIsJSONWithoutContentTypeButWithBody() {
+        let body = "{\"key\":\"val\"}"
+        let raw = "MOO/1 COMPLETE Success\nRequest-Id: 1\nContent-Length: \(body.utf8.count)\n\n\(body)"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        // No Content-Type but body present → isJSON returns true
+        XCTAssertTrue(msg?.isJSON ?? false)
+    }
+
+    func testMOOMessageDecodeBodyTyped() {
+        struct TestPayload: Codable {
+            let control: String
+            let zone_id: String
+        }
+        let body = "{\"control\":\"play\",\"zone_id\":\"z1\"}"
+        let raw = "MOO/1 REQUEST transport/control\nRequest-Id: 5\nContent-Type: application/json\nContent-Length: \(body.utf8.count)\n\n\(body)"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        let payload = msg?.decodeBody(TestPayload.self)
+        XCTAssertNotNil(payload)
+        XCTAssertEqual(payload?.control, "play")
+        XCTAssertEqual(payload?.zone_id, "z1")
+    }
+
+    func testMOOMessageDecodeBodyReturnsNilForInvalidJSON() {
+        struct TestPayload: Codable { let x: Int }
+        let raw = "MOO/1 COMPLETE Success\nRequest-Id: 1\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNil(msg?.decodeBody(TestPayload.self), "No body → decodeBody returns nil")
+    }
+
+    func testMOOMessageBodyJSONReturnsNilWhenNoBody() {
+        let raw = "MOO/1 COMPLETE Success\nRequest-Id: 1\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNil(msg?.bodyJSON)
+    }
+
+    func testMOOMessageParseEmptyBody() {
+        let raw = "MOO/1 COMPLETE Success\nRequest-Id: 1\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNotNil(msg)
+        XCTAssertNil(msg?.body, "Empty body after separator must be nil")
+    }
+
+    func testMOOMessageParseTwoPartFirstLine() {
+        // Only 2 parts in first line (missing name) → should return nil
+        let raw = "MOO/1 REQUEST\nRequest-Id: 1\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNil(msg, "First line with < 3 parts must return nil")
+    }
+
+    func testMOOMessageParseUnknownVerb() {
+        let raw = "MOO/1 SUBSCRIBE test/topic\nRequest-Id: 1\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNil(msg, "Unknown verb must return nil")
+    }
+
+    func testMOOMessageParseWrongProtocolVersion() {
+        let raw = "MOO/2 REQUEST test/method\nRequest-Id: 1\n\n"
+        let msg = MOOMessage.parse(Data(raw.utf8))
+        XCTAssertNil(msg, "Wrong protocol version must return nil")
+    }
+
+    func testMOOMessageBuildContinue() {
+        let data = MOOMessage.continueMessage(name: "Subscribed", requestId: 7)
+        let msg = MOOMessage.parse(data)
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.verb, .continue)
+        XCTAssertEqual(msg?.name, "Subscribed")
+        XCTAssertEqual(msg?.requestId, 7)
+    }
+
+    func testMOOMessageRoundTripWithLargeBody() {
+        // Build a message with a larger JSON body and verify round-trip
+        var dict: [String: Any] = [:]
+        for i in 0..<50 {
+            dict["key_\(i)"] = "value_\(i)_" + String(repeating: "x", count: 100)
+        }
+        let data = MOOMessage.request(name: "test/large", requestId: 99, jsonBody: dict)
+        let msg = MOOMessage.parse(data)
+        XCTAssertNotNil(msg)
+        XCTAssertEqual(msg?.requestId, 99)
+        XCTAssertEqual(msg?.bodyJSON?.count, 50)
+    }
+
+    func testMOORequestIdGeneratorThreadSafety() {
+        let generator = MOORequestIdGenerator()
+        let iterations = 1000
+        let expectation = XCTestExpectation(description: "All IDs generated")
+        expectation.expectedFulfillmentCount = iterations
+
+        var allIds: [Int] = []
+        let lock = NSLock()
+
+        for _ in 0..<iterations {
+            DispatchQueue.global().async {
+                let id = generator.next()
+                lock.lock()
+                allIds.append(id)
+                lock.unlock()
+                expectation.fulfill()
+            }
+        }
+
+        wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(Set(allIds).count, iterations, "All IDs must be unique")
+    }
+
+    // MARK: - Image Cache (RoonImageCache)
+
+    func testImageCacheCacheKeyFormat() {
+        let key = RoonImageCache.cacheKey(imageKey: "abc123", width: 400, height: 300)
+        XCTAssertEqual(key, "abc123_400x300")
+    }
+
+    func testImageCacheCacheKeyDifferentDimensions() {
+        let k1 = RoonImageCache.cacheKey(imageKey: "img", width: 100, height: 100)
+        let k2 = RoonImageCache.cacheKey(imageKey: "img", width: 200, height: 200)
+        XCTAssertNotEqual(k1, k2, "Different dimensions must produce different keys")
+    }
+
+    func testImageCacheCacheKeyDifferentImages() {
+        let k1 = RoonImageCache.cacheKey(imageKey: "img_a", width: 100, height: 100)
+        let k2 = RoonImageCache.cacheKey(imageKey: "img_b", width: 100, height: 100)
+        XCTAssertNotEqual(k1, k2, "Different image keys must produce different cache keys")
+    }
+
+    func testImageCacheStoreAndRetrieve() async {
+        let cache = RoonImageCache()
+        let testData = Data("test image data".utf8)
+        let key = "test_store_retrieve"
+
+        await cache.store(key: key, data: testData)
+        let retrieved = await cache.get(key: key)
+        XCTAssertEqual(retrieved, testData)
+    }
+
+    func testImageCacheReturnsNilForMissingKey() async {
+        let cache = RoonImageCache()
+        let result = await cache.get(key: "nonexistent_key_\(UUID().uuidString)")
+        XCTAssertNil(result)
+    }
+
+    func testImageCacheClearAll() async {
+        let cache = RoonImageCache()
+        let key = "test_clear_\(UUID().uuidString)"
+        await cache.store(key: key, data: Data("data".utf8))
+        await cache.clearAll()
+        let result = await cache.get(key: key)
+        XCTAssertNil(result, "clearAll must remove all cached items")
+    }
+
+    // MARK: - History size limit
+
+    func testHistorySizeDoesNotExceedReasonableLimit() {
+        // Verify that we can handle 500 history items without issue
+        let items = (0..<500).map { i in
+            PlaybackHistoryItem(
+                id: UUID(), title: "Song \(i)", artist: "Artist", album: "Album",
+                image_key: nil, length: 200, zone_name: "Zone", playedAt: Date()
+            )
+        }
+        service.playbackHistory = items
+        XCTAssertEqual(service.playbackHistory.count, 500)
+    }
+
+    // MARK: - Connection state
+
+    func testConnectionStateInitiallyDisconnected() {
+        XCTAssertEqual(service.connectionState, .disconnected)
+    }
+
+    func testConnectionDetailInitiallyNil() {
+        XCTAssertNil(service.connectionDetail)
+    }
 }
