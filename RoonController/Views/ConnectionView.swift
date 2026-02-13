@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ConnectionView: View {
     @EnvironmentObject var roonService: RoonService
-    @State private var coreIP: String = ""
+    @State private var coreIP: String = RoonService.savedCoreIP ?? ""
 
     var body: some View {
         ZStack {

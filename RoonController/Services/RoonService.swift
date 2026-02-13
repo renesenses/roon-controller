@@ -104,8 +104,12 @@ class RoonService: ObservableObject {
                 }
             }
 
-            // Start connection (discovery + registration)
-            await connection.connect()
+            // Start connection: use manual IP if set, otherwise SOOD discovery
+            if let manualIP = Self.savedCoreIP, !manualIP.isEmpty {
+                await connection.connectDirect(host: manualIP, port: 9330)
+            } else {
+                await connection.connect()
+            }
         }
     }
 
@@ -1194,7 +1198,23 @@ class RoonService: ObservableObject {
 
     // MARK: - Core Connection (manual)
 
+    private static let coreIPKey = "roon_core_ip"
+
+    static var savedCoreIP: String? {
+        UserDefaults.standard.string(forKey: coreIPKey)
+    }
+
+    func saveCoreIP(_ ip: String) {
+        let trimmed = ip.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            UserDefaults.standard.removeObject(forKey: Self.coreIPKey)
+        } else {
+            UserDefaults.standard.set(trimmed, forKey: Self.coreIPKey)
+        }
+    }
+
     func connectCore(ip: String) {
+        saveCoreIP(ip)
         connectionState = .connecting
         Task {
             await connection.disconnect()
