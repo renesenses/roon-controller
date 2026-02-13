@@ -426,7 +426,7 @@ struct RoonBrowseContentView: View {
                 // "Lire maintenant" button
                 if let firstItem = items.first, let itemKey = firstItem.item_key {
                     Button {
-                        roonService.playItem(itemKey: itemKey)
+                        roonService.playInCurrentSession(itemKey: itemKey)
                     } label: {
                         Text("Lire maintenant")
                             .font(.latoBold(13))
@@ -529,7 +529,9 @@ struct RoonBrowseContentView: View {
         .padding(.vertical, 6)
         .contentShape(Rectangle())
         .onTapGesture {
-            handleBrowseItemTap(item)
+            if let itemKey = item.item_key {
+                roonService.playInCurrentSession(itemKey: itemKey)
+            }
         }
         .hoverHighlight()
         .onAppear {

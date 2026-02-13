@@ -1064,6 +1064,23 @@ class RoonService: ObservableObject {
         }
     }
 
+    /// Play from the current browse session (item keys are session-bound).
+    /// Drills into the item to find a play action, then pops back to restore the playlist view.
+    func playInCurrentSession(itemKey: String) {
+        guard let browseService = browseService else { return }
+        guard let zoneId = currentZone?.zone_id else { return }
+        currentPlayTask?.cancel()
+        currentPlayTask = Task {
+            do {
+                try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: itemKey)
+                // Pop back to the playlist level so the browse view stays on the playlist
+                _ = try await browseService.browse(zoneId: zoneId, popLevels: 1)
+            } catch {
+                // Play failed silently
+            }
+        }
+    }
+
     private func logPL(_ msg: String) {
         let line = "\(Date()): \(msg)\n"
         let path = "/tmp/roon_pl_debug.txt"
