@@ -140,16 +140,14 @@ Roon client/
 |   +-- Tests/
 |       +-- RoonModelsTests.swift        # Data model tests
 |       +-- RoonServiceTests.swift       # Service and MOO protocol tests
-|       +-- ViewBehaviorTests.swift      # View behavior tests (104 tests total)
+|       +-- ViewBehaviorTests.swift      # View behavior tests (203 tests total)
 |
 +-- docs/
-|   +-- INSTALL.md / INSTALL.en.md       # Installation guide
-|   +-- ARCHITECTURE.md / ARCHITECTURE.en.md  # Technical architecture
-|   +-- TESTING.md / TESTING.en.md       # Testing guide
-|   +-- TROUBLESHOOTING.md / TROUBLESHOOTING.en.md  # Troubleshooting
-|   +-- CICD.md / CICD.en.md            # CI/CD pipeline
-|
-+-- node-backend/                        # (legacy) Former Node.js backend — unused
+    +-- INSTALL.md / INSTALL.en.md       # Installation guide
+    +-- ARCHITECTURE.md / ARCHITECTURE.en.md  # Technical architecture
+    +-- TESTING.md / TESTING.en.md       # Testing guide
+    +-- TROUBLESHOOTING.md / TROUBLESHOOTING.en.md  # Troubleshooting
+    +-- CICD.md / CICD.en.md            # CI/CD pipeline
 ```
 
 ## Documentation

@@ -1,7 +1,3 @@
-# Node
-node-backend/node_modules/
-node-backend/config/
-
 # macOS
 .DS_Store
 *.swp

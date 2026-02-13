@@ -140,15 +140,13 @@ Roon client/
 │   └── Tests/
 │       ├── RoonModelsTests.swift        # Tests modeles de donnees
 │       ├── RoonServiceTests.swift       # Tests service et protocole MOO
-│       └── ViewBehaviorTests.swift      # Tests comportement des vues (104 tests au total)
+│       └── ViewBehaviorTests.swift      # Tests comportement des vues (203 tests au total)
 │
-├── docs/
-│   ├── INSTALL.md                   # Guide d'installation
-│   ├── ARCHITECTURE.md              # Architecture technique
-│   ├── TESTING.md                   # Guide de test
-│   └── TROUBLESHOOTING.md          # Depannage
-│
-└── node-backend/                    # (legacy) Ancien backend Node.js — non utilise
+└── docs/
+    ├── INSTALL.md                   # Guide d'installation
+    ├── ARCHITECTURE.md              # Architecture technique
+    ├── TESTING.md                   # Guide de test
+    └── TROUBLESHOOTING.md          # Depannage
 ```
 
 ## Documentation
