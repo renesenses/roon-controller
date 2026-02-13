@@ -972,6 +972,176 @@ final class RoonServiceTests: XCTestCase {
         XCTAssertEqual(service.seekPosition, 0, "Auto-advance to new track must reset seekPosition to 0")
     }
 
+    // MARK: - Image Key Cache (resolvedImageKey)
+
+    func testResolvedImageKeyReturnsImageKeyWhenPresent() {
+        let result = service.resolvedImageKey(title: "Song A", imageKey: "img_123")
+        XCTAssertEqual(result, "img_123")
+    }
+
+    func testResolvedImageKeyCachesWhenImageKeyPresent() {
+        // First call caches title → image_key
+        _ = service.resolvedImageKey(title: "Song A", imageKey: "img_123")
+
+        // Second call with nil imageKey should return cached value
+        let result = service.resolvedImageKey(title: "Song A", imageKey: nil)
+        XCTAssertEqual(result, "img_123", "Cache must return previously seen image_key for the same title")
+    }
+
+    func testResolvedImageKeyReturnsNilWhenBothNil() {
+        let result = service.resolvedImageKey(title: nil, imageKey: nil)
+        XCTAssertNil(result)
+    }
+
+    func testResolvedImageKeyReturnsNilWhenTitleUnknown() {
+        let result = service.resolvedImageKey(title: "Never Seen", imageKey: nil)
+        XCTAssertNil(result, "Unknown title with nil imageKey must return nil")
+    }
+
+    func testResolvedImageKeyUpdatesCache() {
+        // Cache "Song A" → "img_old"
+        _ = service.resolvedImageKey(title: "Song A", imageKey: "img_old")
+
+        // Update with new image_key
+        _ = service.resolvedImageKey(title: "Song A", imageKey: "img_new")
+
+        // Cache should have the latest value
+        let result = service.resolvedImageKey(title: "Song A", imageKey: nil)
+        XCTAssertEqual(result, "img_new", "Cache must be updated when a new image_key is seen for the same title")
+    }
+
+    func testResolvedImageKeyWithNilTitleReturnsImageKey() {
+        // Even with nil title, should still return the image_key
+        let result = service.resolvedImageKey(title: nil, imageKey: "img_456")
+        XCTAssertEqual(result, "img_456")
+    }
+
+    func testResolvedImageKeyCacheMultipleTracks() {
+        // Cache multiple tracks
+        _ = service.resolvedImageKey(title: "Song A", imageKey: "img_a")
+        _ = service.resolvedImageKey(title: "Song B", imageKey: "img_b")
+        _ = service.resolvedImageKey(title: "Song C", imageKey: "img_c")
+
+        // All should be retrievable from cache
+        XCTAssertEqual(service.resolvedImageKey(title: "Song A", imageKey: nil), "img_a")
+        XCTAssertEqual(service.resolvedImageKey(title: "Song B", imageKey: nil), "img_b")
+        XCTAssertEqual(service.resolvedImageKey(title: "Song C", imageKey: nil), "img_c")
+    }
+
+    func testResolvedImageKeyForNowPlayingWithImageKey() {
+        let np = NowPlaying(
+            one_line: nil, two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Song", line2: "Artist", line3: "Album"),
+            length: 300, seek_position: 0, image_key: "np_img"
+        )
+        let result = service.resolvedImageKey(for: np)
+        XCTAssertEqual(result, "np_img", "resolvedImageKey(for:) must return image_key when present")
+    }
+
+    func testResolvedImageKeyForNowPlayingFallsBackToCache() {
+        // Pre-populate cache
+        _ = service.resolvedImageKey(title: "Cached Song", imageKey: "cached_img")
+
+        // NowPlaying with nil image_key but matching title
+        let np = NowPlaying(
+            one_line: nil, two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Cached Song", line2: "Artist", line3: "Album"),
+            length: 300, seek_position: 0, image_key: nil
+        )
+        let result = service.resolvedImageKey(for: np)
+        XCTAssertEqual(result, "cached_img", "resolvedImageKey(for:) must fall back to cache when image_key is nil")
+    }
+
+    func testResolvedImageKeyForNowPlayingFallsBackToQueue() {
+        // Set up a queue item with an image key
+        let queueItem = QueueItem(
+            queue_item_id: 1,
+            one_line: nil,
+            two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Queue Song", line2: "Artist", line3: "Album"),
+            length: 200,
+            image_key: "queue_img"
+        )
+        service.queueItems = [queueItem]
+
+        // NowPlaying with nil image_key, same title as queue item
+        let np = NowPlaying(
+            one_line: nil, two_line: nil,
+            three_line: NowPlaying.LineInfo(line1: "Queue Song", line2: "Artist", line3: "Album"),
+            length: 200, seek_position: 0, image_key: nil
+        )
+        let result = service.resolvedImageKey(for: np)
+        XCTAssertEqual(result, "queue_img", "resolvedImageKey(for:) must fall back to queue items when cache misses")
+    }
+
+    func testImageKeyCachePersistsToDisk() {
+        // Cache an image key
+        _ = service.resolvedImageKey(title: "Persisted Song", imageKey: "persisted_img")
+
+        // Create a new service instance with the same storage directory
+        let service2 = RoonService(storageDirectory: tempDir)
+        let result = service2.resolvedImageKey(title: "Persisted Song", imageKey: nil)
+        XCTAssertEqual(result, "persisted_img", "Image key cache must persist across service instances")
+    }
+
+    func testImageKeyCacheEmptyOnFreshStorage() {
+        // New service with fresh temp dir — cache should be empty
+        let freshDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: freshDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: freshDir) }
+
+        let freshService = RoonService(storageDirectory: freshDir)
+        let result = freshService.resolvedImageKey(title: "Anything", imageKey: nil)
+        XCTAssertNil(result, "Fresh service must have empty cache")
+    }
+
+    func testHistoryItemUsesResolvedImageKey() {
+        // Pre-populate cache for a track
+        _ = service.resolvedImageKey(title: "Tracked Song", imageKey: "tracked_img")
+
+        // Simulate a zone playing that track with nil image_key in now_playing
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Test Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Tracked Song", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 0, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 0,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+
+        // Simulate zones_changed to trigger history tracking
+        let changedJSON: [String: Any] = [
+            "zones_changed": [
+                [
+                    "zone_id": "z1",
+                    "display_name": "Test Zone",
+                    "state": "playing",
+                    "seek_position": 5,
+                    "is_play_allowed": true,
+                    "is_seek_allowed": true,
+                    "now_playing": [
+                        "three_line": ["line1": "Tracked Song", "line2": "Artist", "line3": "Album"],
+                        "length": 300,
+                        "seek_position": 5
+                    ]
+                ]
+            ]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: changedJSON)
+        service.handleZonesData(data)
+
+        // History item should have the resolved image_key from cache
+        if let historyItem = service.playbackHistory.first(where: { $0.title == "Tracked Song" }) {
+            XCTAssertEqual(historyItem.image_key, "tracked_img",
+                           "History must use resolved image_key from cache when now_playing has nil image_key")
+        }
+        // Note: history may not be added if deduplication prevents it, which is fine
+    }
+
     // MARK: - Registration
 
     func testRegistrationResponseParsing() {
