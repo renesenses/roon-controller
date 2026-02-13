@@ -23,8 +23,8 @@ actor MOOTransport {
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.waitsForConnectivity = false
-        config.timeoutIntervalForRequest = 15
-        config.timeoutIntervalForResource = 15
+        config.timeoutIntervalForRequest = 60
+        // No timeoutIntervalForResource — WebSockets must stay open indefinitely
         return URLSession(configuration: config)
     }()
     private var pingTask: Task<Void, Never>?

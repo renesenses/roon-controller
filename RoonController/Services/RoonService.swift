@@ -131,8 +131,9 @@ class RoonService: ObservableObject {
         switch state {
         case .disconnected:
             if isConnected {
-                connectionState = .disconnected
-                connectionDetail = "Deconnecte"
+                // Auto-reconnect: show "Reconnexion..." instead of flashing red
+                connectionState = .connecting
+                connectionDetail = "Reconnexion..."
             }
             stopSeekTimer()
         case .discovering:
@@ -160,9 +161,15 @@ class RoonService: ObservableObject {
             }
             startRefreshTimer()
         case .failed(let error):
-            connectionState = .disconnected
             lastError = error
-            connectionDetail = "Echec: \(error)"
+            if isConnected {
+                // Auto-reconnect will fire — show reconnecting, not disconnected
+                connectionState = .connecting
+                connectionDetail = "Reconnexion... (\(error))"
+            } else {
+                connectionState = .disconnected
+                connectionDetail = "Echec: \(error)"
+            }
             stopSeekTimer()
             stopRefreshTimer()
         }
