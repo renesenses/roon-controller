@@ -103,7 +103,7 @@ struct RoonFavoritesView: View {
     private func favoriteRow(_ fav: RadioFavorite) -> some View {
         HStack(spacing: 14) {
             // Album art
-            albumArt(imageKey: fav.image_key)
+            albumArt(imageKey: roonService.resolvedImageKey(title: fav.title, imageKey: fav.image_key))
 
             // Track info
             VStack(alignment: .leading, spacing: 3) {

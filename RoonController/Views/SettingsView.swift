@@ -37,7 +37,7 @@ struct SettingsView: View {
                         HStack(spacing: 6) {
                             ProgressView()
                                 .controlSize(.small)
-                            Text("Connexion en cours...")
+                            Text(roonService.connectionDetail ?? "Connexion en cours...")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -68,6 +68,13 @@ struct SettingsView: View {
                     }
                 }
 
+                if let error = roonService.lastError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                }
+
                 Text("L'application decouvre automatiquement le Roon Core via le protocole SOOD sur le reseau local.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -83,7 +90,19 @@ struct SettingsView: View {
                 }
                 .disabled(coreIP.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                Text("Utilisez ce champ uniquement si la decouverte automatique echoue.")
+                Button("Reinitialiser l'autorisation", role: .destructive) {
+                    RoonRegistration.clearToken()
+                    roonService.disconnect()
+                    let ip = coreIP.trimmingCharacters(in: .whitespaces)
+                    if !ip.isEmpty {
+                        roonService.connectCore(ip: ip)
+                    } else {
+                        roonService.connect()
+                    }
+                }
+                .font(.caption)
+
+                Text("Efface le token d'autorisation et force un nouvel enregistrement aupres du Core.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

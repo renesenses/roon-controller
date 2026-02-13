@@ -72,7 +72,7 @@ struct RoonHistoryView: View {
         } label: {
             HStack(spacing: 14) {
                 // Album art
-                albumArt(imageKey: item.image_key)
+                albumArt(imageKey: roonService.resolvedImageKey(title: item.title, imageKey: item.image_key))
 
                 // Track info
                 VStack(alignment: .leading, spacing: 3) {

@@ -398,7 +398,7 @@ struct RoonContentView: View {
                 id: item.id.uuidString,
                 title: item.title,
                 subtitle: item.artist.isEmpty ? nil : item.artist,
-                imageKey: item.image_key,
+                imageKey: roonService.resolvedImageKey(title: item.title, imageKey: item.image_key),
                 itemKey: nil,
                 album: item.album
             )
@@ -411,7 +411,7 @@ struct RoonContentView: View {
                 id: item.item_key ?? item.title ?? UUID().uuidString,
                 title: item.title ?? "",
                 subtitle: item.subtitle,
-                imageKey: item.image_key,
+                imageKey: roonService.resolvedImageKey(title: item.title, imageKey: item.image_key),
                 itemKey: item.item_key,
                 album: nil
             )

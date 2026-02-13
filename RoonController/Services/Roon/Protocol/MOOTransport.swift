@@ -22,8 +22,9 @@ actor MOOTransport {
     private var webSocket: URLSessionWebSocketTask?
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
-        config.waitsForConnectivity = true
+        config.waitsForConnectivity = false
         config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 15
         return URLSession(configuration: config)
     }()
     private var pingTask: Task<Void, Never>?
@@ -70,21 +71,33 @@ actor MOOTransport {
         self.webSocket = ws
         ws.resume()
 
-        // Verify the WebSocket handshake actually completes.
+        // Verify the WebSocket handshake actually completes with a timeout.
         // URLSessionWebSocketTask queues sends after resume(), but the TCP+WS
-        // handshake may be delayed by local network privacy prompts on Tahoe.
+        // handshake may be delayed by local network privacy prompts on macOS.
         do {
-            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-                ws.sendPing { error in
-                    if let error = error {
-                        cont.resume(throwing: error)
-                    } else {
-                        cont.resume()
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+                        ws.sendPing { error in
+                            if let error = error {
+                                cont.resume(throwing: error)
+                            } else {
+                                cont.resume()
+                            }
+                        }
                     }
                 }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 10_000_000_000) // 10s timeout
+                    throw MOOTransportError.timeout
+                }
+                // Wait for whichever finishes first
+                try await group.next()
+                group.cancelAll()
             }
         } catch {
             logger.error("WebSocket handshake failed: \(error.localizedDescription, privacy: .public)")
+            ws.cancel(with: .normalClosure, reason: nil)
             webSocket = nil
             updateState(.failed("Handshake failed: \(error.localizedDescription)"))
             throw error

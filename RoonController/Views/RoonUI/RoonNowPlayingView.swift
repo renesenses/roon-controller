@@ -308,7 +308,7 @@ struct RoonNowPlayingView: View {
 
     private func queueRow(_ item: QueueItem) -> some View {
         HStack(spacing: 10) {
-            if let url = roonService.imageURL(key: item.image_key, width: 80, height: 80) {
+            if let url = roonService.imageURL(key: roonService.resolvedImageKey(title: item.three_line?.line1, imageKey: item.image_key), width: 80, height: 80) {
                 AsyncImage(url: url) { phase in
                     if case .success(let img) = phase {
                         img.resizable().aspectRatio(contentMode: .fill)

@@ -63,7 +63,7 @@ struct RoonQueueView: View {
                     .frame(width: 3, height: 40)
 
                 // Album art
-                albumArt(imageKey: item.image_key)
+                albumArt(imageKey: roonService.resolvedImageKey(title: item.three_line?.line1, imageKey: item.image_key))
 
                 // Track info
                 VStack(alignment: .leading, spacing: 3) {

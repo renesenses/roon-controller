@@ -24,6 +24,7 @@ class RoonService: ObservableObject {
     @Published var browseLoading: Bool = false
     @Published var playlistCreationStatus: String?
     @Published var lastError: String?
+    @Published var connectionDetail: String?
     @Published var sidebarCategories: [BrowseItem] = []
     @Published var sidebarPlaylists: [BrowseItem] = []
     @Published var libraryCounts: [String: Int] = [:]
@@ -131,16 +132,25 @@ class RoonService: ObservableObject {
         case .disconnected:
             if isConnected {
                 connectionState = .disconnected
+                connectionDetail = "Deconnecte"
             }
             stopSeekTimer()
-        case .discovering, .connecting, .registering:
+        case .discovering:
             connectionState = .connecting
+            connectionDetail = "Recherche du Core (SOOD)..."
+        case .connecting:
+            connectionState = .connecting
+            connectionDetail = "Connexion WebSocket..."
+        case .registering:
+            connectionState = .connecting
+            connectionDetail = "Enregistrement aupres du Core..."
         case .waitingForApproval:
             connectionState = .waitingForApproval
+            connectionDetail = "En attente d'approbation dans Roon"
         case .connected(let coreName):
             connectionState = .connected
             lastError = nil
-            _ = coreName
+            connectionDetail = "Connecte a \(coreName)"
             // Re-subscribe queue after reconnection (lost when transport disconnects)
             subscribeQueue()
             // Re-fetch data after reconnection
@@ -152,6 +162,7 @@ class RoonService: ObservableObject {
         case .failed(let error):
             connectionState = .disconnected
             lastError = error
+            connectionDetail = "Echec: \(error)"
             stopSeekTimer()
             stopRefreshTimer()
         }
@@ -568,6 +579,8 @@ class RoonService: ObservableObject {
             offset: 0
         )
 
+        cacheImageKeys(from: newItems.map { (title: $0.title, imageKey: $0.image_key) })
+
         // Queue subscription is already active from selectZone();
         // Roon Core sends queue updates automatically when playback starts.
 
@@ -591,6 +604,8 @@ class RoonService: ObservableObject {
         }
 
         let offset = response.offset
+
+        cacheImageKeys(from: newItems.map { (title: $0.title, imageKey: $0.image_key) })
 
         if offset > 0, var existing = browseResult {
             existing.items.append(contentsOf: newItems)
@@ -1215,9 +1230,46 @@ class RoonService: ObservableObject {
 
     func connectCore(ip: String) {
         saveCoreIP(ip)
-        disconnect()
-        // Re-use connect() which will pick up the saved IP
-        connect()
+        // Clear stale token to force fresh registration
+        RoonRegistration.clearToken()
+        // Reset state synchronously
+        isConnected = false
+        zones = []
+        currentZone = nil
+        zonesById = [:]
+        connectionState = .connecting
+
+        // Initialize services
+        transportService = RoonTransportService(connection: connection)
+        browseService = RoonBrowseService(connection: connection)
+        imageService = RoonImageService(connection: connection)
+
+        isConnected = true
+
+        // Disconnect then connect sequentially in one Task
+        Task {
+            await connection.disconnect()
+            await RoonImageProvider.shared.setImageService(imageService)
+            await LocalImageServer.shared.start()
+
+            await connection.setOnStateChange { [weak self] state in
+                DispatchQueue.main.async { [weak self] in
+                    self?.handleConnectionStateChange(state)
+                }
+            }
+            await connection.setOnZonesData { [weak self] data in
+                DispatchQueue.main.async { [weak self] in
+                    self?.handleZonesData(data)
+                }
+            }
+            await connection.setOnQueueData { [weak self] zoneId, data in
+                DispatchQueue.main.async { [weak self] in
+                    self?.handleQueueData(zoneId: zoneId, data: data)
+                }
+            }
+
+            await connection.connectDirect(host: ip, port: 9330)
+        }
     }
 
     // MARK: - Image URL
@@ -1244,6 +1296,36 @@ class RoonService: ObservableObject {
         return queueItems.first?.image_key
     }
 
+    /// Generic image key resolution: returns imageKey if non-nil (and caches it),
+    /// otherwise looks up the persistent cache by title. Used by all views.
+    func resolvedImageKey(title: String?, imageKey: String?) -> String? {
+        if let key = imageKey {
+            // Feed the cache while we're at it
+            if let title = title, trackImageKeyCache[title] != key {
+                trackImageKeyCache[title] = key
+                saveImageKeyCache()
+            }
+            return key
+        }
+        if let title = title, let cached = trackImageKeyCache[title] {
+            return cached
+        }
+        return nil
+    }
+
+    /// Populate the image key cache from a list of (title, imageKey) pairs
+    private func cacheImageKeys(from items: [(title: String?, imageKey: String?)]) {
+        var changed = false
+        for item in items {
+            if let title = item.title, let key = item.imageKey,
+               trackImageKeyCache[title] != key {
+                trackImageKeyCache[title] = key
+                changed = true
+            }
+        }
+        if changed { saveImageKeyCache() }
+    }
+
     // MARK: - Playback History
 
     private func trackPlaybackHistory(zone: RoonZone) {
@@ -1266,7 +1348,7 @@ class RoonService: ObservableObject {
             title: title,
             artist: np.three_line?.line2 ?? np.two_line?.line1 ?? "",
             album: np.three_line?.line3 ?? "",
-            image_key: np.image_key,
+            image_key: resolvedImageKey(for: np),
             length: np.length,
             isRadio: zone.is_seek_allowed == false,
             zone_name: zone.display_name,
@@ -1288,6 +1370,7 @@ class RoonService: ObservableObject {
         if let items = try? decoder.decode([PlaybackHistoryItem].self, from: data) {
             objectWillChange.send()
             playbackHistory = items
+            cacheImageKeys(from: items.map { (title: $0.title, imageKey: $0.image_key) })
         }
     }
 
@@ -1353,7 +1436,7 @@ class RoonService: ObservableObject {
             title: trackTitle,
             artist: trackArtist,
             stationName: stationName,
-            image_key: np.image_key,
+            image_key: resolvedImageKey(for: np),
             savedAt: Date()
         )
         radioFavorites.insert(fav, at: 0)
@@ -1387,6 +1470,7 @@ class RoonService: ObservableObject {
         decoder.dateDecodingStrategy = .iso8601
         if let items = try? decoder.decode([RadioFavorite].self, from: data) {
             radioFavorites = items.sorted { $0.savedAt > $1.savedAt }
+            cacheImageKeys(from: items.map { (title: $0.title, imageKey: $0.image_key) })
         }
     }
 
