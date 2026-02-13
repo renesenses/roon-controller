@@ -14,10 +14,12 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  id-token: write
 
 jobs:
   claude:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # For interactive triggers, only run when @claude is mentioned
     if: |
       github.event_name == 'pull_request' ||
@@ -39,4 +41,3 @@ jobs:
             - Error handling and edge cases
             Be concise and actionable.
           claude_args: "--max-turns 5"
-          timeout-minutes: 10
