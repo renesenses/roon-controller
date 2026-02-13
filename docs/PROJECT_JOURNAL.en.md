@@ -35,7 +35,28 @@ gantt
 
 ---
 
-## 2026-02-13
+## 2026-02-13 (session 2 — planning)
+
+### Activities
+
+- Created lightweight PRINCE2 documentation: changelog, journal, issue register, lessons learned (`e3404d4`)
+- Project management index with PRINCE2 methodology explanation
+- Mermaid diagrams in all documents (timeline, gantt, pie, mindmap, flowchart, xychart)
+- Planned v1.1.0 roadmap: 3 workstreams, 16 tasks
+
+### Decisions
+
+- Adopt lightweight PRINCE2 methodology with 4 artifacts (instead of the official 26)
+- Structure v1.1.0 into 3 workstreams: Roon UI, Core Settings, Radio Favorites
+- Prioritize artist/album pages (UI-01) and Browse API favorites playback (FAV-02) as high-priority tasks
+
+### Issues
+
+- No new issues
+
+---
+
+## 2026-02-13 (session 1)
 
 ### Activities
 

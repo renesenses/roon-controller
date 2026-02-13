@@ -30,6 +30,29 @@ timeline
 
 ## [Unreleased]
 
+### Planned — v1.1.0
+
+**UI Roon native**
+- Pages detail artiste (discographie, bio) et album (pistes, header hero)
+- Recherche globale dans la bibliotheque (artistes, albums, pistes, compositeurs)
+- Gestion des playlists : creer, renommer, supprimer, reordonner
+- Navigation par tags et genres
+- Options de tri et filtres dans les vues grille/liste
+- Raccourcis clavier (espace, fleches, Cmd+F, Cmd+L)
+
+**Settings du Core**
+- Refonte de SettingsView en onglets (Connexion, Zones, Lecture, Streaming, Extensions, A propos)
+- Configuration des zones audio et sorties (grouper/degrouper, volume)
+- Affichage de la chaine DSP par zone
+- Etat des comptes streaming (TIDAL, Qobuz)
+- Gestion des extensions installees
+
+**Favoris radio**
+- Refactoring du modele : hierarchie Browse pour replay fiable
+- Lecture via Browse API `internet_radio` au lieu de recherche textuelle
+- Creation de playlist Roon depuis les favoris
+- UX simplifiee : swipe-to-delete, tri, filtre par station
+
 ## [1.0.3] - 2026-02-13
 
 ### Added

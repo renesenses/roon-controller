@@ -35,7 +35,28 @@ gantt
 
 ---
 
-## 2026-02-13
+## 2026-02-13 (session 2 — planification)
+
+### Activites
+
+- Creation de la documentation PRINCE2 legere : changelog, journal, registre incidents, lecons apprises (`e3404d4`)
+- Index de gestion de projet avec explication de la methodologie PRINCE2 adaptee
+- Diagrammes Mermaid dans tous les documents (timeline, gantt, pie, mindmap, flowchart, xychart)
+- Planification de la roadmap v1.1.0 : 3 chantiers, 16 taches
+
+### Decisions
+
+- Adopter une methodologie PRINCE2 legere avec 4 artefacts (au lieu des 26 officiels)
+- Structurer la v1.1.0 en 3 chantiers : UI Roon, Settings Core, Favoris radio
+- Prioriser les pages artiste/album (UI-01) et la lecture Browse API des favoris (FAV-02) comme taches haute priorite
+
+### Problemes
+
+- Aucun nouveau probleme
+
+---
+
+## 2026-02-13 (session 1)
 
 ### Activites
 

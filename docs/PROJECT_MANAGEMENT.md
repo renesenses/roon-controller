@@ -153,6 +153,92 @@ xychart-beta
 | Tests unitaires | 203 |
 | Dependances externes | 0 |
 
+## Roadmap — v1.1.0
+
+La prochaine version majeure (v1.1.0) couvre 3 chantiers. Chaque chantier est decompose en taches concretes avec priorite et complexite.
+
+```mermaid
+gantt
+    title Roadmap v1.1.0
+    dateFormat YYYY-MM-DD
+    axisFormat %d/%m
+
+    section UI Roon native
+    Pages artiste et album              :ui1, 2026-02-14, 2d
+    Recherche globale bibliotheque      :ui2, after ui1, 1d
+    Gestion playlists (CRUD)            :ui3, after ui2, 2d
+    Navigation tags et genres           :ui4, after ui3, 1d
+    Options de tri et filtres           :ui5, after ui4, 1d
+    Raccourcis clavier                  :ui6, after ui5, 1d
+
+    section Settings du Core
+    Architecture SettingsView           :set1, 2026-02-14, 1d
+    Zones audio et sorties              :set2, after set1, 2d
+    DSP et parametres de lecture        :set3, after set2, 2d
+    Comptes streaming TIDAL/Qobuz      :set4, after set3, 1d
+    Gestion des extensions              :set5, after set4, 1d
+    A propos et version                 :set6, after set5, 1d
+
+    section Favoris radio
+    Refactoring modele de donnees       :fav1, 2026-02-14, 1d
+    Lecture via Browse API              :fav2, after fav1, 1d
+    Creation playlist depuis favoris    :fav3, after fav2, 2d
+    UX simplifiee                       :fav4, after fav3, 1d
+```
+
+### Chantier 1 — Finir la reproduction de l'UI Roon.app
+
+L'app reproduit deja l'essentiel de l'UI Roon (home, now playing, queue, historique, playlists, browse). Il reste les ecrans secondaires et les interactions avancees.
+
+| ID | Tache | Priorite | Complexite | Description |
+|---|---|---|---|---|
+| UI-01 | Pages artiste et album | Haute | Moyenne | Vue detail artiste avec discographie, bio, albums. Vue detail album avec liste de pistes et header hero |
+| UI-02 | Recherche globale | Haute | Moyenne | Recherche unifiee dans toute la bibliotheque (artistes, albums, pistes, compositeurs) via Browse API |
+| UI-03 | Gestion playlists | Moyenne | Haute | Creer, renommer, supprimer des playlists. Ajouter/retirer des pistes. Reordonner par drag-and-drop |
+| UI-04 | Navigation tags/genres | Basse | Faible | Parcourir la bibliotheque par tags et genres depuis la sidebar |
+| UI-05 | Tri et filtres | Basse | Faible | Options de tri (date, nom, artiste) et filtres dans les vues grille/liste |
+| UI-06 | Raccourcis clavier | Basse | Faible | Espace (play/pause), fleches (prev/next), Cmd+F (recherche), Cmd+L (queue) |
+
+### Chantier 2 — UI des settings du Core
+
+L'ecran Settings actuel ne propose que la connexion (auto/manuelle) et le choix du theme. L'objectif est d'exposer les parametres du Core via l'API Roon.
+
+| ID | Tache | Priorite | Complexite | Description |
+|---|---|---|---|---|
+| SET-01 | Architecture SettingsView | Haute | Faible | Refactorer SettingsView en onglets : Connexion, Zones, Lecture, Streaming, Extensions, A propos |
+| SET-02 | Zones audio et sorties | Haute | Haute | Lister les zones, afficher les sorties (endpoints), grouper/degrouper, configurer le volume (fixe/variable) |
+| SET-03 | DSP et parametres lecture | Moyenne | Haute | Afficher la chaine DSP par zone (EQ, room correction, upsampling). Activer/desactiver les modules |
+| SET-04 | Comptes streaming | Moyenne | Moyenne | Afficher l'etat des comptes TIDAL/Qobuz lies au Core. Lien vers la configuration (redirige sur le Core) |
+| SET-05 | Gestion extensions | Basse | Moyenne | Lister les extensions installees, activer/desactiver, afficher les permissions |
+| SET-06 | A propos et version | Basse | Faible | Version de l'app, version du Core, infos systeme, lien documentation |
+
+### Chantier 3 — Ameliorer les favoris radio
+
+Le systeme actuel est fonctionnel mais limite : favoris radio uniquement, stockage local, lecture par recherche textuelle. L'objectif est de simplifier et fiabiliser.
+
+| ID | Tache | Priorite | Complexite | Description |
+|---|---|---|---|---|
+| FAV-01 | Refactoring modele | Haute | Moyenne | Simplifier `RadioFavorite` : stocker la hierarchie Browse pour un replay fiable, separer station et morceau |
+| FAV-02 | Lecture via Browse API | Haute | Moyenne | Remplacer la recherche textuelle par navigation dans la hierarchie `internet_radio` du Browse API |
+| FAV-03 | Creation playlist | Moyenne | Haute | Creer une playlist Roon depuis les favoris radio (si le Browse API le supporte pour les extensions) |
+| FAV-04 | UX simplifiee | Moyenne | Faible | Swipe-to-delete, tri par station/date/artiste, filtre par station, indicateur visuel de doublons |
+
+### Synthese
+
+```mermaid
+pie title Repartition des taches par priorite
+    "Haute" : 6
+    "Moyenne" : 5
+    "Basse" : 5
+```
+
+| Chantier | Taches | Haute | Moyenne | Basse |
+|---|---|---|---|---|
+| UI Roon native | 6 | 2 | 1 | 3 |
+| Settings Core | 6 | 2 | 2 | 2 |
+| Favoris radio | 4 | 2 | 2 | 0 |
+| **Total** | **16** | **6** | **5** | **5** |
+
 ## Conventions documentaires
 
 - **Langue** : chaque document existe en francais (`.md`) et anglais (`.en.md`)
