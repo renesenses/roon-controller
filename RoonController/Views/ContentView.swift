@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var roonService: RoonService
-    @AppStorage("uiMode") private var uiMode = "roon"
+    @AppStorage("uiMode") private var uiMode = "player"
 
     var body: some View {
         Group {
