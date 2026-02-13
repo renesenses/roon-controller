@@ -1064,6 +1064,89 @@ class RoonService: ObservableObject {
         }
     }
 
+    private func logPL(_ msg: String) {
+        let line = "\(Date()): \(msg)\n"
+        let path = "/tmp/roon_pl_debug.txt"
+        if let fh = FileHandle(forWritingAtPath: path) {
+            fh.seekToEndOfFile()
+            fh.write(line.data(using: .utf8)!)
+            fh.closeFile()
+        } else {
+            FileManager.default.createFile(atPath: path, contents: line.data(using: .utf8))
+        }
+    }
+
+    func browsePlaylist(title: String) {
+        logPL("START browsePlaylist title='\(title)'")
+        guard let browseService = browseService else {
+            logPL("ERROR: browseService is nil")
+            return
+        }
+        let zoneId = currentZone?.zone_id
+
+        pendingBrowseKey = nil
+        browseLoading = true
+        browseResult = nil
+        browseStack = []
+
+        currentBrowseTask?.cancel()
+        currentBrowseTask = Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                // Pop to root
+                let rootResponse = try await browseService.browse(zoneId: zoneId, popAll: true)
+                guard !Task.isCancelled else { return }
+                self.logPL("Root items: \(rootResponse.items.count)")
+                for item in rootResponse.items {
+                    self.logPL("  - \(item["title"] as? String ?? "?") key=\(item["item_key"] as? String ?? "?")")
+                }
+
+                // Find "Playlists" in root
+                guard let plKey = rootResponse.items.first(where: {
+                    let t = $0["title"] as? String ?? ""
+                    return Self.playlistTitles.contains(t)
+                })?["item_key"] as? String else {
+                    self.logPL("ERROR: Playlists not found in root items")
+                    await MainActor.run { self.browseLoading = false }
+                    return
+                }
+                self.logPL("Found Playlists key=\(plKey)")
+
+                // Navigate into Playlists container
+                let plResponse = try await browseService.browse(zoneId: zoneId, itemKey: plKey)
+                guard !Task.isCancelled else { return }
+                self.logPL("Playlists container items: \(plResponse.items.count)")
+
+                // Find the specific playlist by title (keys are session-specific)
+                guard let playlistKey = plResponse.items.first(where: {
+                    ($0["title"] as? String) == title
+                })?["item_key"] as? String else {
+                    self.logPL("ERROR: Playlist '\(title)' not found in \(plResponse.items.count) items")
+                    for (i, item) in plResponse.items.prefix(5).enumerated() {
+                        self.logPL("  [\(i)] \(item["title"] as? String ?? "?")")
+                    }
+                    await MainActor.run { self.browseLoading = false }
+                    return
+                }
+                self.logPL("Found playlist '\(title)' key=\(playlistKey)")
+
+                // Navigate into the playlist
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: playlistKey)
+                guard !Task.isCancelled else { return }
+                self.logPL("Playlist content: \(response.items.count) items, action=\(response.action ?? "nil")")
+
+                await MainActor.run {
+                    self.handleBrowseResponse(response, isPageLoad: false)
+                }
+            } catch {
+                self.logPL("Error: \(error)")
+                await MainActor.run {
+                    self.browseLoading = false
+                }
+            }
+        }
+    }
+
     // MARK: - Core Connection (manual)
 
     func connectCore(ip: String) {
