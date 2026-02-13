@@ -1106,25 +1106,13 @@ class RoonService: ObservableObject {
         guard let zoneId = currentZone?.zone_id else { return }
         currentPlayTask?.cancel()
         currentPlayTask = Task {
-            // Drill into the track and execute play action
-            let result = try? await browseService.browse(zoneId: zoneId, itemKey: itemKey)
-            guard !Task.isCancelled else { return }
-
-            // Find "Play from here" or first action
-            let playFromHere = result?.items.first { item in
-                let hint = item["hint"] as? String ?? ""
-                let t = item["title"] as? String ?? ""
-                return hint == "action" && (t.lowercased().contains("play from here") || (t.lowercased().contains("lire") && t.lowercased().contains("partir")))
+            do {
+                try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: itemKey)
+                // Pop back to the playlist level so the browse view stays on the playlist
+                _ = try await browseService.browse(zoneId: zoneId, popLevels: 1)
+            } catch {
+                // Play failed silently
             }
-            let action = playFromHere ?? result?.items.first { ($0["hint"] as? String) == "action" }
-
-            if let action = action, let key = action["item_key"] as? String {
-                _ = try? await browseService.browse(zoneId: zoneId, itemKey: key)
-            }
-
-            // Pop back to the playlist level
-            guard !Task.isCancelled else { return }
-            _ = try? await browseService.browse(zoneId: zoneId, popLevels: 1)
         }
     }
 
