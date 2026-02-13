@@ -126,6 +126,8 @@ class RoonService: ObservableObject {
             stopSeekTimer()
         case .discovering, .connecting, .registering:
             connectionState = .connecting
+        case .waitingForApproval:
+            connectionState = .waitingForApproval
         case .connected(let coreName):
             connectionState = .connected
             lastError = nil

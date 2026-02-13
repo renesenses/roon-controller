@@ -41,6 +41,14 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                    } else if roonService.connectionState == .waitingForApproval {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("En attente d'approbation dans Roon...")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
                     } else {
                         Label("Deconnecte", systemImage: "xmark.circle")
                             .foregroundStyle(.red)

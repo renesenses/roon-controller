@@ -6,7 +6,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if roonService.connectionState == .disconnected && roonService.zones.isEmpty {
+            if (roonService.connectionState == .disconnected || roonService.connectionState == .waitingForApproval) && roonService.zones.isEmpty {
                 ConnectionView()
             } else if uiMode == "roon" {
                 RoonLayoutView()
