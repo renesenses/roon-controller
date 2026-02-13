@@ -154,11 +154,16 @@ Roon client/
 
 | Document | Description |
 |----------|-------------|
+| [docs/PROJECT_MANAGEMENT.en.md](docs/PROJECT_MANAGEMENT.en.md) | **Project management index (lightweight PRINCE2)** |
 | [docs/INSTALL.en.md](docs/INSTALL.en.md) | Installation guide |
 | [docs/ARCHITECTURE.en.md](docs/ARCHITECTURE.en.md) | Technical architecture and protocols |
 | [docs/TESTING.en.md](docs/TESTING.en.md) | Testing procedures and checklist |
 | [docs/TROUBLESHOOTING.en.md](docs/TROUBLESHOOTING.en.md) | Troubleshooting |
 | [docs/CICD.en.md](docs/CICD.en.md) | CI/CD pipeline (GitHub Actions + Claude Code) |
+| [docs/CHANGELOG.en.md](docs/CHANGELOG.en.md) | Changelog (Keep a Changelog) |
+| [docs/PROJECT_JOURNAL.en.md](docs/PROJECT_JOURNAL.en.md) | Project journal (PRINCE2 Daily Log) |
+| [docs/ISSUES.en.md](docs/ISSUES.en.md) | Issue register (PRINCE2 Issue Register) |
+| [docs/LESSONS_LEARNED.en.md](docs/LESSONS_LEARNED.en.md) | Lessons learned (PRINCE2 Lessons Log) |
 
 ## License
 
