@@ -1,6 +1,6 @@
 > **[English version](PRESENTATION.en.md)** | Francais
 
-# Roon Controller : d'un prototype Node.js a une app macOS native
+# Roon Controller : une app macOS native pour piloter Roon
 
 Presentation technique du projet — Fevrier 2026
 
@@ -14,7 +14,7 @@ Presentation technique du projet — Fevrier 2026
 
 ### Le probleme : pas de client macOS natif
 
-Roon fournit un client officiel... mais c'est une **application Electron**. Sur macOS :
+Roon fournit un client officiel... mais c'est une **application dotnet**. Sur macOS :
 - ~500 Mo d'espace disque
 - Consommation memoire elevee (~300-400 Mo RAM)
 - Demarrage lent
@@ -31,15 +31,15 @@ Construire un **controleur Roon leger et natif** en SwiftUI :
 
 ### Le defi technique
 
-Les protocoles Roon (**SOOD** pour la decouverte, **MOO/1** pour la communication) ne sont **pas documentes publiquement**. Le seul SDK officiel est en Node.js. Il faut donc soit utiliser ce SDK comme backend, soit faire du reverse-engineering pour reimplementer les protocoles.
+Les protocoles Roon (**SOOD** pour la decouverte, **MOO/1** pour la communication) ne sont **pas documentes publiquement**. Le seul SDK officiel est en Node.js. Nous avons choisi de faire du reverse-engineering pour reimplementer les protocoles en Swift natif, eliminant toute dependance a Node.js.
 
 ---
 
-## 2. Architecture v1 : Node.js + SwiftUI
+## 2. Contexte : le prototype initial (Node.js + SwiftUI)
 
 ### Le choix initial pragmatique
 
-Le SDK officiel Roon etant en Node.js (`node-roon-api`), la premiere approche a ete de l'utiliser comme backend :
+Avant de reimplementer les protocoles, un premier prototype utilisait le SDK officiel Node.js (`node-roon-api`) comme backend :
 
 ```mermaid
 graph LR
@@ -76,7 +76,7 @@ Cette architecture a permis de prototyper rapidement toutes les fonctionnalites 
 | **Deploiement complexe** | Necessite Node.js installe sur la machine |
 | **Pas de distribution App Store** | Impossible de bundler un runtime Node.js |
 
-La v1 a valide le concept. Mais pour une vraie app macOS, il fallait eliminer le backend.
+Ce prototype a valide le concept. Mais pour une vraie app macOS, il fallait eliminer le backend. Le code Node.js a depuis ete entierement supprime du projet.
 
 ---
 
@@ -357,17 +357,19 @@ private func scheduleReconnect() {
 
 ## 7. Tests et CI/CD
 
-### 140 tests unitaires
+### 203 tests unitaires
 
 Les tests couvrent trois niveaux :
 
-**Modeles** (RoonModelsTests — 11 tests) :
-- Decodage JSON de tous les types (Zone, QueueItem, BrowseItem, NowPlaying)
+**Modeles** (RoonModelsTests — 30 tests) :
+- Decodage JSON de tous les types (Zone, QueueItem, BrowseItem, NowPlaying, VolumeInfo, ZoneSettings)
+- Types WebSocket (WSStateMessage, WSZonesMessage, WSQueueMessage, WSErrorMessage)
 - `InputPrompt` decode comme objet (pas comme string — bug corrige)
-- Egalite des zones (inclut `now_playing` et `seek_position`)
+- Egalite des zones (inclut `now_playing`, exclut `seek_position`)
 - Encodage/decodage ISO 8601 des dates d'historique
+- BrowseResult/BrowseList, RoonState enum, cas limites
 
-**Services** (RoonServiceTests — 33 tests) :
+**Services** (RoonServiceTests — 100 tests) :
 - Garde anti-doublon du browse (`pendingBrowseKey`)
 - Reset de navigation (retour, home)
 - Deduplication de l'historique de lecture
@@ -377,12 +379,17 @@ Les tests couvrent trois niveaux :
 - Resolution du nom de station (fallback `title` quand `album` est vide)
 - Backward-compatibility du decodage JSON (historique sans champ `isRadio`)
 - Format du body `subscribe_queue` (regression `zone_or_output_id`)
+- Cache d'image (resolvedImageKey, persistence disque, fallback queue)
+- Registration (edge cases, statusBody, version)
 
 **Protocole** (dans RoonServiceTests) :
 - Parsing de messages MOO/1 (REQUEST, COMPLETE, CONTINUE)
 - Construction de messages MOO/1
-- Round-trip parse/build
-- Atomicite du generateur d'IDs (`MOORequestIdGenerator`)
+- Round-trip parse/build, gros payloads
+- Headers avec colons, verbes inconnus, version incorrecte
+- isSuccess, isJSON, decodeBody<T>
+- Atomicite du generateur d'IDs (test concurrent 1000 IDs)
+- RoonImageCache (store/retrieve, clearAll, format cacheKey)
 
 ### GitHub Actions
 
@@ -431,7 +438,7 @@ Cela repond a un angle mort du CI classique : le build peut passer alors que l'e
 |----------|--------|
 | Lignes de Swift | ~6 000 |
 | Fichiers Swift | 27 |
-| Tests unitaires | 140 |
+| Tests unitaires | 203 |
 | Dependances externes | **0** |
 | Commits | 31 |
 | Acteurs Swift | 4 |
@@ -447,10 +454,10 @@ Cela repond a un angle mort du CI classique : le build peut passer alors que l'e
 ```mermaid
 timeline
     title Evolution du projet
-    Phase 1 - Prototype : Node.js backend : SwiftUI client : 5 npm packages : WebSocket relay
-    Phase 2 - Natif : Rewrite Swift : SOOD + MOO/1 natifs : 0 dependances
+    Phase 1 - Prototype : SDK Node.js en backend : SwiftUI client : Validation du concept
+    Phase 2 - Natif : Rewrite Swift pur : SOOD + MOO/1 natifs : 0 dependances : Node.js supprime
     Phase 3 - Stabilisation : Fix SOOD : Fix MOO : POSIX sockets : Dual-socket
-    Phase 4 - CI/CD : GitHub Actions : Claude Code : 140 tests : Cron hebdo
+    Phase 4 - CI/CD : GitHub Actions : Claude Code : 203 tests : Cron hebdo
     Phase 5 - Autonome : Radio replay : Roon Bridge : Roon.app supprime : DMG distributable
     Phase 6 - Localisation : String Catalog : FR + EN : Langue systeme : .xcstrings
 ```
@@ -474,6 +481,6 @@ timeline
 
 Ce projet demontre qu'il est possible de construire un client Roon complet et performant sans aucune dependance externe, en reimplementant des protocoles proprietaires non documentes en Swift pur. L'architecture basee sur les actors Swift 6 garantit la thread-safety a la compilation, et le pipeline CI/CD avec revue IA assure la qualite du code en continu.
 
-Le passage de l'architecture Node.js a Swift natif a elimine une couche complete de complexite tout en ameliorant les performances, la fiabilite et la distribuabilite de l'application.
+Le reverse-engineering des protocoles SOOD et MOO/1 a permis d'eliminer toute dependance externe, y compris le prototype Node.js initial, tout en ameliorant les performances, la fiabilite et la distribuabilite de l'application.
 
 Combine avec **Roon Bridge** (daemon audio gratuit), l'app remplace completement le client officiel Roon.app (~500 Mo) par une solution legere et native : **Roon Controller** (~5 Mo) pour le controle et **Roon Bridge** (~37 Mo) pour la sortie audio.
