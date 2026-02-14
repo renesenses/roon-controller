@@ -27,6 +27,8 @@ struct RoonNowPlayingView: View {
                 emptyState
             }
         }
+        .opacity(roonService.playbackTransitioning ? 0.4 : 1.0)
+        .animation(.easeInOut(duration: 0.3), value: roonService.playbackTransitioning)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.roonBackground, ignoresSafeAreaEdges: [])
     }

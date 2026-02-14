@@ -15,6 +15,8 @@ struct PlayerView: View {
                     albumArtBackground(imageKey: roonService.resolvedImageKey(for: nowPlaying))
 
                     playerContent(zone: zone, nowPlaying: nowPlaying)
+                        .opacity(roonService.playbackTransitioning ? 0.4 : 1.0)
+                        .animation(.easeInOut(duration: 0.3), value: roonService.playbackTransitioning)
                 } else {
                     emptyState(zone: zone)
                 }

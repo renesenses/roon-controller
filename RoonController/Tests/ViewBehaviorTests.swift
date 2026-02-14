@@ -981,17 +981,32 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertEqual(filtered[1].title, "Jazz & Soul")
     }
 
-    func testPlaylistFilterEmptyQueryReturnsAll() {
-        let playlists = [
-            makeBrowseItem(title: "Playlist A", hint: "action_list", itemKey: "p1"),
-            makeBrowseItem(title: "Playlist B", hint: "action_list", itemKey: "p2"),
-        ]
+    func testPlaylistFilterEmptyQueryReturnsFirst10() {
+        // Without search, sidebar shows only the first 10 playlists
+        let playlists = (0..<25).map {
+            makeBrowseItem(title: "Playlist \($0)", hint: "action_list", itemKey: "p\($0)")
+        }
         let query = "   "
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        let filtered = trimmed.isEmpty ? playlists : playlists.filter {
-            ($0.title ?? "").localizedCaseInsensitiveContains(trimmed)
+        let filtered = trimmed.isEmpty
+            ? Array(playlists.prefix(10))
+            : playlists.filter { ($0.title ?? "").localizedCaseInsensitiveContains(trimmed) }
+        XCTAssertEqual(filtered.count, 10)
+    }
+
+    func testPlaylistFilterSearchesAllPlaylists() {
+        // Search filters across ALL playlists, not just the visible 10
+        let playlists = (0..<25).map {
+            makeBrowseItem(title: "Playlist \($0)", hint: "action_list", itemKey: "p\($0)")
         }
-        XCTAssertEqual(filtered.count, 2)
+        let query = "Playlist 2"
+        let filtered = playlists.filter {
+            ($0.title ?? "").localizedCaseInsensitiveContains(query)
+        }
+        // Matches: "Playlist 2", "Playlist 20", "Playlist 21", ..., "Playlist 24"
+        XCTAssertEqual(filtered.count, 6)
+        XCTAssertEqual(filtered[0].title, "Playlist 2")
+        XCTAssertEqual(filtered[1].title, "Playlist 20")
     }
 
     func testPlaylistFilterNoMatch() {

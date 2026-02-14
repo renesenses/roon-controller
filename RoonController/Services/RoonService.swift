@@ -351,6 +351,7 @@ class RoonService: ObservableObject {
         }
         historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
+        playbackTransitioning = true
         objectWillChange.send()
         seekPosition = 0
         Task { try? await transportService?.control(zoneId: zoneId, control: "next") }
@@ -365,6 +366,7 @@ class RoonService: ObservableObject {
         }
         historyPlaybackIndex = nil
         guard let zoneId = currentZone?.zone_id else { return }
+        playbackTransitioning = true
         objectWillChange.send()
         seekPosition = 0
         Task { try? await transportService?.control(zoneId: zoneId, control: "previous") }
@@ -683,9 +685,20 @@ class RoonService: ObservableObject {
                 if let plItem = plRootItems.first(where: { Self.playlistTitles.contains($0.title ?? "") }),
                    let plKey = plItem.item_key {
                     let plResponse = try await plSession.browse(zoneId: zoneId, itemKey: plKey)
+                    let totalCount = (plResponse.list?["count"] as? Int) ?? 0
                     playlists = plResponse.items.compactMap { dict in
                         guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
                         return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+                    // Paginate to load all playlists beyond the initial 100
+                    while playlists.count < totalCount {
+                        let more = try await plSession.load(offset: playlists.count, count: 100)
+                        let moreItems: [BrowseItem] = more.items.compactMap { dict in
+                            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                            return try? decoder.decode(BrowseItem.self, from: data)
+                        }
+                        if moreItems.isEmpty { break }
+                        playlists.append(contentsOf: moreItems)
                     }
                 }
 
@@ -897,6 +910,9 @@ class RoonService: ObservableObject {
 
     func searchAndPlay(title: String, artist: String = "", album: String = "", isRadio: Bool = false) {
         guard let zoneId = currentZone?.zone_id else { return }
+
+        // Signal transition so views dim the old track info immediately
+        playbackTransitioning = true
 
         // Cancel any in-flight play operation to avoid concurrent browse requests
         currentPlayTask?.cancel()
@@ -1223,14 +1239,23 @@ class RoonService: ObservableObject {
                 // Navigate into Playlists container
                 let plResponse = try await browseService.browse(zoneId: zoneId, itemKey: plKey)
                 guard !Task.isCancelled else { return }
-                self.logPL("Playlists container items: \(plResponse.items.count)")
+                let totalCount = (plResponse.list?["count"] as? Int) ?? 0
+                self.logPL("Playlists container items: \(plResponse.items.count) / total: \(totalCount)")
 
-                // Find the specific playlist by title (keys are session-specific)
-                guard let playlistKey = plResponse.items.first(where: {
+                // Find the specific playlist by title, paginating if needed
+                var allPlItems = plResponse.items
+                while allPlItems.count < totalCount {
+                    guard !Task.isCancelled else { return }
+                    let more = try await browseService.load(offset: allPlItems.count, count: 100)
+                    if more.items.isEmpty { break }
+                    allPlItems.append(contentsOf: more.items)
+                }
+
+                guard let playlistKey = allPlItems.first(where: {
                     ($0["title"] as? String) == title
                 })?["item_key"] as? String else {
-                    self.logPL("ERROR: Playlist '\(title)' not found in \(plResponse.items.count) items")
-                    for (i, item) in plResponse.items.prefix(5).enumerated() {
+                    self.logPL("ERROR: Playlist '\(title)' not found in \(allPlItems.count) items")
+                    for (i, item) in allPlItems.prefix(5).enumerated() {
                         self.logPL("  [\(i)] \(item["title"] as? String ?? "?")")
                     }
                     await MainActor.run { self.browseLoading = false }

@@ -5,6 +5,7 @@ struct SettingsView: View {
     @AppStorage("uiMode") private var uiMode = "roon"
     @AppStorage("appTheme") private var appTheme = "light"
     @AppStorage("default_zone_name") private var defaultZoneName = ""
+    @AppStorage("sidebar_playlist_count") private var sidebarPlaylistCount = 10
     @State private var coreIP: String = RoonService.savedCoreIP ?? ""
 
     var body: some View {
@@ -37,6 +38,18 @@ struct SettingsView: View {
                 }
 
                 Text("La zone selectionnee sera utilisee automatiquement au demarrage.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Picker("Playlists dans la sidebar", selection: $sidebarPlaylistCount) {
+                    Text("5").tag(5)
+                    Text("10").tag(10)
+                    Text("20").tag(20)
+                    Text("50").tag(50)
+                    Text("Toutes").tag(0)
+                }
+
+                Text("Nombre de playlists affichees dans la sidebar. La recherche porte toujours sur la totalite.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

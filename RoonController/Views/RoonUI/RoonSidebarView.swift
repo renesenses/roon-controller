@@ -6,6 +6,7 @@ struct RoonSidebarView: View {
     @State private var activeCategoryKey: String?
     @State private var hoveredSection: RoonSection?
     @State private var hoveredCategoryKey: String?
+    @AppStorage("sidebar_playlist_count") private var sidebarPlaylistCount = 10
     @State private var searchText: String = ""
 
     // Classification des items par titre
@@ -36,7 +37,10 @@ struct RoonSidebarView: View {
 
     private var filteredPlaylists: [BrowseItem] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
-        if query.isEmpty { return roonService.sidebarPlaylists }
+        if query.isEmpty {
+            if sidebarPlaylistCount == 0 { return roonService.sidebarPlaylists }
+            return Array(roonService.sidebarPlaylists.prefix(sidebarPlaylistCount))
+        }
         return roonService.sidebarPlaylists.filter {
             ($0.title ?? "").localizedCaseInsensitiveContains(query)
         }

@@ -27,10 +27,9 @@ struct RoonBrowseContentView: View {
         }
     }
 
-    /// Detect playlist/album detail view: list has artwork and most items are tracks
+    /// Detect playlist/album detail view: most items are tracks (action or action_list)
     private var isPlaylistView: Bool {
-        guard let list = roonService.browseResult?.list,
-              list.image_key != nil else { return false }
+        guard roonService.browseResult?.list != nil else { return false }
         let items = filteredBrowseItems
         guard items.count >= 2 else { return false }
         let sample = items.prefix(20)
@@ -50,13 +49,29 @@ struct RoonBrowseContentView: View {
         return listWithImage >= 1
     }
 
-    /// Show grid when most items have artwork (albums, artists, playlists)
+    /// Detect playlist container: items are navigable lists with duration subtitles
+    private var isPlaylistListView: Bool {
+        let items = filteredBrowseItems
+        guard items.count >= 2 else { return false }
+        let sample = items.prefix(20)
+        let playlistLike = sample.filter { item in
+            item.hint == "list" && item.subtitle != nil &&
+            (item.subtitle!.contains("morceau") || item.subtitle!.contains("track") ||
+             item.subtitle!.contains("minute") || item.subtitle!.contains("heure") ||
+             item.subtitle!.contains("hour"))
+        }.count
+        return playlistLike > sample.count / 2
+    }
+
+    /// Show grid when most items have artwork (albums, artists) but not playlist containers
     private var shouldShowGrid: Bool {
         let items = filteredBrowseItems
         guard items.count >= 3 else { return false }
         // If most items are playable actions (tracks), show as list
         let actionCount = items.prefix(20).filter { $0.hint == "action" || $0.hint == "action_list" }.count
         if actionCount > items.prefix(20).count / 2 { return false }
+        // Playlist containers use list view, not grid
+        if isPlaylistListView { return false }
         let withImage = items.prefix(20).filter { $0.image_key != nil }.count
         return withImage > items.prefix(20).count / 2
     }
@@ -67,7 +82,7 @@ struct RoonBrowseContentView: View {
             navBar
 
             // Search field (hidden on artist detail and album detail pages)
-            if roonService.browseResult != nil && !isArtistDetailView && !isPlaylistView {
+            if roonService.browseResult != nil && !isArtistDetailView && !isPlaylistView || isPlaylistListView {
                 searchField
             }
 
@@ -83,6 +98,8 @@ struct RoonBrowseContentView: View {
                     playlistContent(items: items)
                 } else if isArtistDetailView && searchText.isEmpty {
                     artistDetailContent(items: items)
+                } else if isPlaylistListView {
+                    playlistListContent(items: items)
                 } else if shouldShowGrid {
                     gridContent(items: items)
                 } else {
@@ -296,6 +313,72 @@ struct RoonBrowseContentView: View {
         .id(browseListId)
     }
 
+    // MARK: - Playlist List Content (Roon-style list of playlists)
+
+    private func playlistListContent(items: [BrowseItem]) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(items) { item in
+                    playlistListRow(item)
+                }
+            }
+        }
+        .id(browseListId)
+    }
+
+    private func playlistListRow(_ item: BrowseItem) -> some View {
+        HStack(spacing: 16) {
+            // Thumbnail (larger, Roon-style)
+            if let url = roonService.imageURL(key: item.image_key, width: 240, height: 240) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        Color.roonGrey2
+                    }
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            } else {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.roonGrey2)
+                    .frame(width: 64, height: 64)
+                    .overlay {
+                        Image(systemName: "music.note.list")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Color.roonTertiary)
+                    }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title ?? "")
+                    .font(.lato(15))
+                    .foregroundStyle(Color.roonText)
+                    .lineLimit(1)
+                if let subtitle = item.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.lato(13))
+                        .foregroundStyle(Color.roonSecondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            searchText = ""
+            handleBrowseItemTap(item)
+        }
+        .hoverHighlight()
+        .onAppear {
+            loadMoreIfNeeded(item: item)
+        }
+    }
+
     // MARK: - Browse Row (list mode)
 
     private func browseRow(_ item: BrowseItem) -> some View {
@@ -407,7 +490,7 @@ struct RoonBrowseContentView: View {
     private func playlistHeader(items: [BrowseItem]) -> some View {
         let list = roonService.browseResult?.list
         return HStack(alignment: .top, spacing: 24) {
-            // Large artwork
+            // Large artwork (or placeholder)
             if let url = roonService.imageURL(key: list?.image_key, width: 480, height: 480) {
                 AsyncImage(url: url) { phase in
                     switch phase {
@@ -419,6 +502,15 @@ struct RoonBrowseContentView: View {
                 }
                 .frame(width: 180, height: 180)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.roonGrey2)
+                    .frame(width: 180, height: 180)
+                    .overlay {
+                        Image(systemName: "music.note.list")
+                            .font(.system(size: 40))
+                            .foregroundStyle(Color.roonTertiary)
+                    }
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -580,7 +672,7 @@ struct RoonBrowseContentView: View {
                 .overlay(Color.roonSeparator.opacity(0.3))
                 .padding(.horizontal, 28)
 
-            let tracks = items.filter { $0.subtitle != nil && !$0.subtitle!.isEmpty }
+            let tracks = items.filter { $0.hint == "action_list" }
             LazyVStack(spacing: 0) {
                 ForEach(Array(tracks.enumerated()), id: \.element.id) { index, item in
                     playlistTrackRow(item, index: index)
