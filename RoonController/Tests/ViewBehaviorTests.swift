@@ -964,6 +964,48 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertEqual(service.sidebarPlaylists.count, 1)
     }
 
+    // MARK: - Sidebar playlist filtering
+
+    func testPlaylistFilterMatchesTitle() {
+        let playlists = [
+            makeBrowseItem(title: "Jazz Classics", hint: "action_list", itemKey: "p1"),
+            makeBrowseItem(title: "Rock Hits", hint: "action_list", itemKey: "p2"),
+            makeBrowseItem(title: "Jazz & Soul", hint: "action_list", itemKey: "p3"),
+        ]
+        let query = "jazz"
+        let filtered = playlists.filter {
+            ($0.title ?? "").localizedCaseInsensitiveContains(query)
+        }
+        XCTAssertEqual(filtered.count, 2)
+        XCTAssertEqual(filtered[0].title, "Jazz Classics")
+        XCTAssertEqual(filtered[1].title, "Jazz & Soul")
+    }
+
+    func testPlaylistFilterEmptyQueryReturnsAll() {
+        let playlists = [
+            makeBrowseItem(title: "Playlist A", hint: "action_list", itemKey: "p1"),
+            makeBrowseItem(title: "Playlist B", hint: "action_list", itemKey: "p2"),
+        ]
+        let query = "   "
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        let filtered = trimmed.isEmpty ? playlists : playlists.filter {
+            ($0.title ?? "").localizedCaseInsensitiveContains(trimmed)
+        }
+        XCTAssertEqual(filtered.count, 2)
+    }
+
+    func testPlaylistFilterNoMatch() {
+        let playlists = [
+            makeBrowseItem(title: "Rock Hits", hint: "action_list", itemKey: "p1"),
+            makeBrowseItem(title: "Pop Mix", hint: "action_list", itemKey: "p2"),
+        ]
+        let query = "classical"
+        let filtered = playlists.filter {
+            ($0.title ?? "").localizedCaseInsensitiveContains(query)
+        }
+        XCTAssertTrue(filtered.isEmpty)
+    }
+
     // MARK: - Now Playing view behavior
 
     func testNowPlayingSectionExists() {

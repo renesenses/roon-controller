@@ -34,6 +34,14 @@ struct RoonSidebarView: View {
         }
     }
 
+    private var filteredPlaylists: [BrowseItem] {
+        let query = searchText.trimmingCharacters(in: .whitespaces)
+        if query.isEmpty { return roonService.sidebarPlaylists }
+        return roonService.sidebarPlaylists.filter {
+            ($0.title ?? "").localizedCaseInsensitiveContains(query)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView {
@@ -68,7 +76,7 @@ struct RoonSidebarView: View {
 
                         sidebarSearchField
 
-                        ForEach(roonService.sidebarPlaylists) { item in
+                        ForEach(filteredPlaylists) { item in
                             playlistSidebarItem(item)
                         }
                     }
@@ -274,18 +282,10 @@ struct RoonSidebarView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 12))
                 .foregroundStyle(Color.roonSecondary)
-            TextField("Rechercher...", text: $searchText)
+            TextField("Filtrer...", text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.lato(13))
                 .foregroundStyle(Color.roonText)
-                .onSubmit {
-                    let query = searchText.trimmingCharacters(in: .whitespaces)
-                    guard !query.isEmpty else { return }
-                    roonService.browseSearch(query: query)
-                    activeCategoryKey = nil
-                    selectedSection = .browse
-                    searchText = ""
-                }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
