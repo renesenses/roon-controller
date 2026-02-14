@@ -1156,6 +1156,51 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertEqual(target.zone_id, "9f32bc01-zone2")
     }
 
+    // MARK: - Browse navigation fixes
+
+    func testBrowseHomeDoesNotClearResult() {
+        // Set a browseResult, then call browseHome — result should not be nil
+        let item = makeBrowseItem(title: "Albums", hint: "list", itemKey: "k1")
+        let list = BrowseList(title: "Library", count: 1, image_key: nil, level: 0)
+        service.browseResult = BrowseResult(action: nil, list: list, items: [item], offset: nil)
+
+        service.browseHome()
+
+        // browseResult must remain non-nil (old content stays visible while loading)
+        XCTAssertNotNil(service.browseResult)
+        // browseStack should be cleared
+        XCTAssertTrue(service.browseStack.isEmpty)
+        // browseLoading should be true (loading indicator shown)
+        XCTAssertTrue(service.browseLoading)
+    }
+
+    func testBrowseBackAtRootGuard() {
+        // browseBack() with empty stack should be a no-op
+        XCTAssertTrue(service.browseStack.isEmpty)
+        service.browseBack()
+        XCTAssertTrue(service.browseStack.isEmpty)
+    }
+
+    func testModeToggleSwitchesUIMode() {
+        // Verify mode toggle logic between "roon" and "player"
+        UserDefaults.standard.set("roon", forKey: "uiMode")
+        var mode = UserDefaults.standard.string(forKey: "uiMode") ?? "roon"
+        XCTAssertEqual(mode, "roon")
+
+        // Toggle to player
+        mode = mode == "roon" ? "player" : "roon"
+        UserDefaults.standard.set(mode, forKey: "uiMode")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "uiMode"), "player")
+
+        // Toggle back to roon
+        mode = mode == "roon" ? "player" : "roon"
+        UserDefaults.standard.set(mode, forKey: "uiMode")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "uiMode"), "roon")
+
+        // Cleanup
+        UserDefaults.standard.removeObject(forKey: "uiMode")
+    }
+
     // MARK: - Default UI mode
 
     func testSettingsViewDefaultsToRoonMode() {

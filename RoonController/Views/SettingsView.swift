@@ -11,7 +11,7 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Interface") {
-                Picker("Mode d'affichage", selection: $uiMode) {
+                Picker("Mode d'affichage par defaut", selection: $uiMode) {
                     Text("Player").tag("player")
                     Text("Roon").tag("roon")
                 }

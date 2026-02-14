@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RoonTransportBarView: View {
     @EnvironmentObject var roonService: RoonService
+    @AppStorage("uiMode") private var uiMode = "roon"
     var onNowPlayingTap: (() -> Void)?
 
     var body: some View {
@@ -33,12 +34,13 @@ struct RoonTransportBarView: View {
 
                 Spacer()
 
-                // Right: zone selector + volume
+                // Right: zone selector + volume + mode toggle
                 HStack(spacing: 14) {
                     zoneButton
                     volumeControl(zone: zone)
+                    modeToggleButton
                 }
-                .frame(width: 260, alignment: .trailing)
+                .frame(width: 290, alignment: .trailing)
                 .padding(.trailing, 18)
             } else if roonService.currentZone != nil {
                 Spacer()
@@ -48,12 +50,22 @@ struct RoonTransportBarView: View {
                     .font(.lato(14))
                     .foregroundStyle(Color.roonSecondary)
                 Spacer()
+                HStack(spacing: 14) {
+                    zoneButton
+                    modeToggleButton
+                }
+                .padding(.trailing, 18)
             } else {
                 Spacer()
                 Text("Aucune zone selectionnee")
                     .font(.lato(14))
                     .foregroundStyle(Color.roonSecondary)
                 Spacer()
+                HStack(spacing: 14) {
+                    zoneButton
+                    modeToggleButton
+                }
+                .padding(.trailing, 18)
             }
         }
         .frame(height: 90)
@@ -286,6 +298,25 @@ struct RoonTransportBarView: View {
                     .frame(width: 26, alignment: .trailing)
             }
         }
+    }
+
+    // MARK: - Mode Toggle
+
+    private var modeToggleButton: some View {
+        Button {
+            uiMode = uiMode == "roon" ? "player" : "roon"
+        } label: {
+            Image(systemName: "rectangle.2.swap")
+                .font(.system(size: 14))
+                .foregroundStyle(Color.roonSecondary)
+                .padding(7)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.roonGrey2.opacity(0.5))
+                )
+        }
+        .buttonStyle(.plain)
+        .help(uiMode == "roon" ? "Mode Player" : "Mode Roon")
     }
 
     // MARK: - Zone Button

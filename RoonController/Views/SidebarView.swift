@@ -2,7 +2,8 @@ import SwiftUI
 
 struct SidebarView: View {
     @EnvironmentObject var roonService: RoonService
-    @State private var selectedSection: SidebarSection = .zones
+    @AppStorage("uiMode") private var uiMode = "roon"
+    @SceneStorage("playerSelectedSection") private var selectedSection: SidebarSection = .zones
     @State private var searchText: String = ""
     @State private var browseListId: UUID = UUID()
     @State private var showSearchPrompt: Bool = false
@@ -25,13 +26,30 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Section Picker
-            Picker("", selection: $selectedSection) {
-                ForEach(SidebarSection.allCases, id: \.self) { section in
-                    Text(section.label).tag(section)
+            // Mode toggle + Section Picker
+            HStack {
+                Picker("", selection: $selectedSection) {
+                    ForEach(SidebarSection.allCases, id: \.self) { section in
+                        Text(section.label).tag(section)
+                    }
                 }
+                .pickerStyle(.segmented)
+
+                Button {
+                    uiMode = "roon"
+                } label: {
+                    Image(systemName: "rectangle.2.swap")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.roonSecondary)
+                        .padding(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.roonGrey2.opacity(0.5))
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Mode Roon")
             }
-            .pickerStyle(.segmented)
             .padding(12)
 
             Divider()

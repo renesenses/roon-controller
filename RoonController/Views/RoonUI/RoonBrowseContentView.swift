@@ -110,9 +110,11 @@ struct RoonBrowseContentView: View {
             }
         }
         .onAppear {
-            if startWithRadio && !didInitRadio && roonService.browseResult == nil {
+            if startWithRadio && !didInitRadio && roonService.browseResult == nil && !roonService.browseLoading {
                 didInitRadio = true
                 roonService.browse(hierarchy: "internet_radio")
+            } else if !startWithRadio && roonService.browseResult == nil && !roonService.browseLoading {
+                roonService.browse()
             }
         }
         .alert("Recherche", isPresented: $showSearchPrompt) {
@@ -489,9 +491,11 @@ struct RoonBrowseContentView: View {
 
     private func playlistHeader(items: [BrowseItem]) -> some View {
         let list = roonService.browseResult?.list
+        // Fallback: use first track's resolved image (cache-aware) if list has no artwork
+        let coverKey = list?.image_key ?? items.lazy.compactMap { roonService.resolvedImageKey(title: $0.title, imageKey: $0.image_key) }.first
         return HStack(alignment: .top, spacing: 24) {
             // Large artwork (or placeholder)
-            if let url = roonService.imageURL(key: list?.image_key, width: 480, height: 480) {
+            if let url = roonService.imageURL(key: coverKey, width: 480, height: 480) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
@@ -672,7 +676,7 @@ struct RoonBrowseContentView: View {
                 .overlay(Color.roonSeparator.opacity(0.3))
                 .padding(.horizontal, 28)
 
-            let tracks = items.filter { $0.hint == "action_list" }
+            let tracks = items.filter { $0.hint == "action_list" && $0.subtitle != nil && !$0.subtitle!.isEmpty }
             LazyVStack(spacing: 0) {
                 ForEach(Array(tracks.enumerated()), id: \.element.id) { index, item in
                     playlistTrackRow(item, index: index)

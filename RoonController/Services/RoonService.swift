@@ -525,7 +525,8 @@ class RoonService: ObservableObject {
     func browseHome() {
         pendingBrowseKey = nil
         browseStack.removeAll()
-        browseResult = nil
+        // Keep old browseResult visible while loading root items
+        browseLoading = true
         browse(popAll: true)
     }
 
@@ -1210,7 +1211,7 @@ class RoonService: ObservableObject {
 
         pendingBrowseKey = nil
         browseLoading = true
-        browseResult = nil
+        // Keep old browseResult visible while navigating to playlist
         browseStack = []
 
         currentBrowseTask?.cancel()
