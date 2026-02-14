@@ -32,7 +32,10 @@ graph LR
 - Album artwork with blurred background
 - Roon library browsing (Browse API)
 - Search within browse results
+- Specialized Browse views: Genres, TIDAL/streaming, Tracks, Composers
 - Roon-style playlist view with full pagination (200+ playlists)
+- macOS Now Playing integration: track info, artwork and controls in Control Center
+- Quick toggle between Roon mode and Player mode
 - Default playback zone in settings (persisted by name)
 - Queue with play-from-here
 - Per-output volume control (slider + mute)
@@ -142,7 +145,7 @@ Roon client/
 |   +-- Tests/
 |       +-- RoonModelsTests.swift        # Data model tests
 |       +-- RoonServiceTests.swift       # Service and MOO protocol tests
-|       +-- ViewBehaviorTests.swift      # View behavior tests (218 tests total)
+|       +-- ViewBehaviorTests.swift      # View behavior tests (244 tests total)
 |
 +-- docs/
     +-- INSTALL.md / INSTALL.en.md       # Installation guide

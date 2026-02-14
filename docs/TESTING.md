@@ -80,15 +80,38 @@
 | 6.3 | Bouton effacer | L'historique est vide |
 | 6.4 | Redemarrage de l'app | L'historique est restaure (persistence fichier) |
 
-### 7. Parametres
+### 7. Vues Browse specialisees
 
 | # | Test | Resultat attendu |
 |---|------|-------------------|
-| 7.1 | Ouvrir Parametres (Cmd+,) | Fenetre de parametres |
-| 7.2 | Connexion manuelle Core | Le Core se paire |
-| 7.3 | Bouton Reconnecter | Deconnexion puis reconnexion SOOD |
-| 7.4 | Zone par defaut | Picker liste les zones, choix persiste au redemarrage |
-| 7.5 | Nombre de playlists sidebar | Picker 5/10/20/50/Toutes, applique immediatement |
+| 7.1 | Clic sur Genres dans la sidebar | Grille de cartes genre avec gradients colores |
+| 7.2 | Clic sur un genre | Navigation vers les sous-genres ou albums (grille normale) |
+| 7.3 | Clic sur TIDAL dans la sidebar | Carousel par sections avec cartes icones |
+| 7.4 | Clic sur Morceaux dans la sidebar | Tableau de morceaux avec pochettes (pas de header playlist) |
+| 7.5 | Scroll dans la vue Morceaux | Les pochettes se chargent en avance (prefetch) |
+| 7.6 | Clic sur Compositeurs dans la sidebar | Grille circulaire avec initiales |
+| 7.7 | Bouton bascule mode (sidebar) | Passage du mode Roon au mode Player |
+
+### 8. macOS Now Playing (Control Center)
+
+| # | Test | Resultat attendu |
+|---|------|-------------------|
+| 8.1 | Lecture d'un morceau | Titre, artiste, album dans le Control Center macOS |
+| 8.2 | Pochette dans Control Center | La pochette de l'album s'affiche |
+| 8.3 | Bouton play/pause du Control Center | La lecture demarre/se met en pause |
+| 8.4 | Bouton next/prev du Control Center | Piste suivante/precedente |
+| 8.5 | Barre de progression Control Center | Position mise a jour, seek possible |
+| 8.6 | Changement de piste | Les infos se mettent a jour automatiquement |
+
+### 9. Parametres
+
+| # | Test | Resultat attendu |
+|---|------|-------------------|
+| 9.1 | Ouvrir Parametres (Cmd+,) | Fenetre de parametres |
+| 9.2 | Connexion manuelle Core | Le Core se paire |
+| 9.3 | Bouton Reconnecter | Deconnexion puis reconnexion SOOD |
+| 9.4 | Zone par defaut | Picker liste les zones, choix persiste au redemarrage |
+| 9.5 | Nombre de playlists sidebar | Picker 5/10/20/50/Toutes, applique immediatement |
 
 ## Verification du build
 
@@ -123,7 +146,7 @@ Ou depuis Xcode : **Product > Test** (Cmd+U).
 |---------|-------------|
 | `Tests/RoonModelsTests.swift` | Decodage JSON des modeles (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
 | `Tests/RoonServiceTests.swift` | Logique du service (browse guard, historique, selection de zone, URL image) et protocole MOO (parsing, construction, request ID) |
-| `Tests/ViewBehaviorTests.swift` | Tests comportement des vues (zone par defaut, filtrage playlists, mode UI, vues browse) |
+| `Tests/ViewBehaviorTests.swift` | Tests comportement des vues (zone par defaut, filtrage playlists, mode UI, vues browse specialisees, Now Playing) |
 
 ### Detail des tests
 

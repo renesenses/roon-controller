@@ -28,8 +28,10 @@ timeline
                 : Suppression Node.js
     2026-02-14 : v1.0.4
                 : Playlists Roon-style
+                : 4 vues Browse (Genres, TIDAL, Tracks, Composers)
+                : macOS Now Playing (Control Center)
                 : Zone par defaut
-                : +15 tests (218)
+                : +41 tests (244)
 ```
 
 ## [Unreleased]
@@ -66,13 +68,19 @@ timeline
 - Zone de lecture par defaut dans les parametres (persistance par `display_name`) (`5163eb9`)
 - Reglage du nombre de playlists affichees dans la sidebar (5/10/20/50/toutes) (`d0c8438`)
 - Placeholder pochette pour les playlists sans artwork (`d0c8438`)
-- 15 nouveaux tests unitaires (218 au total) : zone par defaut, filtrage playlists, mode UI (`5163eb9`, `d0c8438`)
+- 4 vues Browse specialisees : Genres (cartes gradient), TIDAL/streaming (carousel par sections), Tracks (tableau avec prefetch pochettes), Composers (grille circulaire avec initiales) (`5caaaf8`)
+- Integration macOS Now Playing : infos piste, pochette et controles media dans le Control Center (`5caaaf8`)
+- Bouton bascule mode Roon → Player dans la sidebar (`5caaaf8`)
+- Prefetch des pochettes dans la vue Tracks (NSCache + RoonImageProvider, 100 images en avance) (`5caaaf8`)
+- Modele `StreamingSection` pour les categories des services de streaming (`5caaaf8`)
+- 41 nouveaux tests unitaires (244 au total) : vues Browse specialisees, detection genres/streaming/tracks/composers, Now Playing, bascule mode (`5caaaf8`)
 
 ### Changed
 
 - Mode d'affichage par defaut : Roon UI (au lieu de Player) (`5163eb9`)
 - Filtrage local des playlists dans la sidebar au lieu de recherche globale Browse (`8b0932b`)
 - Detection des playlists sans exiger `image_key` au niveau list (`d0c8438`)
+- Suivi de la categorie Browse active via `browseCategory` dans RoonService (`5caaaf8`)
 
 ### Fixed
 
@@ -83,6 +91,9 @@ timeline
 - Compteur de morceaux incorrect (filtre excluait les morceaux sans sous-titre) (`d0c8438`)
 - "Play Playlist" apparaissait dans la liste de morceaux (`d0c8438`)
 - Flash de l'ancien morceau lors du changement de piste (next/previous/searchAndPlay) (`d0c8438`)
+- Crash au demarrage : closures MPRemoteCommandCenter appelaient des methodes @MainActor depuis une queue interne (`5caaaf8`)
+- Crash Now Playing : closure MPMediaItemArtwork marquee @MainActor implicitement, appelée depuis la queue MPNowPlayingInfoCenter (`5caaaf8`)
+- Vue Tracks detectee a tort comme playlist (header playlist inutile sur liste plate de morceaux) (`5caaaf8`)
 
 ## [1.0.3] - 2026-02-13
 

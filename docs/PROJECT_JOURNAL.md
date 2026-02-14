@@ -34,13 +34,51 @@ gantt
 
     section v1.0.4
     Playlists Roon-style, pagination    :done, 2026-02-14, 1d
+    4 vues Browse specialisees          :done, 2026-02-14, 1d
+    macOS Now Playing (Control Center)  :done, 2026-02-14, 1d
     Zone par defaut, settings           :done, 2026-02-14, 1d
-    +15 tests (218)                     :done, 2026-02-14, 1d
+    +41 tests (244)                     :done, 2026-02-14, 1d
 ```
 
 ---
 
-## 2026-02-14
+## 2026-02-14 (session 2)
+
+### Activites
+
+- 4 vues Browse specialisees dans RoonBrowseContentView (`5caaaf8`) :
+  - **Genres** : grille adaptive de cartes avec gradient colore deterministe (hash du titre)
+  - **TIDAL/streaming** : carousel par sections avec navigation par onglets et cartes icones
+  - **Tracks** : tableau de morceaux avec prefetch pochettes (100 images en avance via NSCache)
+  - **Composers** : grille circulaire avec initiales et police GrifoM
+- Integration macOS Now Playing dans le Control Center (`5caaaf8`) :
+  - Infos piste (titre, artiste, album, duree, position)
+  - Pochette d'album (fetch async, mise a jour au changement de piste)
+  - Controles media : play/pause, next/prev, seek via MPRemoteCommandCenter
+- Bouton bascule mode Roon → Player dans la sidebar (`5caaaf8`)
+- Modele `StreamingSection` pour structurer les categories des services de streaming
+- Propriete `browseCategory` dans RoonService pour identifier la categorie racine
+- 26 nouveaux tests unitaires (244 au total) : vues Browse specialisees, detection genres/streaming/tracks/composers, bascule mode
+
+### Decisions
+
+- Rester dans l'architecture existante de `RoonBrowseContentView` avec heuristiques de detection (pas de vues separees)
+- Utiliser `nonisolated static func` pour creer `MPMediaItemArtwork` en dehors du contexte `@MainActor`
+- Dispatcher les closures `MPRemoteCommandCenter` via `Task { @MainActor in }` pour respecter l'isolation d'acteur
+
+### Problemes
+
+- ISS-024 : Crash au demarrage — closures MPRemoteCommandCenter appelaient des methodes @MainActor depuis une queue interne — resolu (`5caaaf8`)
+- ISS-025 : Crash Now Playing — closure MPMediaItemArtwork marquee @MainActor implicitement par le contexte du Task parent — resolu (`5caaaf8`)
+- ISS-026 : Vue Tracks detectee a tort comme playlist (header playlist inutile) — resolu (`5caaaf8`)
+
+### Commits
+
+- `5caaaf8` — Fix Roon UI: browse navigation, playlist display, and transport bar improvements
+
+---
+
+## 2026-02-14 (session 1)
 
 ### Activites
 
@@ -69,7 +107,7 @@ gantt
 - ISS-018 : Seulement 100 playlists chargees (pagination manquante) — resolu (`d0c8438`)
 - ISS-019 : Playlists affichees en grille au lieu de liste — resolu (`d0c8438`)
 - ISS-020 : Detection playlist echouait sans pochette au niveau list — resolu (`d0c8438`)
-- ISS-021 : Compteur de morceaux incorrect (filtre basé sur sous-titre) — resolu (`d0c8438`)
+- ISS-021 : Compteur de morceaux incorrect (filtre base sur sous-titre) — resolu (`d0c8438`)
 - ISS-022 : "Play Playlist" apparaissait dans la liste de morceaux — resolu (`d0c8438`)
 - ISS-023 : Flash de l'ancien morceau lors du changement de piste — resolu (`d0c8438`)
 

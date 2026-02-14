@@ -78,15 +78,38 @@
 | 6.3 | Clear button | History is emptied |
 | 6.4 | Restart the app | History is restored (file persistence) |
 
-### 7. Settings
+### 7. Specialized Browse Views
 
 | # | Test | Expected result |
 |---|------|-----------------|
-| 7.1 | Open Settings (Cmd+,) | Settings window |
-| 7.2 | Manual Core connection | Core pairs |
-| 7.3 | Reconnect button | Disconnects then reconnects via SOOD |
-| 7.4 | Default zone | Picker lists zones, choice persists across restarts |
-| 7.5 | Sidebar playlist count | Picker 5/10/20/50/All, applies immediately |
+| 7.1 | Click Genres in sidebar | Grid of genre cards with colored gradients |
+| 7.2 | Click on a genre | Navigation to sub-genres or albums (normal grid) |
+| 7.3 | Click TIDAL in sidebar | Carousel by sections with icon cards |
+| 7.4 | Click Tracks in sidebar | Track table with artwork (no playlist header) |
+| 7.5 | Scroll in Tracks view | Artwork loads ahead (prefetch) |
+| 7.6 | Click Composers in sidebar | Circular grid with initials |
+| 7.7 | Mode toggle button (sidebar) | Switches from Roon mode to Player mode |
+
+### 8. macOS Now Playing (Control Center)
+
+| # | Test | Expected result |
+|---|------|-----------------|
+| 8.1 | Play a track | Title, artist, album in macOS Control Center |
+| 8.2 | Artwork in Control Center | Album artwork is displayed |
+| 8.3 | Control Center play/pause button | Playback starts/pauses |
+| 8.4 | Control Center next/prev button | Next/previous track |
+| 8.5 | Control Center progress bar | Position updated, seek possible |
+| 8.6 | Track change | Info updates automatically |
+
+### 9. Settings
+
+| # | Test | Expected result |
+|---|------|-----------------|
+| 9.1 | Open Settings (Cmd+,) | Settings window |
+| 9.2 | Manual Core connection | Core pairs |
+| 9.3 | Reconnect button | Disconnects then reconnects via SOOD |
+| 9.4 | Default zone | Picker lists zones, choice persists across restarts |
+| 9.5 | Sidebar playlist count | Picker 5/10/20/50/All, applies immediately |
 
 ## Build Verification
 
@@ -121,7 +144,7 @@ Or from Xcode: **Product > Test** (Cmd+U).
 |------|-------------|
 | `Tests/RoonModelsTests.swift` | JSON decoding of models (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
 | `Tests/RoonServiceTests.swift` | Service logic (browse guard, history, zone selection, image URL) and MOO protocol (parsing, construction, request ID) |
-| `Tests/ViewBehaviorTests.swift` | View behavior tests (default zone, playlist filtering, UI mode, browse views) |
+| `Tests/ViewBehaviorTests.swift` | View behavior tests (default zone, playlist filtering, UI mode, specialized browse views, Now Playing) |
 
 ### Test Details
 

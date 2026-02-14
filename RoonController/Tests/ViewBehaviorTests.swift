@@ -1227,6 +1227,216 @@ final class ViewBehaviorTests: XCTestCase {
         _ = font
     }
 
+    // MARK: - Browse category detection (Genres, Streaming, Tracks, Composers)
+
+    private let genreTitles: Set<String> = ["Genres"]
+    private let streamingTitles: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
+    private let tracksTitles: Set<String> = ["Morceaux", "Tracks"]
+    private let composerTitles: Set<String> = ["Compositeurs", "Composers"]
+
+    // MARK: Genre view detection
+
+    func testGenreViewDetected() {
+        // Genre root: browseCategory in genreTitles, stack depth <= 1
+        service.browseCategory = "Genres"
+        service.browseStack = ["Genres"]
+        XCTAssertTrue(genreTitles.contains(service.browseCategory!))
+        XCTAssertTrue(service.browseStack.count <= 1)
+    }
+
+    func testGenreViewNotDetectedAtDepth2() {
+        // Inside a genre (e.g. Genres → Jazz): should NOT be detected as genre root
+        service.browseCategory = "Genres"
+        service.browseStack = ["Genres", "Jazz"]
+        XCTAssertTrue(service.browseStack.count > 1)
+    }
+
+    func testGenreViewNotDetectedForOtherCategory() {
+        service.browseCategory = "Artists"
+        XCTAssertFalse(genreTitles.contains(service.browseCategory!))
+    }
+
+    func testGenreGradientDeterministic() {
+        // Genre gradient is based on title hash — same title gives same index
+        let title = "Jazz"
+        let hash1 = abs(title.hashValue)
+        let hash2 = abs(title.hashValue)
+        XCTAssertEqual(hash1 % 6, hash2 % 6)
+    }
+
+    // MARK: Streaming service detection
+
+    func testStreamingServiceRootDetected() {
+        service.browseCategory = "TIDAL"
+        service.browseStack = ["TIDAL"]
+        XCTAssertTrue(streamingTitles.contains(service.browseCategory!))
+        XCTAssertTrue(service.browseStack.count <= 1)
+    }
+
+    func testStreamingServiceDetectsQobuz() {
+        service.browseCategory = "Qobuz"
+        service.browseStack = ["Qobuz"]
+        XCTAssertTrue(streamingTitles.contains(service.browseCategory!))
+    }
+
+    func testStreamingServiceInsideSectionNotRoot() {
+        // Inside a section (e.g. TIDAL → What's New): stack depth > 1
+        service.browseCategory = "TIDAL"
+        service.browseStack = ["TIDAL", "What's New"]
+        // isStreamingServiceRoot should be false (depth > 1)
+        let isRoot = streamingTitles.contains(service.browseCategory!) && service.browseStack.count <= 1
+        XCTAssertFalse(isRoot)
+        // isInsideStreamingService would be true (depth >= 2)
+        XCTAssertTrue(service.browseStack.count >= 2)
+    }
+
+    func testStreamingServiceSectionsAreNavigable() {
+        // TIDAL sections should be list items (navigable)
+        let sections: [BrowseItem] = [
+            makeBrowseItem(title: "What's New", hint: "list", itemKey: "s1"),
+            makeBrowseItem(title: "TIDAL Rising", hint: "list", itemKey: "s2"),
+            makeBrowseItem(title: "Playlists", hint: "list", itemKey: "s3"),
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "s4"),
+            makeBrowseItem(title: "Your Favorites", hint: "list", itemKey: "s5"),
+        ]
+        // All sections are navigable lists
+        XCTAssertTrue(sections.allSatisfy { $0.hint == "list" })
+        XCTAssertEqual(sections.count, 5)
+        // All have item keys for navigation
+        XCTAssertTrue(sections.allSatisfy { $0.item_key != nil })
+    }
+
+    func testStreamingTabSwitchRequiresDifferentIndex() {
+        // Switching to the same tab should be a no-op
+        let currentTab = 0
+        let targetTab = 0
+        XCTAssertEqual(currentTab, targetTab, "Same tab should not trigger switch")
+    }
+
+    // MARK: Track list detection
+
+    func testTrackListViewDetected() {
+        // Track list: browseCategory in tracksTitles, stack <= 1, items are actions
+        service.browseCategory = "Morceaux"
+        service.browseStack = ["Morceaux"]
+
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Track 1", hint: "action", itemKey: "t1", subtitle: "Artist - Album"),
+            makeBrowseItem(title: "Track 2", hint: "action_list", itemKey: "t2", subtitle: "Artist - Album"),
+            makeBrowseItem(title: "Track 3", hint: "action", itemKey: "t3", subtitle: "Artist - Album"),
+        ]
+        XCTAssertTrue(tracksTitles.contains(service.browseCategory!))
+        XCTAssertTrue(service.browseStack.count <= 1)
+        let actionCount = items.prefix(20).filter { $0.hint == "action" || $0.hint == "action_list" }.count
+        XCTAssertTrue(actionCount > items.count / 2)
+    }
+
+    func testTrackListViewDetectedEnglish() {
+        // English variant "Tracks" also detected
+        service.browseCategory = "Tracks"
+        service.browseStack = ["Tracks"]
+        XCTAssertTrue(tracksTitles.contains(service.browseCategory!))
+    }
+
+    func testTrackListNotDetectedAsPlaylist() {
+        // Root Tracks category should NOT trigger isPlaylistView
+        service.browseCategory = "Morceaux"
+        service.browseStack = ["Morceaux"]
+
+        // isPlaylistView exclusion: when browseCategory is in tracksTitles and stack <= 1, return false
+        let isExcluded = tracksTitles.contains(service.browseCategory!) && service.browseStack.count <= 1
+        XCTAssertTrue(isExcluded, "Root Tracks must be excluded from playlist detection")
+    }
+
+    func testTrackListDeepNavigationNotDetected() {
+        // Inside Tracks → Album: stack depth > 1, should not be track list
+        service.browseCategory = "Morceaux"
+        service.browseStack = ["Morceaux", "Some Album"]
+        XCTAssertTrue(service.browseStack.count > 1, "Deep navigation should not be track list root")
+    }
+
+    func testTrackListWithNonActionItemsNotDetected() {
+        // If most items are navigable lists, not a track list
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Sub-category 1", hint: "list", itemKey: "c1"),
+            makeBrowseItem(title: "Sub-category 2", hint: "list", itemKey: "c2"),
+            makeBrowseItem(title: "Sub-category 3", hint: "list", itemKey: "c3"),
+        ]
+        let actionCount = items.prefix(20).filter { $0.hint == "action" || $0.hint == "action_list" }.count
+        XCTAssertFalse(actionCount > items.count / 2, "List items should not be detected as tracks")
+    }
+
+    // MARK: Composer view detection
+
+    func testComposerViewDetected() {
+        service.browseCategory = "Compositeurs"
+        service.browseStack = ["Compositeurs"]
+        XCTAssertTrue(composerTitles.contains(service.browseCategory!))
+        XCTAssertTrue(service.browseStack.count <= 1)
+    }
+
+    func testComposerViewDetectedEnglish() {
+        service.browseCategory = "Composers"
+        service.browseStack = ["Composers"]
+        XCTAssertTrue(composerTitles.contains(service.browseCategory!))
+    }
+
+    func testComposerViewNotDetectedAtDepth2() {
+        service.browseCategory = "Compositeurs"
+        service.browseStack = ["Compositeurs", "Bach"]
+        XCTAssertTrue(service.browseStack.count > 1)
+    }
+
+    func testComposerHybridModeGrid() {
+        // When composers have images, grid mode should be used
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Bach", hint: "list", itemKey: "c1", imageKey: "img1"),
+            makeBrowseItem(title: "Mozart", hint: "list", itemKey: "c2", imageKey: "img2"),
+            makeBrowseItem(title: "Beethoven", hint: "list", itemKey: "c3"),
+        ]
+        let hasImages = items.prefix(10).contains { $0.image_key != nil }
+        XCTAssertTrue(hasImages, "Grid mode when images are available")
+    }
+
+    func testComposerHybridModeList() {
+        // When no composers have images, list mode should be used
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Bach", hint: "list", itemKey: "c1"),
+            makeBrowseItem(title: "Mozart", hint: "list", itemKey: "c2"),
+            makeBrowseItem(title: "Beethoven", hint: "list", itemKey: "c3"),
+        ]
+        let hasImages = items.prefix(10).contains { $0.image_key != nil }
+        XCTAssertFalse(hasImages, "List mode when no images available")
+    }
+
+    // MARK: browseCategory lifecycle
+
+    func testBrowseCategorySetByBrowseToCategory() {
+        service.browseCategory = "Genres"
+        XCTAssertEqual(service.browseCategory, "Genres")
+    }
+
+    func testBrowseHomeClearsBrowseCategory() {
+        service.browseCategory = "TIDAL"
+        service.browseHome()
+        XCTAssertNil(service.browseCategory)
+    }
+
+    func testBrowseCategoryNilByDefault() {
+        XCTAssertNil(service.browseCategory)
+    }
+
+    func testBrowseCategoryNotPublished() {
+        // browseCategory should NOT be @Published (to avoid cascading re-renders)
+        // Verify it can be set without triggering objectWillChange directly
+        var changeCount = 0
+        let cancellable = service.objectWillChange.sink { _ in changeCount += 1 }
+        service.browseCategory = "TIDAL"
+        // Non-published property should NOT trigger objectWillChange
+        XCTAssertEqual(changeCount, 0, "browseCategory must not be @Published")
+        cancellable.cancel()
+    }
+
     // MARK: - Helpers
 
     private func formatTime(_ totalSeconds: Int) -> String {

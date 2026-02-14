@@ -32,7 +32,10 @@ graph LR
 - Pochette d'album avec fond flou en arriere-plan
 - Navigation dans la bibliotheque Roon (Browse API)
 - Recherche dans les resultats de navigation
+- Vues Browse specialisees : Genres, TIDAL/streaming, Morceaux, Compositeurs
 - Vue playlists style Roon avec pagination complete (200+ playlists)
+- Integration macOS Now Playing : infos piste, pochette et controles dans le Control Center
+- Bascule rapide entre mode Roon et mode Player
 - Zone de lecture par defaut dans les parametres (persistee par nom)
 - File d'attente (queue) avec lecture depuis un morceau
 - Controle du volume par sortie (slider + mute)
@@ -142,7 +145,7 @@ Roon client/
 │   └── Tests/
 │       ├── RoonModelsTests.swift        # Tests modeles de donnees
 │       ├── RoonServiceTests.swift       # Tests service et protocole MOO
-│       └── ViewBehaviorTests.swift      # Tests comportement des vues (218 tests au total)
+│       └── ViewBehaviorTests.swift      # Tests comportement des vues (244 tests au total)
 │
 └── docs/
     ├── INSTALL.md                   # Guide d'installation

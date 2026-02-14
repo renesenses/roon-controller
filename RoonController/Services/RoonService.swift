@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import AppKit
 import UniformTypeIdentifiers
+import MediaPlayer
 
 @MainActor
 class RoonService: ObservableObject {
@@ -17,6 +18,8 @@ class RoonService: ObservableObject {
     var currentZone: RoonZone?
     @Published var browseResult: BrowseResult?
     @Published var browseStack: [String] = []
+    var browseCategory: String?
+    @Published var streamingSections: [StreamingSection] = []
     var queueItems: [QueueItem] = []
     var playbackHistory: [PlaybackHistoryItem] = []
     @Published var radioFavorites: [RadioFavorite] = []
@@ -40,6 +43,7 @@ class RoonService: ObservableObject {
         self.trackImageKeyCache = Self.loadImageKeyCache(
             from: storageDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
         )
+        setupRemoteCommands()
     }
 
     private var storageDir: URL? {
@@ -62,6 +66,12 @@ class RoonService: ObservableObject {
     private var zonesById: [String: RoonZone] = [:]
     private var lastQueueSubscribeTime: Date = .distantPast
     private var currentBrowseTask: Task<Void, Never>?
+    private var streamingFetchTask: Task<Void, Never>?
+
+    func cancelStreamingFetch() {
+        streamingFetchTask?.cancel()
+        streamingFetchTask = nil
+    }
     private var currentPlayTask: Task<Void, Never>?
     private var seekTimer: Timer?
     private var refreshTimer: Timer?
@@ -287,6 +297,9 @@ class RoonService: ObservableObject {
         } else {
             stopSeekTimer()
         }
+
+        // Update macOS Now Playing (Control Center)
+        updateNowPlayingInfo()
     }
 
     // MARK: - Queue Handling
@@ -402,6 +415,105 @@ class RoonService: ObservableObject {
 
     func toggleMute(outputId: String) {
         Task { try? await transportService?.mute(outputId: outputId, how: "toggle") }
+    }
+
+    // MARK: - macOS Now Playing (Control Center)
+
+    /// Track identity used to avoid redundant Now Playing updates
+    private var lastNowPlayingIdentity: String = ""
+
+    /// Set up MPRemoteCommandCenter handlers (call once at startup)
+    /// Note: addTarget closures run on MPRemoteCommandCenter's internal queue,
+    /// so we must dispatch to MainActor to call @MainActor-isolated methods.
+    func setupRemoteCommands() {
+        let center = MPRemoteCommandCenter.shared()
+
+        center.playCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.playPause() }
+            return .success
+        }
+        center.pauseCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.playPause() }
+            return .success
+        }
+        center.togglePlayPauseCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.playPause() }
+            return .success
+        }
+        center.nextTrackCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.next() }
+            return .success
+        }
+        center.previousTrackCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.previous() }
+            return .success
+        }
+        center.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let posEvent = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            let pos = Int(posEvent.positionTime)
+            Task { @MainActor in self?.seek(position: pos) }
+            return .success
+        }
+    }
+
+    /// Create MPMediaItemArtwork outside of @MainActor context.
+    /// The requestHandler closure runs on MPNowPlayingInfoCenter's internal queue,
+    /// so it must NOT be @MainActor-isolated.
+    private nonisolated static func makeArtwork(data: Data, size: NSSize) -> MPMediaItemArtwork {
+        MPMediaItemArtwork(boundsSize: size) { _ in
+            NSImage(data: data) ?? NSImage()
+        }
+    }
+
+    /// Update macOS Now Playing info from current zone state
+    func updateNowPlayingInfo() {
+        guard let zone = currentZone, let np = zone.now_playing else {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            MPNowPlayingInfoCenter.default().playbackState = .stopped
+            lastNowPlayingIdentity = ""
+            return
+        }
+
+        let title = np.three_line?.line1 ?? np.one_line?.line1 ?? ""
+        let artist = np.three_line?.line2 ?? ""
+        let album = np.three_line?.line3 ?? np.two_line?.line2 ?? ""
+        let identity = "\(title)|\(artist)|\(album)"
+        let duration = Double(np.length ?? 0)
+        let position = Double(seekPosition)
+
+        let info: [String: Any] = [
+            MPMediaItemPropertyTitle: title,
+            MPMediaItemPropertyArtist: artist,
+            MPMediaItemPropertyAlbumTitle: album,
+            MPMediaItemPropertyPlaybackDuration: duration,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: position,
+            MPNowPlayingInfoPropertyPlaybackRate: (zone.state == "playing") ? 1.0 : 0.0
+        ]
+
+        // Only fetch artwork when track changes
+        if identity != lastNowPlayingIdentity {
+            lastNowPlayingIdentity = identity
+            let imageKey = resolvedImageKey(for: np)
+            if let imageKey = imageKey {
+                Task {
+                    if let imgData = await RoonImageProvider.shared.fetchImage(key: imageKey, width: 600, height: 600),
+                       let probe = NSImage(data: imgData) {
+                        let artwork = Self.makeArtwork(data: imgData, size: probe.size)
+                        var updated = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? info
+                        updated[MPMediaItemPropertyArtwork] = artwork
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = updated
+                    }
+                }
+            }
+        }
+
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+
+        switch zone.state {
+        case "playing": MPNowPlayingInfoCenter.default().playbackState = .playing
+        case "paused": MPNowPlayingInfoCenter.default().playbackState = .paused
+        default: MPNowPlayingInfoCenter.default().playbackState = .stopped
+        }
     }
 
     // MARK: - Settings
@@ -522,12 +634,188 @@ class RoonService: ObservableObject {
         browse(popLevels: 1)
     }
 
+    /// Pop back one level, then navigate into a sibling item (for streaming service tab switching)
+    func browseSwitchSibling(itemKey: String, title: String) {
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+        pendingBrowseKey = nil
+        browseLoading = true
+
+        // Replace last stack entry with new title
+        if !browseStack.isEmpty {
+            browseStack[browseStack.count - 1] = title
+        }
+
+        currentBrowseTask?.cancel()
+        currentBrowseTask = Task {
+            do {
+                // Pop back one level
+                _ = try await browseService.browse(zoneId: zoneId, popLevels: 1)
+                guard !Task.isCancelled else { return }
+                // Navigate into sibling
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
+                guard !Task.isCancelled else { return }
+                DispatchQueue.main.async { [weak self] in
+                    self?.handleBrowseResponse(response, isPageLoad: false)
+                }
+            } catch {
+                DispatchQueue.main.async { [weak self] in
+                    self?.browseLoading = false
+                }
+            }
+        }
+    }
+
+    /// Pre-fetch content for each sub-section of a streaming service tab.
+    /// Uses the MAIN browse session (item_keys are session-specific in Roon).
+    /// After completion, the session is back at tab content level.
+    func fetchStreamingSections(items: [BrowseItem]) {
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+        let decoder = JSONDecoder()
+
+        streamingSections = []
+
+        streamingFetchTask?.cancel()
+        streamingFetchTask = Task {
+            var sections: [StreamingSection] = []
+
+            func decodeItems(_ dicts: [[String: Any]]) -> [BrowseItem] {
+                dicts.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+            }
+
+            for item in items {
+                guard !Task.isCancelled else { return }
+                guard let itemKey = item.item_key, let title = item.title else { continue }
+                do {
+                    let response = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
+                    guard !Task.isCancelled else {
+                        // Pop back before exiting so session stays consistent
+                        _ = try? await browseService.browse(zoneId: zoneId, popLevels: 1)
+                        return
+                    }
+                    let level1Items = decodeItems(response.items)
+
+                    let hasImages = level1Items.prefix(5).contains { $0.image_key != nil }
+
+                    if hasImages {
+                        sections.append(StreamingSection(id: itemKey, title: title, items: Array(level1Items.prefix(10)), navigationPath: [itemKey]))
+                    } else {
+                        for subItem in level1Items.prefix(4) {
+                            guard !Task.isCancelled else {
+                                _ = try? await browseService.browse(zoneId: zoneId, popLevels: 2)
+                                return
+                            }
+                            guard let subKey = subItem.item_key, let subTitle = subItem.title else { continue }
+                            let sectionTitle = "\(title) — \(subTitle)"
+                            let subResponse = try await browseService.browse(zoneId: zoneId, itemKey: subKey)
+                            guard !Task.isCancelled else {
+                                _ = try? await browseService.browse(zoneId: zoneId, popLevels: 2)
+                                return
+                            }
+                            let level2Items = decodeItems(subResponse.items)
+                            if !level2Items.isEmpty {
+                                sections.append(StreamingSection(id: subKey, title: sectionTitle, items: Array(level2Items.prefix(10)), navigationPath: [itemKey, subKey]))
+                            }
+                            _ = try await browseService.browse(zoneId: zoneId, popLevels: 1)
+                        }
+                    }
+
+                    _ = try await browseService.browse(zoneId: zoneId, popLevels: 1)
+                } catch {
+                    _ = try? await browseService.browse(zoneId: zoneId, popLevels: 1)
+                }
+            }
+            guard !Task.isCancelled else { return }
+            DispatchQueue.main.async { [weak self] in
+                self?.streamingSections = sections
+            }
+        }
+    }
+
     func browseHome() {
         pendingBrowseKey = nil
         browseStack.removeAll()
+        browseCategory = nil
+        streamingSections = []
         // Keep old browseResult visible while loading root items
         browseLoading = true
         browse(popAll: true)
+    }
+
+    /// Navigate into a streaming carousel item.
+    /// Waits for the fetch to finish (it restores the session to tab content level),
+    /// then navigates: section path → item.
+    func browseStreamingItem(itemKey: String, navigationPath: [String]) {
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+
+        currentBrowseTask?.cancel()
+        pendingBrowseKey = nil
+        browseLoading = true
+
+        // Don't cancel the fetch — let it finish so it pops back properly
+        let fetchTask = streamingFetchTask
+
+        currentBrowseTask = Task {
+            let logPath = "/tmp/streaming_click.log"
+            func log(_ msg: String) {
+                let line = "[\(Date())] \(msg)\n"
+                if let data = line.data(using: .utf8) {
+                    if FileManager.default.fileExists(atPath: logPath) {
+                        if let fh = FileHandle(forWritingAtPath: logPath) {
+                            fh.seekToEndOfFile(); fh.write(data); fh.closeFile()
+                        }
+                    } else {
+                        FileManager.default.createFile(atPath: logPath, contents: data)
+                    }
+                }
+            }
+
+            log("START itemKey=\(itemKey) path=\(navigationPath) fetchTask=\(fetchTask != nil)")
+
+            // Wait for fetch to complete (session back at tab content level)
+            if fetchTask != nil {
+                log("Waiting for fetch to complete...")
+                _ = await fetchTask?.value
+                log("Fetch completed")
+            }
+            streamingFetchTask = nil
+            guard !Task.isCancelled else {
+                log("CANCELLED after fetch wait")
+                DispatchQueue.main.async { [weak self] in self?.browseLoading = false }
+                return
+            }
+
+            do {
+                // Main session is at tab content level.
+                // Navigate section path (1-2 levels deep from tab content)
+                for pathKey in navigationPath {
+                    log("Navigating path key: \(pathKey)")
+                    let pathResp = try await browseService.browse(zoneId: zoneId, itemKey: pathKey)
+                    log("Path response: action=\(pathResp.action ?? "nil") items=\(pathResp.items.count) list=\(pathResp.list ?? [:])")
+                    guard !Task.isCancelled else { log("CANCELLED in path"); return }
+                }
+
+                // Navigate into the album/item
+                log("Navigating to album: \(itemKey)")
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
+                log("Album response: action=\(response.action ?? "nil") items=\(response.items.count) list=\(response.list ?? [:])")
+                guard !Task.isCancelled else { log("CANCELLED after album"); return }
+                log("Calling handleBrowseResponse")
+                DispatchQueue.main.async { [weak self] in
+                    self?.handleBrowseResponse(response, isPageLoad: false)
+                }
+            } catch {
+                log("ERROR: \(error)")
+                DispatchQueue.main.async { [weak self] in
+                    self?.browseLoading = false
+                }
+            }
+        }
     }
 
     /// Navigate to browse root, find the search item, and submit a query.
@@ -538,6 +826,7 @@ class RoonService: ObservableObject {
         browseLoading = true
         pendingBrowseKey = nil
         browseStack.removeAll()
+        browseCategory = nil
 
         currentBrowseTask?.cancel()
         currentBrowseTask = Task {
@@ -845,6 +1134,7 @@ class RoonService: ObservableObject {
 
         pendingBrowseKey = nil
         browseStack.removeAll()
+        browseCategory = title
         browseLoading = true
 
         currentBrowseTask?.cancel()
@@ -1211,6 +1501,7 @@ class RoonService: ObservableObject {
 
         pendingBrowseKey = nil
         browseLoading = true
+        browseCategory = nil
         // Keep old browseResult visible while navigating to playlist
         browseStack = []
 
@@ -1342,11 +1633,41 @@ class RoonService: ObservableObject {
         }
     }
 
-    // MARK: - Image URL
+    // MARK: - Image URL & Prefetch
+
+    /// In-memory decoded image cache for instant rendering (bypasses AsyncImage HTTP round-trip)
+    private let prefetchedImages = NSCache<NSString, NSImage>()
+    private var prefetchTask: Task<Void, Never>?
 
     func imageURL(key: String?, width: Int = 300, height: Int = 300) -> URL? {
         guard let key = key else { return nil }
         return LocalImageServer.imageURL(key: key, width: width, height: height)
+    }
+
+    /// Return a pre-fetched NSImage if available (synchronous, no await).
+    func cachedImage(key: String?, width: Int, height: Int) -> NSImage? {
+        guard let key = key else { return nil }
+        let cacheKey = RoonImageCache.cacheKey(imageKey: key, width: width, height: height) as NSString
+        return prefetchedImages.object(forKey: cacheKey)
+    }
+
+    /// Pre-fetch images into memory so they render instantly when rows appear.
+    func prefetchImages(keys: [String?], width: Int, height: Int) {
+        prefetchTask?.cancel()
+        prefetchTask = Task {
+            for key in keys {
+                guard !Task.isCancelled else { return }
+                guard let key = key else { continue }
+                let cacheKey = RoonImageCache.cacheKey(imageKey: key, width: width, height: height) as NSString
+                // Skip if already in memory
+                if prefetchedImages.object(forKey: cacheKey) != nil { continue }
+                // Fetch via provider (hits RoonImageCache disk/memory, or Roon Core)
+                if let data = await RoonImageProvider.shared.fetchImage(key: key, width: width, height: height),
+                   let img = NSImage(data: data) {
+                    prefetchedImages.setObject(img, forKey: cacheKey)
+                }
+            }
+        }
     }
 
     /// Resolve image key for now_playing, with queue fallbacks

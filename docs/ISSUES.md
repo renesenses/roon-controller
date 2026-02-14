@@ -6,9 +6,9 @@ Adapte du "Issue Register" PRINCE2. Le suivi actif se fait sur [GitHub Issues](h
 
 ```mermaid
 pie title Repartition par severite
-    "Critique" : 3
+    "Critique" : 5
     "Majeur" : 8
-    "Mineur" : 12
+    "Mineur" : 13
 ```
 
 ```mermaid
@@ -37,6 +37,9 @@ timeline
                : ISS-021 Compteur morceaux 🟡
                : ISS-022 Play Playlist visible 🟡
                : ISS-023 Flash changement piste 🟡
+               : ISS-024 Crash MPRemoteCommand 🔴
+               : ISS-025 Crash MPMediaItemArtwork 🔴
+               : ISS-026 Tracks detecte playlist 🟡
 ```
 
 | ID | Date | Description | Severite | Statut | Resolution | Ref. |
@@ -64,3 +67,6 @@ timeline
 | ISS-021 | 2026-02-14 | Compteur de morceaux incorrect : le filtre basé sur `subtitle` non vide excluait des morceaux | Mineur | Resolu | Filtre par `hint == "action_list"` (`d0c8438`) | — |
 | ISS-022 | 2026-02-14 | "Play Playlist" apparaissait comme premier element de la liste de morceaux | Mineur | Resolu | Exclusion des items `hint == "action"` du filtre morceaux (`d0c8438`) | — |
 | ISS-023 | 2026-02-14 | Flash de l'ancien morceau lors du changement de piste (next/previous/searchAndPlay) | Mineur | Resolu | Activation de `playbackTransitioning` avec dimming opacity dans les vues (`d0c8438`) | — |
+| ISS-024 | 2026-02-14 | Crash au demarrage : closures MPRemoteCommandCenter appelaient des methodes @MainActor depuis la queue interne du framework MediaPlayer | Critique | Resolu | Dispatch via `Task { @MainActor in }` dans chaque closure addTarget (`5caaaf8`) | — |
+| ISS-025 | 2026-02-14 | Crash Now Playing : closure MPMediaItemArtwork heritait de l'isolation @MainActor du Task parent, appelée depuis la queue interne MPNowPlayingInfoCenter | Critique | Resolu | Extraction dans `nonisolated static func makeArtwork(data:size:)` (`5caaaf8`) | — |
+| ISS-026 | 2026-02-14 | Vue Tracks (Morceaux) detectee a tort comme playlist, affichant un header playlist inutile | Mineur | Resolu | Ajout `isTrackListView` teste avant `isPlaylistView` dans la chaine de rendu (`5caaaf8`) | — |

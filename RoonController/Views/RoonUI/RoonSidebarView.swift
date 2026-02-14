@@ -7,6 +7,7 @@ struct RoonSidebarView: View {
     @State private var hoveredSection: RoonSection?
     @State private var hoveredCategoryKey: String?
     @AppStorage("sidebar_playlist_count") private var sidebarPlaylistCount = 10
+    @AppStorage("uiMode") private var uiMode = "roon"
     @State private var searchText: String = ""
 
     // Classification des items par titre
@@ -52,7 +53,25 @@ struct RoonSidebarView: View {
                 VStack(alignment: .leading, spacing: 1) {
 
                     // MARK: - EXPLORER
-                    sectionHeader("EXPLORER")
+                    HStack {
+                        sectionHeader("EXPLORER")
+                        Spacer()
+                        Button {
+                            uiMode = "player"
+                        } label: {
+                            Image(systemName: "rectangle.2.swap")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.roonSecondary)
+                                .padding(5)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.roonGrey2.opacity(0.5))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .help("Mode Player")
+                        .padding(.trailing, 12)
+                    }
 
                     // Accueil (always present)
                     sidebarItem(.home)

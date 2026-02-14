@@ -10,8 +10,15 @@ struct RoonBrowseContentView: View {
     @State private var roonSearchText: String = ""
     @State private var searchItemKey: String?
     @State private var didInitRadio: Bool = false
+    @State private var streamingSections: [BrowseItem] = []
+    @State private var activeStreamingTab: Int = 0
 
     private let gridCardSize: CGFloat = 200
+
+    private static let genreTitles: Set<String> = ["Genres"]
+    private static let streamingTitles: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
+    private static let tracksTitles: Set<String> = ["Morceaux", "Tracks"]
+    private static let composerTitles: Set<String> = ["Compositeurs", "Composers"]
 
     private var filteredBrowseItems: [BrowseItem] {
         guard let result = roonService.browseResult else { return [] }
@@ -28,13 +35,52 @@ struct RoonBrowseContentView: View {
     }
 
     /// Detect playlist/album detail view: most items are tracks (action or action_list)
+    /// Excludes the root Tracks category (flat track list without album context)
     private var isPlaylistView: Bool {
         guard roonService.browseResult?.list != nil else { return false }
+        if let cat = roonService.browseCategory, Self.tracksTitles.contains(cat),
+           roonService.browseStack.count <= 1 { return false }
         let items = filteredBrowseItems
         guard items.count >= 2 else { return false }
         let sample = items.prefix(20)
         let actionCount = sample.filter { $0.hint == "action" || $0.hint == "action_list" }.count
         return actionCount > sample.count / 2
+    }
+
+    /// Genre view: root grid OR genre detail (sub-genres + actions)
+    private var isGenreView: Bool {
+        guard let cat = roonService.browseCategory, Self.genreTitles.contains(cat) else { return false }
+        return roonService.browseStack.count <= 2
+    }
+
+    /// Streaming service root (sections list, auto-navigates into first section)
+    private var isStreamingServiceRoot: Bool {
+        guard let cat = roonService.browseCategory, Self.streamingTitles.contains(cat) else { return false }
+        // Only true when tabs haven't been stored yet (auto-nav not yet fired)
+        return streamingSections.isEmpty
+    }
+
+    /// Inside a streaming service section (tab bar + content)
+    private var isInsideStreamingService: Bool {
+        guard let cat = roonService.browseCategory, Self.streamingTitles.contains(cat) else { return false }
+        return !streamingSections.isEmpty
+    }
+
+    /// Root track list: flat list of playable tracks without album header
+    private var isTrackListView: Bool {
+        guard let cat = roonService.browseCategory, Self.tracksTitles.contains(cat) else { return false }
+        guard roonService.browseStack.count <= 1 else { return false }
+        let items = filteredBrowseItems
+        guard items.count >= 2 else { return false }
+        let sample = items.prefix(20)
+        let actionCount = sample.filter { $0.hint == "action" || $0.hint == "action_list" }.count
+        return actionCount > sample.count / 2
+    }
+
+    /// Composer root: list or grid of composers
+    private var isComposerView: Bool {
+        guard let cat = roonService.browseCategory, Self.composerTitles.contains(cat) else { return false }
+        return roonService.browseStack.count <= 1
     }
 
     /// Detect artist detail view: first item(s) have no image, followed by navigable items with images
@@ -78,11 +124,21 @@ struct RoonBrowseContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Navigation bar
-            navBar
+            // Navigation bar (hidden when inside streaming service — tabs replace it)
+            if !isInsideStreamingService {
+                navBar
+            }
 
-            // Search field (hidden on artist detail and album detail pages)
-            if roonService.browseResult != nil && !isArtistDetailView && !isPlaylistView || isPlaylistListView {
+            // Streaming service tab bar
+            if isInsideStreamingService {
+                streamingNavBar
+                streamingTabBar
+            }
+
+            // Search field — show for composers, tracks, playlist lists & generic views
+            // Hide for artist detail, playlist/album detail, streaming service, and genres
+            if roonService.browseResult != nil &&
+               !isArtistDetailView && !isPlaylistView && !isStreamingServiceRoot && !isInsideStreamingService && !isGenreView || isPlaylistListView || isTrackListView || isComposerView {
                 searchField
             }
 
@@ -94,6 +150,16 @@ struct RoonBrowseContentView: View {
                 let items = filteredBrowseItems
                 if items.isEmpty && !searchText.isEmpty {
                     emptySearchState
+                } else if isStreamingServiceRoot {
+                    streamingServiceAutoNav(items: items)
+                } else if isInsideStreamingService && isStreamingTabContent(items: items) {
+                    streamingTabSectionsView(items: items)
+                } else if isTrackListView {
+                    trackListContent(items: items)
+                } else if isGenreView {
+                    genreContent(items: items)
+                } else if isComposerView {
+                    composerContent(items: items)
                 } else if isPlaylistView && searchText.isEmpty {
                     playlistContent(items: items)
                 } else if isArtistDetailView && searchText.isEmpty {
@@ -167,6 +233,7 @@ struct RoonBrowseContentView: View {
             if !roonService.browseStack.isEmpty {
                 Button {
                     searchText = ""
+                    streamingSections = []
                     browseListId = UUID()
                     roonService.browseHome()
                 } label: {
@@ -606,9 +673,14 @@ struct RoonBrowseContentView: View {
 
             Spacer().frame(width: 14)
 
-            // Thumbnail — fall back to cache then playlist artwork if track has no image
+            // Thumbnail — use prefetched NSImage if available, else AsyncImage fallback
             let imageKey = roonService.resolvedImageKey(title: item.title, imageKey: item.image_key) ?? roonService.browseResult?.list?.image_key
-            if let url = roonService.imageURL(key: imageKey, width: 120, height: 120) {
+            if let nsImage = roonService.cachedImage(key: imageKey, width: 120, height: 120) {
+                Image(nsImage: nsImage)
+                    .resizable().aspectRatio(contentMode: .fill)
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else if let url = roonService.imageURL(key: imageKey, width: 120, height: 120) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
@@ -791,7 +863,522 @@ struct RoonBrowseContentView: View {
         .id(browseListId)
     }
 
+    // MARK: - Genre Content
+
+    private static let genreGradients: [LinearGradient] = [
+        LinearGradient(colors: [Color(red: 0.55, green: 0.22, blue: 0.42), Color(red: 0.30, green: 0.10, blue: 0.25)], startPoint: .topLeading, endPoint: .bottomTrailing),
+        LinearGradient(colors: [Color(red: 0.20, green: 0.35, blue: 0.55), Color(red: 0.10, green: 0.18, blue: 0.32)], startPoint: .topLeading, endPoint: .bottomTrailing),
+        LinearGradient(colors: [Color(red: 0.45, green: 0.30, blue: 0.18), Color(red: 0.25, green: 0.15, blue: 0.08)], startPoint: .topLeading, endPoint: .bottomTrailing),
+        LinearGradient(colors: [Color(red: 0.18, green: 0.42, blue: 0.38), Color(red: 0.08, green: 0.22, blue: 0.20)], startPoint: .topLeading, endPoint: .bottomTrailing),
+        LinearGradient(colors: [Color(red: 0.50, green: 0.20, blue: 0.20), Color(red: 0.28, green: 0.10, blue: 0.10)], startPoint: .topLeading, endPoint: .bottomTrailing),
+        LinearGradient(colors: [Color(red: 0.25, green: 0.25, blue: 0.50), Color(red: 0.12, green: 0.12, blue: 0.28)], startPoint: .topLeading, endPoint: .bottomTrailing),
+    ]
+
+    private func genreGradient(for title: String) -> LinearGradient {
+        let hash = abs(title.hashValue)
+        return Self.genreGradients[hash % Self.genreGradients.count]
+    }
+
+    private func genreContent(items: [BrowseItem]) -> some View {
+        let isDetail = roonService.browseStack.count == 2
+        // In detail view, separate top actions (Play Genre, Artists, Albums) from sub-genres
+        let topActions = isDetail ? items.filter { $0.subtitle == nil || $0.subtitle!.isEmpty } : []
+        let subGenres = isDetail ? items.filter { $0.subtitle != nil && !$0.subtitle!.isEmpty } : items
+
+        return ScrollView {
+            // Genre detail: header with action buttons
+            if isDetail && !topActions.isEmpty {
+                HStack(spacing: 10) {
+                    ForEach(topActions) { item in
+                        if item.hint == "action" || item.hint == "action_list", let itemKey = item.item_key {
+                            // Play Genre button
+                            Button {
+                                roonService.playInCurrentSession(itemKey: itemKey)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 11))
+                                    Text(item.title ?? "")
+                                        .font(.latoBold(13))
+                                }
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Capsule().fill(Color.roonAccent))
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            // Navigation items (Artists, Albums)
+                            Button {
+                                searchText = ""
+                                handleBrowseItemTap(item)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text(item.title ?? "")
+                                        .font(.latoBold(13))
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 10))
+                                }
+                                .foregroundStyle(Color.roonText)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.roonGrey2.opacity(0.5))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+            }
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 180, maximum: 240), spacing: 16)],
+                spacing: 16
+            ) {
+                ForEach(subGenres) { item in
+                    genreCard(item)
+                        .hoverScale()
+                        .onAppear { loadMoreIfNeeded(item: item) }
+                }
+            }
+            .padding(24)
+        }
+        .id(browseListId)
+    }
+
+    private func genreCard(_ item: BrowseItem) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            if let url = roonService.imageURL(key: item.image_key, width: 480, height: 480) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        genreGradient(for: item.title ?? "")
+                    }
+                }
+                .frame(height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .top, endPoint: .bottom)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                )
+            } else {
+                genreGradient(for: item.title ?? "")
+                    .frame(height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            Text(item.title ?? "")
+                .font(.grifoM(18))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .padding(12)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            searchText = ""
+            handleBrowseItemTap(item)
+        }
+    }
+
+    // MARK: - Streaming Service Content (TIDAL, Qobuz, etc.)
+
+    /// Auto-navigate into first section when streaming root is loaded
+    private func streamingServiceAutoNav(items: [BrowseItem]) -> some View {
+        Color.clear
+            .onAppear {
+                streamingSections = items
+                activeStreamingTab = 0
+                if let first = items.first {
+                    browseListId = UUID()
+                    handleBrowseItemTap(first)
+                }
+            }
+    }
+
+    /// Nav bar for streaming service (replaces standard navBar)
+    private var streamingNavBar: some View {
+        HStack(spacing: 12) {
+            Button {
+                searchText = ""
+                streamingSections = []
+                browseListId = UUID()
+                roonService.browseHome()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.roonText)
+                    .padding(6)
+                    .background(
+                        Circle()
+                            .fill(Color.roonGrey2.opacity(0.5))
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Text(roonService.browseCategory ?? "")
+                .font(.inter(28))
+                .foregroundStyle(Color.roonText)
+                .tracking(-0.8)
+                .lineLimit(1)
+
+            if roonService.browseLoading {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            Spacer()
+
+            Button {
+                searchText = ""
+                streamingSections = []
+                browseListId = UUID()
+                roonService.browseHome()
+            } label: {
+                Image(systemName: "house")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.roonSecondary)
+                    .padding(6)
+                    .background(
+                        Circle()
+                            .fill(Color.roonGrey2.opacity(0.5))
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.leading, 52)
+        .padding(.trailing, 24)
+        .padding(.vertical, 14)
+    }
+
+    /// Tab bar matching Roon native style
+    private var streamingTabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(Array(streamingSections.enumerated()), id: \.element.id) { index, section in
+                    Button {
+                        switchStreamingTab(to: index)
+                    } label: {
+                        Text((section.title ?? "").uppercased())
+                            .font(.latoBold(11))
+                            .tracking(0.5)
+                            .foregroundStyle(index == activeStreamingTab ? Color.roonAccent : Color.roonSecondary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .overlay(alignment: .bottom) {
+                                if index == activeStreamingTab {
+                                    Rectangle()
+                                        .fill(Color.roonAccent)
+                                        .frame(height: 2)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 28)
+        }
+    }
+
+    private func switchStreamingTab(to index: Int) {
+        guard index != activeStreamingTab,
+              index < streamingSections.count,
+              let itemKey = streamingSections[index].item_key else { return }
+        let title = streamingSections[index].title ?? ""
+        activeStreamingTab = index
+        roonService.streamingSections = []
+        browseListId = UUID()
+        roonService.browseSwitchSibling(itemKey: itemKey, title: title)
+    }
+
+    /// Detect if streaming tab content is a list of navigable sub-sections (not actual content)
+    private func isStreamingTabContent(items: [BrowseItem]) -> Bool {
+        guard items.count >= 2 else { return false }
+        let sample = items.prefix(10)
+        let listCount = sample.filter { $0.hint == "list" }.count
+        return listCount > sample.count / 2
+    }
+
+    /// Rich sectioned view: pre-fetch each sub-section and show inline with carousels
+    private func streamingTabSectionsView(items: [BrowseItem]) -> some View {
+        let sections = roonService.streamingSections
+        return ScrollView {
+            if sections.isEmpty {
+                // Loading state — trigger fetch
+                VStack(spacing: 16) {
+                    Spacer().frame(height: 40)
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("Chargement des sections...")
+                        .font(.lato(13))
+                        .foregroundStyle(Color.roonSecondary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .onAppear {
+                    roonService.fetchStreamingSections(items: items)
+                }
+            } else {
+                LazyVStack(alignment: .leading, spacing: 28) {
+                    ForEach(sections) { section in
+                        streamingSectionRow(section)
+                    }
+                }
+                .padding(.vertical, 16)
+            }
+        }
+        .id(browseListId)
+    }
+
+    private func streamingSectionRow(_ section: StreamingSection) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section header
+            HStack {
+                Text(section.title)
+                    .font(.inter(20))
+                    .foregroundStyle(Color.roonText)
+                    .tracking(-0.5)
+                Spacer()
+            }
+            .padding(.horizontal, 28)
+
+            // Horizontal carousel of items
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 16) {
+                    ForEach(section.items) { item in
+                        streamingCarouselCard(item, navigationPath: section.navigationPath)
+                    }
+                }
+                .padding(.horizontal, 28)
+            }
+        }
+    }
+
+    private func streamingCarouselCard(_ item: BrowseItem, navigationPath: [String]) -> some View {
+        let cardWidth: CGFloat = 180
+        return VStack(alignment: .leading, spacing: 6) {
+            ZStack(alignment: .bottomTrailing) {
+                if let url = roonService.imageURL(key: item.image_key, width: 360, height: 360) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable().aspectRatio(contentMode: .fill)
+                        default:
+                            Color.roonGrey2
+                        }
+                    }
+                    .frame(width: cardWidth, height: cardWidth)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                } else {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.roonGrey2)
+                        .frame(width: cardWidth, height: cardWidth)
+                        .overlay {
+                            Image(systemName: "music.note")
+                                .font(.system(size: 24))
+                                .foregroundStyle(Color.roonTertiary)
+                        }
+                }
+
+                if (item.hint == "action_list" || item.hint == "action"),
+                   let itemKey = item.item_key {
+                    Button {
+                        roonService.playItem(itemKey: itemKey)
+                    } label: {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Color.roonAccent)
+                            .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(6)
+                }
+            }
+
+            Text(item.title ?? "")
+                .font(.lato(13))
+                .foregroundStyle(Color.roonText)
+                .lineLimit(2)
+
+            if let subtitle = item.subtitle, !subtitle.isEmpty {
+                Text(cleanRoonMarkup(subtitle))
+                    .font(.lato(11))
+                    .foregroundStyle(Color.roonSecondary)
+                    .lineLimit(2)
+            }
+        }
+        .frame(width: cardWidth)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard let itemKey = item.item_key else { return }
+            searchText = ""
+            roonService.browseCategory = nil
+            streamingSections = []
+            browseListId = UUID()
+            roonService.browseStreamingItem(
+                itemKey: itemKey,
+                navigationPath: navigationPath
+            )
+        }
+    }
+
+    // MARK: - Track List Content (flat track list without album header)
+
+    private func trackListContent(items: [BrowseItem]) -> some View {
+        ScrollView {
+            // Lightweight header
+            HStack(spacing: 10) {
+                Image(systemName: "music.note")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.roonAccent)
+                if let count = roonService.browseResult?.list?.count {
+                    Text("\(count) morceaux")
+                        .font(.lato(14))
+                        .foregroundStyle(Color.roonSecondary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 28)
+            .padding(.top, 12)
+            .padding(.bottom, 4)
+
+            trackTableHeader
+
+            Divider()
+                .overlay(Color.roonSeparator.opacity(0.3))
+                .padding(.horizontal, 28)
+
+            LazyVStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    playlistTrackRow(item, index: index)
+                        .onAppear { prefetchCovers(items: items, from: index, ahead: 100) }
+                }
+            }
+        }
+        .id(browseListId)
+        .onAppear { prefetchCovers(items: items, from: -1, ahead: 100) }
+    }
+
+    /// Prefetch cover images into memory for upcoming rows so they render instantly.
+    private func prefetchCovers(items: [BrowseItem], from index: Int, ahead: Int) {
+        let start = index + 1
+        let end = min(items.count, index + ahead)
+        guard start < end else { return }
+        let keys: [String?] = (start..<end).map { i in
+            roonService.resolvedImageKey(title: items[i].title, imageKey: items[i].image_key)
+                ?? roonService.browseResult?.list?.image_key
+        }
+        roonService.prefetchImages(keys: keys, width: 120, height: 120)
+    }
+
+    // MARK: - Composer Content
+
+    private let composerCircleSize: CGFloat = 160
+
+    private func composerContent(items: [BrowseItem]) -> some View {
+        let list = roonService.browseResult?.list
+
+        return ScrollView {
+            // Header
+            HStack(spacing: 10) {
+                Image(systemName: "music.quarternote.3")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.roonAccent)
+                if let count = list?.count {
+                    Text("\(count) compositeurs")
+                        .font(.lato(14))
+                        .foregroundStyle(Color.roonSecondary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 28)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: composerCircleSize, maximum: composerCircleSize + 30), spacing: 20)],
+                spacing: 24
+            ) {
+                ForEach(items) { item in
+                    composerGridCard(item)
+                        .hoverScale()
+                        .onAppear { loadMoreIfNeeded(item: item) }
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+        .id(browseListId)
+    }
+
+    private func composerGridCard(_ item: BrowseItem) -> some View {
+        VStack(spacing: 8) {
+            if let url = roonService.imageURL(key: item.image_key, width: 320, height: 320) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        composerInitialsCircle(name: item.title ?? "")
+                    }
+                }
+                .frame(width: composerCircleSize, height: composerCircleSize)
+                .clipShape(Circle())
+            } else {
+                composerInitialsCircle(name: item.title ?? "")
+            }
+
+            Text(item.title ?? "")
+                .font(.lato(14))
+                .foregroundStyle(Color.roonText)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+        }
+        .frame(width: composerCircleSize)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            searchText = ""
+            handleBrowseItemTap(item)
+        }
+    }
+
+    /// Circle with initials for composers without photos (like Roon's "FA", "DA")
+    private func composerInitialsCircle(name: String) -> some View {
+        let initials = composerInitials(name)
+        return Circle()
+            .fill(Color.roonGrey2)
+            .frame(width: composerCircleSize, height: composerCircleSize)
+            .overlay {
+                Text(initials)
+                    .font(.system(size: composerCircleSize * 0.3, weight: .light))
+                    .foregroundStyle(Color.roonTertiary)
+            }
+    }
+
+    /// Extract initials from a name: "Fabrice Aboulker" → "FA", "Ad-Rock" → "AR"
+    private func composerInitials(_ name: String) -> String {
+        let words = name.split(whereSeparator: { $0 == " " || $0 == "-" })
+        if words.count >= 2 {
+            return String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
+        } else if let first = words.first {
+            return String(first.prefix(2)).uppercased()
+        }
+        return ""
+    }
+
     // MARK: - Helpers
+
+    /// Strip Roon markup like `[[12345|Artist Name]]` → `Artist Name`
+    private func cleanRoonMarkup(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\[\\[(\\d+\\|)?([^\\]]+)\\]\\]", with: "$2", options: .regularExpression)
+    }
 
     private func loadMoreIfNeeded(item: BrowseItem) {
         guard let result = roonService.browseResult,
@@ -825,4 +1412,5 @@ struct RoonBrowseContentView: View {
         roonSearchText = ""
         searchItemKey = nil
     }
+
 }

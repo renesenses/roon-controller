@@ -34,13 +34,51 @@ gantt
 
     section v1.0.4
     Roon-style playlists, pagination    :done, 2026-02-14, 1d
+    4 specialized Browse views          :done, 2026-02-14, 1d
+    macOS Now Playing (Control Center)  :done, 2026-02-14, 1d
     Default zone, settings              :done, 2026-02-14, 1d
-    +15 tests (218)                     :done, 2026-02-14, 1d
+    +41 tests (244)                     :done, 2026-02-14, 1d
 ```
 
 ---
 
-## 2026-02-14
+## 2026-02-14 (session 2)
+
+### Activities
+
+- 4 specialized Browse views in RoonBrowseContentView (`5caaaf8`):
+  - **Genres**: adaptive grid with deterministic color gradient cards (title hash)
+  - **TIDAL/streaming**: carousel by sections with tab navigation and icon cards
+  - **Tracks**: track table with cover art prefetch (100 images ahead via NSCache)
+  - **Composers**: circular grid with initials and GrifoM font
+- macOS Now Playing integration in Control Center (`5caaaf8`):
+  - Track info (title, artist, album, duration, position)
+  - Album artwork (async fetch, updated on track change)
+  - Media controls: play/pause, next/prev, seek via MPRemoteCommandCenter
+- Mode toggle button (Roon → Player) in sidebar (`5caaaf8`)
+- `StreamingSection` model for structuring streaming service categories
+- `browseCategory` property in RoonService to identify root Browse category
+- 26 new unit tests (244 total): specialized Browse views, genre/streaming/tracks/composer detection, mode toggle
+
+### Decisions
+
+- Stay within existing `RoonBrowseContentView` architecture with detection heuristics (no separate views)
+- Use `nonisolated static func` to create `MPMediaItemArtwork` outside of `@MainActor` context
+- Dispatch `MPRemoteCommandCenter` closures via `Task { @MainActor in }` for proper actor isolation
+
+### Issues
+
+- ISS-024: Startup crash — MPRemoteCommandCenter closures called @MainActor methods from internal queue — resolved (`5caaaf8`)
+- ISS-025: Now Playing crash — MPMediaItemArtwork closure implicitly @MainActor-isolated by parent Task context — resolved (`5caaaf8`)
+- ISS-026: Tracks view incorrectly detected as playlist (unwanted playlist header) — resolved (`5caaaf8`)
+
+### Commits
+
+- `5caaaf8` — Fix Roon UI: browse navigation, playlist display, and transport bar improvements
+
+---
+
+## 2026-02-14 (session 1)
 
 ### Activities
 

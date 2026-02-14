@@ -28,8 +28,10 @@ timeline
                 : Remove Node.js
     2026-02-14 : v1.0.4
                 : Roon-style playlists
+                : 4 Browse views (Genres, TIDAL, Tracks, Composers)
+                : macOS Now Playing (Control Center)
                 : Default zone setting
-                : +15 tests (218)
+                : +41 tests (244)
 ```
 
 ## [Unreleased]
@@ -66,13 +68,19 @@ timeline
 - Default playback zone setting (persisted by `display_name`) (`5163eb9`)
 - Sidebar playlist count setting (5/10/20/50/all) (`d0c8438`)
 - Placeholder artwork for playlists without cover art (`d0c8438`)
-- 15 new unit tests (218 total): default zone, playlist filtering, UI mode (`5163eb9`, `d0c8438`)
+- 4 specialized Browse views: Genres (gradient cards), TIDAL/streaming (carousel with sections), Tracks (table with cover prefetch), Composers (circular grid with initials) (`5caaaf8`)
+- macOS Now Playing integration: track info, artwork and media controls in Control Center (`5caaaf8`)
+- Mode toggle button (Roon → Player) in sidebar (`5caaaf8`)
+- Cover art prefetch in Tracks view (NSCache + RoonImageProvider, 100 images ahead) (`5caaaf8`)
+- `StreamingSection` model for streaming service categories (`5caaaf8`)
+- 41 new unit tests (244 total): specialized Browse views, genre/streaming/tracks/composer detection, Now Playing, mode toggle (`5caaaf8`)
 
 ### Changed
 
 - Default display mode: Roon UI (instead of Player) (`5163eb9`)
 - Local playlist filtering in sidebar instead of global Browse search (`8b0932b`)
 - Playlist detection no longer requires `image_key` at list level (`d0c8438`)
+- Active Browse category tracked via `browseCategory` in RoonService (`5caaaf8`)
 
 ### Fixed
 
@@ -83,6 +91,9 @@ timeline
 - Track count mismatch (filter excluded tracks without subtitles) (`d0c8438`)
 - "Play Playlist" appeared in the track list (`d0c8438`)
 - Old track flash during track change (next/previous/searchAndPlay) (`d0c8438`)
+- Startup crash: MPRemoteCommandCenter closures called @MainActor methods from internal queue (`5caaaf8`)
+- Now Playing crash: MPMediaItemArtwork closure implicitly @MainActor-isolated, called from MPNowPlayingInfoCenter queue (`5caaaf8`)
+- Tracks view incorrectly detected as playlist (unwanted playlist header on flat track list) (`5caaaf8`)
 
 ## [1.0.3] - 2026-02-13
 

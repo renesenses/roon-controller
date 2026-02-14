@@ -201,6 +201,14 @@ struct BrowseResult: Codable, Equatable {
     var offset: Int?
 }
 
+struct StreamingSection: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let items: [BrowseItem]
+    /// Item keys to navigate from tab level to reach this section's context
+    let navigationPath: [String]
+}
+
 // MARK: - WebSocket Messages
 
 struct WSMessage: Codable {

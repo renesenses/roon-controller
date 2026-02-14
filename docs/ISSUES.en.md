@@ -6,9 +6,9 @@ Adapted from the PRINCE2 "Issue Register". Active tracking is done on [GitHub Is
 
 ```mermaid
 pie title Distribution by Severity
-    "Critical" : 3
+    "Critical" : 5
     "Major" : 8
-    "Minor" : 12
+    "Minor" : 13
 ```
 
 ```mermaid
@@ -37,6 +37,9 @@ timeline
                : ISS-021 Track count 🟡
                : ISS-022 Play Playlist visible 🟡
                : ISS-023 Track change flash 🟡
+               : ISS-024 MPRemoteCommand crash 🔴
+               : ISS-025 MPMediaItemArtwork crash 🔴
+               : ISS-026 Tracks as playlist 🟡
 ```
 
 | ID | Date | Description | Severity | Status | Resolution | Ref. |
@@ -64,3 +67,6 @@ timeline
 | ISS-021 | 2026-02-14 | Track count mismatch: subtitle-based filter excluded tracks without metadata | Minor | Resolved | Filter by `hint == "action_list"` (`d0c8438`) | — |
 | ISS-022 | 2026-02-14 | "Play Playlist" appeared as first item in track list | Minor | Resolved | Excluded `hint == "action"` items from track filter (`d0c8438`) | — |
 | ISS-023 | 2026-02-14 | Old track flash during track change (next/previous/searchAndPlay) | Minor | Resolved | Set `playbackTransitioning` with opacity dimming in views (`d0c8438`) | — |
+| ISS-024 | 2026-02-14 | Startup crash: MPRemoteCommandCenter closures called @MainActor methods from MediaPlayer framework's internal queue | Critical | Resolved | Dispatch via `Task { @MainActor in }` in each addTarget closure (`5caaaf8`) | — |
+| ISS-025 | 2026-02-14 | Now Playing crash: MPMediaItemArtwork closure inherited @MainActor isolation from parent Task, called from MPNowPlayingInfoCenter internal queue | Critical | Resolved | Extracted to `nonisolated static func makeArtwork(data:size:)` (`5caaaf8`) | — |
+| ISS-026 | 2026-02-14 | Tracks view (Morceaux) incorrectly detected as playlist, showing unwanted playlist header | Minor | Resolved | Added `isTrackListView` checked before `isPlaylistView` in render chain (`5caaaf8`) | — |
