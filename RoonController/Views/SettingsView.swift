@@ -11,7 +11,7 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Interface") {
-                Picker("Mode d'affichage par defaut", selection: $uiMode) {
+                Picker("Mode d'affichage par défaut", selection: $uiMode) {
                     Text("Player").tag("player")
                     Text("Roon").tag("roon")
                 }
@@ -30,14 +30,14 @@ struct SettingsView: View {
             }
 
             Section("Zone de lecture") {
-                Picker("Zone par defaut", selection: $defaultZoneName) {
-                    Text("Automatique (premiere zone)").tag("")
+                Picker("Zone par défaut", selection: $defaultZoneName) {
+                    Text("Automatique (première zone)").tag("")
                     ForEach(roonService.zones) { zone in
                         Text(zone.display_name).tag(zone.display_name)
                     }
                 }
 
-                Text("La zone selectionnee sera utilisee automatiquement au demarrage.")
+                Text("La zone sélectionnée sera utilisée automatiquement au démarrage.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -49,7 +49,7 @@ struct SettingsView: View {
                     Text("Toutes").tag(0)
                 }
 
-                Text("Nombre de playlists affichees dans la sidebar. La recherche porte toujours sur la totalite.")
+                Text("Nombre de playlists affichées dans la sidebar. La recherche porte toujours sur la totalité.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -117,7 +117,7 @@ struct SettingsView: View {
                 }
                 .disabled(coreIP.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                Button("Reinitialiser l'autorisation", role: .destructive) {
+                Button("Réinitialiser l'autorisation", role: .destructive) {
                     RoonRegistration.clearToken()
                     roonService.disconnect()
                     let ip = coreIP.trimmingCharacters(in: .whitespaces)
@@ -129,12 +129,13 @@ struct SettingsView: View {
                 }
                 .font(.caption)
 
-                Text("Efface le token d'autorisation et force un nouvel enregistrement aupres du Core.")
+                Text("Efface le token d'autorisation et force un nouvel enregistrement auprès du Core.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 560)
+        .frame(width: 450)
+        .frame(minHeight: 500, idealHeight: 620)
     }
 }
