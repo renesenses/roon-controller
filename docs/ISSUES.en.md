@@ -7,8 +7,8 @@ Adapted from the PRINCE2 "Issue Register". Active tracking is done on [GitHub Is
 ```mermaid
 pie title Distribution by Severity
     "Critical" : 3
-    "Major" : 6
-    "Minor" : 7
+    "Major" : 8
+    "Minor" : 12
 ```
 
 ```mermaid
@@ -30,6 +30,13 @@ timeline
                : ISS-014 Reconnection flash 🟡
                : ISS-015 Cover art null 🟡
                : ISS-016 CI permissions 🟡
+    2026-02-14 : ISS-017 Playlist search 🟠
+               : ISS-018 Playlist pagination 🟠
+               : ISS-019 Playlists in grid 🟡
+               : ISS-020 Playlist detection 🟡
+               : ISS-021 Track count 🟡
+               : ISS-022 Play Playlist visible 🟡
+               : ISS-023 Track change flash 🟡
 ```
 
 | ID | Date | Description | Severity | Status | Resolution | Ref. |
@@ -50,3 +57,10 @@ timeline
 | ISS-014 | 2026-02-13 | Reconnection: Red/green status indicator flash on each reconnection | Minor | Resolved | Smoothed connection state display (`0420e5b`) | — |
 | ISS-015 | 2026-02-13 | Cover art: `image_key` null in history and favorites (not in cache) | Minor | Resolved | Extended cover art cache to all screens (`a7f34ac`) | — |
 | ISS-016 | 2026-02-13 | CI: Claude Code workflow fails — missing `id-token` permission, misplaced timeout | Minor | Resolved | Added `id-token: write` permission and moved timeout to job level (`d1b75a5`) | [L-015](LESSONS_LEARNED.en.md#l-015) |
+| ISS-017 | 2026-02-14 | Sidebar playlist search performed global Browse search instead of local filter | Major | Resolved | Local filtering with `localizedCaseInsensitiveContains` (`8b0932b`) | — |
+| ISS-018 | 2026-02-14 | Only 100 playlists loaded in sidebar and Browse (missing pagination) | Major | Resolved | Pagination loop with `load(offset:count:)` (`d0c8438`) | — |
+| ISS-019 | 2026-02-14 | Playlists displayed as grid instead of list (incorrect `shouldShowGrid` detection) | Minor | Resolved | Added `isPlaylistListView` and excluded playlist containers from grid (`d0c8438`) | — |
+| ISS-020 | 2026-02-14 | Playlist detection failed when `image_key` missing at list level (playlist without artwork) | Minor | Resolved | Removed `image_key` requirement from `isPlaylistView` (`d0c8438`) | — |
+| ISS-021 | 2026-02-14 | Track count mismatch: subtitle-based filter excluded tracks without metadata | Minor | Resolved | Filter by `hint == "action_list"` (`d0c8438`) | — |
+| ISS-022 | 2026-02-14 | "Play Playlist" appeared as first item in track list | Minor | Resolved | Excluded `hint == "action"` items from track filter (`d0c8438`) | — |
+| ISS-023 | 2026-02-14 | Old track flash during track change (next/previous/searchAndPlay) | Minor | Resolved | Set `playbackTransitioning` with opacity dimming in views (`d0c8438`) | — |

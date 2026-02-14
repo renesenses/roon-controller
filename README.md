@@ -32,6 +32,8 @@ graph LR
 - Pochette d'album avec fond flou en arriere-plan
 - Navigation dans la bibliotheque Roon (Browse API)
 - Recherche dans les resultats de navigation
+- Vue playlists style Roon avec pagination complete (200+ playlists)
+- Zone de lecture par defaut dans les parametres (persistee par nom)
 - File d'attente (queue) avec lecture depuis un morceau
 - Controle du volume par sortie (slider + mute)
 - Historique de lecture avec replay (morceaux et radios live)
@@ -140,7 +142,7 @@ Roon client/
 │   └── Tests/
 │       ├── RoonModelsTests.swift        # Tests modeles de donnees
 │       ├── RoonServiceTests.swift       # Tests service et protocole MOO
-│       └── ViewBehaviorTests.swift      # Tests comportement des vues (203 tests au total)
+│       └── ViewBehaviorTests.swift      # Tests comportement des vues (218 tests au total)
 │
 └── docs/
     ├── INSTALL.md                   # Guide d'installation

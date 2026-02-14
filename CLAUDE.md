@@ -15,7 +15,7 @@ RoonController/
 ├── Services/Roon/Services/           # Transport, Browse, Image, Status
 ├── Services/Roon/Image/              # Serveur image local, cache
 ├── Views/                            # SwiftUI (Player, Sidebar, Queue, History, Favorites, etc.)
-└── Tests/                            # Tests unitaires (104 tests)
+└── Tests/                            # Tests unitaires (218 tests)
 ```
 
 ## Build & Test

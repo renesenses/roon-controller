@@ -32,6 +32,8 @@ graph LR
 - Album artwork with blurred background
 - Roon library browsing (Browse API)
 - Search within browse results
+- Roon-style playlist view with full pagination (200+ playlists)
+- Default playback zone in settings (persisted by name)
 - Queue with play-from-here
 - Per-output volume control (slider + mute)
 - Playback history with replay (tracks and live radio)
@@ -140,7 +142,7 @@ Roon client/
 |   +-- Tests/
 |       +-- RoonModelsTests.swift        # Data model tests
 |       +-- RoonServiceTests.swift       # Service and MOO protocol tests
-|       +-- ViewBehaviorTests.swift      # View behavior tests (203 tests total)
+|       +-- ViewBehaviorTests.swift      # View behavior tests (218 tests total)
 |
 +-- docs/
     +-- INSTALL.md / INSTALL.en.md       # Installation guide

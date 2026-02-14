@@ -26,6 +26,10 @@ timeline
                 : Binary universel
                 : +63 tests (203)
                 : Suppression Node.js
+    2026-02-14 : v1.0.4
+                : Playlists Roon-style
+                : Zone par defaut
+                : +15 tests (218)
 ```
 
 ## [Unreleased]
@@ -52,6 +56,33 @@ timeline
 - Lecture via Browse API `internet_radio` au lieu de recherche textuelle
 - Creation de playlist Roon depuis les favoris
 - UX simplifiee : swipe-to-delete, tri, filtre par station
+
+## [1.0.4] - 2026-02-14
+
+### Added
+
+- Vue liste des playlists style Roon (thumbnails 64px, sous-titres duree) (`d0c8438`)
+- Pagination complete des playlists dans la sidebar et le Browse (200+ playlists) (`d0c8438`)
+- Zone de lecture par defaut dans les parametres (persistance par `display_name`) (`5163eb9`)
+- Reglage du nombre de playlists affichees dans la sidebar (5/10/20/50/toutes) (`d0c8438`)
+- Placeholder pochette pour les playlists sans artwork (`d0c8438`)
+- 15 nouveaux tests unitaires (218 au total) : zone par defaut, filtrage playlists, mode UI (`5163eb9`, `d0c8438`)
+
+### Changed
+
+- Mode d'affichage par defaut : Roon UI (au lieu de Player) (`5163eb9`)
+- Filtrage local des playlists dans la sidebar au lieu de recherche globale Browse (`8b0932b`)
+- Detection des playlists sans exiger `image_key` au niveau list (`d0c8438`)
+
+### Fixed
+
+- Recherche playlists sidebar faisait une recherche globale Browse au lieu d'un filtre local (`8b0932b`)
+- Seulement 100 playlists chargees (pas de pagination) (`d0c8438`)
+- Playlists affichees en grille au lieu de liste (`d0c8438`)
+- Detection playlist echouait sans pochette au niveau list (`d0c8438`)
+- Compteur de morceaux incorrect (filtre excluait les morceaux sans sous-titre) (`d0c8438`)
+- "Play Playlist" apparaissait dans la liste de morceaux (`d0c8438`)
+- Flash de l'ancien morceau lors du changement de piste (next/previous/searchAndPlay) (`d0c8438`)
 
 ## [1.0.3] - 2026-02-13
 
@@ -120,8 +151,9 @@ timeline
 - CI/CD GitHub Actions avec integration Claude Code
 - Documentation technique bilingue
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.2...HEAD
-[1.0.3]: https://github.com/renesenses/roon-controller/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/renesenses/roon-controller/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/renesenses/roon-controller/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/renesenses/roon-controller/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/renesenses/roon-controller/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/renesenses/roon-controller/releases/tag/v1.0.0

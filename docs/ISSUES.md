@@ -7,8 +7,8 @@ Adapte du "Issue Register" PRINCE2. Le suivi actif se fait sur [GitHub Issues](h
 ```mermaid
 pie title Repartition par severite
     "Critique" : 3
-    "Majeur" : 6
-    "Mineur" : 7
+    "Majeur" : 8
+    "Mineur" : 12
 ```
 
 ```mermaid
@@ -30,6 +30,13 @@ timeline
                : ISS-014 Flash reconnexion 🟡
                : ISS-015 Pochettes null 🟡
                : ISS-016 CI permissions 🟡
+    2026-02-14 : ISS-017 Recherche playlists 🟠
+               : ISS-018 Pagination playlists 🟠
+               : ISS-019 Playlists en grille 🟡
+               : ISS-020 Detection playlist 🟡
+               : ISS-021 Compteur morceaux 🟡
+               : ISS-022 Play Playlist visible 🟡
+               : ISS-023 Flash changement piste 🟡
 ```
 
 | ID | Date | Description | Severite | Statut | Resolution | Ref. |
@@ -50,3 +57,10 @@ timeline
 | ISS-014 | 2026-02-13 | Reconnexion : flash rouge/vert de l'indicateur de statut a chaque reconnexion | Mineur | Resolu | Lissage de l'affichage de l'etat de connexion (`0420e5b`) | — |
 | ISS-015 | 2026-02-13 | Pochettes : `image_key` null dans historique et favoris (pas dans le cache) | Mineur | Resolu | Extension du cache pochettes a tous les ecrans (`a7f34ac`) | — |
 | ISS-016 | 2026-02-13 | CI : workflow Claude Code echoue — permission `id-token` manquante, timeout mal place | Mineur | Resolu | Ajout permission `id-token: write` et deplacement du timeout au niveau job (`d1b75a5`) | [L-015](LESSONS_LEARNED.md#l-015) |
+| ISS-017 | 2026-02-14 | Recherche playlists sidebar effectuait une recherche globale Browse au lieu d'un filtre local | Majeur | Resolu | Filtre local par `localizedCaseInsensitiveContains` (`8b0932b`) | — |
+| ISS-018 | 2026-02-14 | Seulement 100 playlists chargees dans la sidebar et le Browse (pas de pagination) | Majeur | Resolu | Pagination en boucle avec `load(offset:count:)` (`d0c8438`) | — |
+| ISS-019 | 2026-02-14 | Playlists affichees en grille au lieu de liste (detection `shouldShowGrid` incorrecte) | Mineur | Resolu | Ajout `isPlaylistListView` et exclusion des containers playlist de la grille (`d0c8438`) | — |
+| ISS-020 | 2026-02-14 | Detection playlist echouait si `image_key` absent au niveau list (playlist sans pochette) | Mineur | Resolu | Suppression du requirement `image_key` dans `isPlaylistView` (`d0c8438`) | — |
+| ISS-021 | 2026-02-14 | Compteur de morceaux incorrect : le filtre basé sur `subtitle` non vide excluait des morceaux | Mineur | Resolu | Filtre par `hint == "action_list"` (`d0c8438`) | — |
+| ISS-022 | 2026-02-14 | "Play Playlist" apparaissait comme premier element de la liste de morceaux | Mineur | Resolu | Exclusion des items `hint == "action"` du filtre morceaux (`d0c8438`) | — |
+| ISS-023 | 2026-02-14 | Flash de l'ancien morceau lors du changement de piste (next/previous/searchAndPlay) | Mineur | Resolu | Activation de `playbackTransitioning` avec dimming opacity dans les vues (`d0c8438`) | — |

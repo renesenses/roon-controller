@@ -85,6 +85,8 @@
 | 7.1 | Open Settings (Cmd+,) | Settings window |
 | 7.2 | Manual Core connection | Core pairs |
 | 7.3 | Reconnect button | Disconnects then reconnects via SOOD |
+| 7.4 | Default zone | Picker lists zones, choice persists across restarts |
+| 7.5 | Sidebar playlist count | Picker 5/10/20/50/All, applies immediately |
 
 ## Build Verification
 
@@ -119,7 +121,7 @@ Or from Xcode: **Product > Test** (Cmd+U).
 |------|-------------|
 | `Tests/RoonModelsTests.swift` | JSON decoding of models (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
 | `Tests/RoonServiceTests.swift` | Service logic (browse guard, history, zone selection, image URL) and MOO protocol (parsing, construction, request ID) |
-| `Tests/ViewBehaviorTests.swift` | View behavior tests (140 tests total) |
+| `Tests/ViewBehaviorTests.swift` | View behavior tests (default zone, playlist filtering, UI mode, browse views) |
 
 ### Test Details
 

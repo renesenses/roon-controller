@@ -87,6 +87,8 @@
 | 7.1 | Ouvrir Parametres (Cmd+,) | Fenetre de parametres |
 | 7.2 | Connexion manuelle Core | Le Core se paire |
 | 7.3 | Bouton Reconnecter | Deconnexion puis reconnexion SOOD |
+| 7.4 | Zone par defaut | Picker liste les zones, choix persiste au redemarrage |
+| 7.5 | Nombre de playlists sidebar | Picker 5/10/20/50/Toutes, applique immediatement |
 
 ## Verification du build
 
@@ -121,6 +123,7 @@ Ou depuis Xcode : **Product > Test** (Cmd+U).
 |---------|-------------|
 | `Tests/RoonModelsTests.swift` | Decodage JSON des modeles (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
 | `Tests/RoonServiceTests.swift` | Logique du service (browse guard, historique, selection de zone, URL image) et protocole MOO (parsing, construction, request ID) |
+| `Tests/ViewBehaviorTests.swift` | Tests comportement des vues (zone par defaut, filtrage playlists, mode UI, vues browse) |
 
 ### Detail des tests
 

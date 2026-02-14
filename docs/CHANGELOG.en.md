@@ -26,6 +26,10 @@ timeline
                 : Universal binary
                 : +63 tests (203)
                 : Remove Node.js
+    2026-02-14 : v1.0.4
+                : Roon-style playlists
+                : Default zone setting
+                : +15 tests (218)
 ```
 
 ## [Unreleased]
@@ -52,6 +56,33 @@ timeline
 - Playback via Browse API `internet_radio` instead of text search
 - Roon playlist creation from favorites
 - Simplified UX: swipe-to-delete, sort, filter by station
+
+## [1.0.4] - 2026-02-14
+
+### Added
+
+- Roon-style playlist list view (64px thumbnails, duration subtitles) (`d0c8438`)
+- Full playlist pagination in sidebar and Browse (200+ playlists) (`d0c8438`)
+- Default playback zone setting (persisted by `display_name`) (`5163eb9`)
+- Sidebar playlist count setting (5/10/20/50/all) (`d0c8438`)
+- Placeholder artwork for playlists without cover art (`d0c8438`)
+- 15 new unit tests (218 total): default zone, playlist filtering, UI mode (`5163eb9`, `d0c8438`)
+
+### Changed
+
+- Default display mode: Roon UI (instead of Player) (`5163eb9`)
+- Local playlist filtering in sidebar instead of global Browse search (`8b0932b`)
+- Playlist detection no longer requires `image_key` at list level (`d0c8438`)
+
+### Fixed
+
+- Sidebar playlist search performed global Browse search instead of local filter (`8b0932b`)
+- Only 100 playlists loaded (missing pagination) (`d0c8438`)
+- Playlists displayed as grid instead of list (`d0c8438`)
+- Playlist detection failed without list-level artwork (`d0c8438`)
+- Track count mismatch (filter excluded tracks without subtitles) (`d0c8438`)
+- "Play Playlist" appeared in the track list (`d0c8438`)
+- Old track flash during track change (next/previous/searchAndPlay) (`d0c8438`)
 
 ## [1.0.3] - 2026-02-13
 
@@ -120,8 +151,9 @@ timeline
 - CI/CD with GitHub Actions and Claude Code integration
 - Bilingual technical documentation
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.2...HEAD
-[1.0.3]: https://github.com/renesenses/roon-controller/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/renesenses/roon-controller/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/renesenses/roon-controller/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/renesenses/roon-controller/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/renesenses/roon-controller/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/renesenses/roon-controller/releases/tag/v1.0.0

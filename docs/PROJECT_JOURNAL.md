@@ -31,7 +31,53 @@ gantt
     Publication v1.0.2                  :milestone, 2026-02-13, 0d
     Binary universel, +63 tests         :done, 2026-02-13, 1d
     Nettoyage Node.js, fix CI           :done, 2026-02-13, 1d
+
+    section v1.0.4
+    Playlists Roon-style, pagination    :done, 2026-02-14, 1d
+    Zone par defaut, settings           :done, 2026-02-14, 1d
+    +15 tests (218)                     :done, 2026-02-14, 1d
 ```
+
+---
+
+## 2026-02-14
+
+### Activites
+
+- Ajout zone de lecture par defaut dans les parametres (Cmd+,), persistee par `display_name` (`5163eb9`)
+- Mode d'affichage par defaut passe de Player a Roon UI (`5163eb9`)
+- Correction du filtrage des playlists sidebar : filtre local au lieu de recherche globale Browse (`8b0932b`)
+- Pagination complete des playlists : chargement de 200+ playlists dans la sidebar et le Browse (`d0c8438`)
+- Reglage du nombre de playlists affichees dans la sidebar (5/10/20/50/toutes) (`d0c8438`)
+- Vue liste des playlists style Roon avec thumbnails 64px et sous-titres de duree (`d0c8438`)
+- Detection playlist corrigee (ne necessite plus `image_key` au niveau list) (`d0c8438`)
+- Filtrage des morceaux par `hint == "action_list"` au lieu de sous-titre non vide (`d0c8438`)
+- Suppression de "Play Playlist" de la liste de morceaux dans la vue playlist (`d0c8438`)
+- Transition de lecture : dimming de l'ancien morceau lors du changement de piste (`d0c8438`)
+- 15 nouveaux tests unitaires (218 au total) : zone par defaut, filtrage playlists, mode UI
+
+### Decisions
+
+- Utiliser `display_name` pour la zone par defaut (stable entre les redemarrages du Core, contrairement a `zone_id`)
+- Roon UI comme mode par defaut (la majorite des utilisateurs preferent la vue complete)
+- Filtrage local des playlists dans la sidebar (plus reactif que la recherche Browse API)
+- Limiter l'affichage a 10 playlists par defaut dans la sidebar (configurable)
+
+### Problemes
+
+- ISS-017 : Recherche playlists sidebar effectuait une recherche globale Browse — resolu (`8b0932b`)
+- ISS-018 : Seulement 100 playlists chargees (pagination manquante) — resolu (`d0c8438`)
+- ISS-019 : Playlists affichees en grille au lieu de liste — resolu (`d0c8438`)
+- ISS-020 : Detection playlist echouait sans pochette au niveau list — resolu (`d0c8438`)
+- ISS-021 : Compteur de morceaux incorrect (filtre basé sur sous-titre) — resolu (`d0c8438`)
+- ISS-022 : "Play Playlist" apparaissait dans la liste de morceaux — resolu (`d0c8438`)
+- ISS-023 : Flash de l'ancien morceau lors du changement de piste — resolu (`d0c8438`)
+
+### Commits
+
+- `5163eb9` — Add default zone setting and set Roon UI as default mode
+- `8b0932b` — Fix sidebar playlist search to filter locally instead of global browse
+- `d0c8438` — Improve playlist UI, pagination, and playback transitions
 
 ---
 

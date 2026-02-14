@@ -31,7 +31,53 @@ gantt
     Release v1.0.2                      :milestone, 2026-02-13, 0d
     Universal binary, +63 tests         :done, 2026-02-13, 1d
     Node.js cleanup, CI fix             :done, 2026-02-13, 1d
+
+    section v1.0.4
+    Roon-style playlists, pagination    :done, 2026-02-14, 1d
+    Default zone, settings              :done, 2026-02-14, 1d
+    +15 tests (218)                     :done, 2026-02-14, 1d
 ```
+
+---
+
+## 2026-02-14
+
+### Activities
+
+- Added default playback zone in settings (Cmd+,), persisted by `display_name` (`5163eb9`)
+- Changed default display mode from Player to Roon UI (`5163eb9`)
+- Fixed sidebar playlist filtering: local filter instead of global Browse search (`8b0932b`)
+- Full playlist pagination: loading 200+ playlists in sidebar and Browse (`d0c8438`)
+- Added sidebar playlist count setting (5/10/20/50/all) (`d0c8438`)
+- Roon-style playlist list view with 64px thumbnails and duration subtitles (`d0c8438`)
+- Fixed playlist detection (no longer requires `image_key` at list level) (`d0c8438`)
+- Track filtering by `hint == "action_list"` instead of non-empty subtitle (`d0c8438`)
+- Removed "Play Playlist" from track list in playlist view (`d0c8438`)
+- Playback transition: dimming old track info during track changes (`d0c8438`)
+- 15 new unit tests (218 total): default zone, playlist filtering, UI mode
+
+### Decisions
+
+- Use `display_name` for default zone (stable across Core restarts, unlike `zone_id`)
+- Roon UI as default mode (most users prefer the full view)
+- Local playlist filtering in sidebar (more responsive than Browse API search)
+- Limit sidebar to 10 playlists by default (configurable)
+
+### Issues
+
+- ISS-017: Sidebar playlist search performed global Browse search — resolved (`8b0932b`)
+- ISS-018: Only 100 playlists loaded (missing pagination) — resolved (`d0c8438`)
+- ISS-019: Playlists displayed as grid instead of list — resolved (`d0c8438`)
+- ISS-020: Playlist detection failed without list-level artwork — resolved (`d0c8438`)
+- ISS-021: Track count mismatch (subtitle-based filter) — resolved (`d0c8438`)
+- ISS-022: "Play Playlist" appeared in track list — resolved (`d0c8438`)
+- ISS-023: Old track flash during track change — resolved (`d0c8438`)
+
+### Commits
+
+- `5163eb9` — Add default zone setting and set Roon UI as default mode
+- `8b0932b` — Fix sidebar playlist search to filter locally instead of global browse
+- `d0c8438` — Improve playlist UI, pagination, and playback transitions
 
 ---
 
