@@ -38,6 +38,18 @@ struct RoonBrowseContentView: View {
         return actionCount > sample.count / 2
     }
 
+    /// Detect artist detail view: first item(s) have no image, followed by navigable items with images
+    private var isArtistDetailView: Bool {
+        let items = filteredBrowseItems
+        guard items.count >= 2,
+              items.first?.image_key == nil else { return false }
+        let sample = items.prefix(20)
+        let listWithImage = sample.filter {
+            $0.image_key != nil && ($0.hint == "list" || $0.hint == "action_list")
+        }.count
+        return listWithImage >= 1
+    }
+
     /// Show grid when most items have artwork (albums, artists, playlists)
     private var shouldShowGrid: Bool {
         let items = filteredBrowseItems
@@ -54,8 +66,8 @@ struct RoonBrowseContentView: View {
             // Navigation bar
             navBar
 
-            // Search field
-            if roonService.browseResult != nil {
+            // Search field (hidden on artist detail and album detail pages)
+            if roonService.browseResult != nil && !isArtistDetailView && !isPlaylistView {
                 searchField
             }
 
@@ -69,6 +81,8 @@ struct RoonBrowseContentView: View {
                     emptySearchState
                 } else if isPlaylistView && searchText.isEmpty {
                     playlistContent(items: items)
+                } else if isArtistDetailView && searchText.isEmpty {
+                    artistDetailContent(items: items)
                 } else if shouldShowGrid {
                     gridContent(items: items)
                 } else {
@@ -149,7 +163,8 @@ struct RoonBrowseContentView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.leading, 52)  // clear the sidebar toggle burger overlay
+        .padding(.trailing, 24)
         .padding(.vertical, 14)
     }
 
@@ -416,6 +431,17 @@ struct RoonBrowseContentView: View {
                     .tracking(-0.8)
                     .lineLimit(2)
 
+                // Artist name (extracted from first track with a subtitle)
+                if let firstTrack = items.first(where: { $0.subtitle != nil && !$0.subtitle!.isEmpty }) {
+                    let parsed = parseSubtitle(firstTrack.subtitle)
+                    if !parsed.artist.isEmpty {
+                        Text(parsed.artist)
+                            .font(.lato(16))
+                            .foregroundStyle(Color.roonSecondary)
+                            .lineLimit(1)
+                    }
+                }
+
                 // Track count
                 if let count = list?.count {
                     Text("\(count) morceaux")
@@ -554,11 +580,117 @@ struct RoonBrowseContentView: View {
                 .overlay(Color.roonSeparator.opacity(0.3))
                 .padding(.horizontal, 28)
 
+            let tracks = items.filter { $0.subtitle != nil && !$0.subtitle!.isEmpty }
             LazyVStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, item in
                     playlistTrackRow(item, index: index)
                 }
             }
+        }
+        .id(browseListId)
+    }
+
+    // MARK: - Artist Detail View
+
+    private func artistHeroHeader(actions: [BrowseItem]) -> some View {
+        let list = roonService.browseResult?.list
+        return HStack(alignment: .top, spacing: 24) {
+            // Artist photo
+            if let url = roonService.imageURL(key: list?.image_key, width: 480, height: 480) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        Color.roonGrey2
+                    }
+                }
+                .frame(width: 200, height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Spacer().frame(height: 8)
+
+                // Artist name
+                Text(list?.title ?? "")
+                    .font(.grifoM(36))
+                    .foregroundStyle(Color.roonText)
+                    .lineLimit(2)
+
+                // Element count
+                if let count = list?.count {
+                    Text("\(count) elements")
+                        .font(.lato(14))
+                        .foregroundStyle(Color.roonSecondary)
+                }
+
+                // Action buttons
+                HStack(spacing: 10) {
+                    ForEach(actions) { item in
+                        Button {
+                            if let itemKey = item.item_key {
+                                roonService.playInCurrentSession(itemKey: itemKey)
+                            }
+                        } label: {
+                            Text(item.title ?? "")
+                                .font(.latoBold(13))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.roonAccent)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 4)
+
+                Spacer()
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+    }
+
+    private func artistDetailContent(items: [BrowseItem]) -> some View {
+        let actions = items.filter { $0.image_key == nil }
+        let albums = items.filter { $0.image_key != nil }
+
+        return ScrollView {
+            artistHeroHeader(actions: actions)
+
+            Divider()
+                .overlay(Color.roonSeparator.opacity(0.3))
+                .padding(.horizontal, 28)
+
+            // Discography section
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Discographie")
+                    .font(.inter(20))
+                    .foregroundStyle(Color.roonText)
+                    .tracking(-0.5)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 12)
+
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: gridCardSize, maximum: gridCardSize + 40), spacing: 18)],
+                    spacing: 20
+                ) {
+                    ForEach(albums) { item in
+                        gridCard(item)
+                            .hoverScale()
+                            .onAppear { loadMoreIfNeeded(item: item) }
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
+            .padding(.bottom, 24)
         }
         .id(browseListId)
     }

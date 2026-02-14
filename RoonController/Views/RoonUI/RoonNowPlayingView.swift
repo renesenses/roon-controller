@@ -28,7 +28,7 @@ struct RoonNowPlayingView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.roonBackground)
+        .background(Color.roonBackground, ignoresSafeAreaEdges: [])
     }
 
     // MARK: - Wide Layout (art left, info right)
@@ -97,19 +97,23 @@ struct RoonNowPlayingView: View {
     @ViewBuilder
     private func blurredBackground(imageKey: String?) -> some View {
         if let url = roonService.imageURL(key: imageKey, width: 600, height: 600) {
-            AsyncImage(url: url) { phase in
-                if case .success(let image) = phase {
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .blur(radius: 100)
-                        .opacity(0.25)
+            GeometryReader { geo in
+                AsyncImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .clipped()
+                            .blur(radius: 100)
+                            .opacity(0.25)
+                    }
                 }
+                .id(imageKey)
+                .transition(.opacity)
+                .frame(width: geo.size.width, height: geo.size.height)
+                .overlay(Color.roonBackground.opacity(0.65))
             }
-            .id(imageKey)
-            .transition(.opacity)
-            .ignoresSafeArea()
-            .overlay(Color.roonBackground.opacity(0.65))
         }
     }
 

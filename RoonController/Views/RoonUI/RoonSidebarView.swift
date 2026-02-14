@@ -193,8 +193,8 @@ struct RoonSidebarView: View {
         return Button {
             activeCategoryKey = item.item_key
             selectedSection = .browse
-            if let key = item.item_key {
-                roonService.browseToCategory(itemKey: key)
+            if let title = item.title {
+                roonService.browseToCategory(title: title)
             }
         } label: {
             HStack(spacing: 12) {

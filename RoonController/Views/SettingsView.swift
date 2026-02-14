@@ -2,8 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var roonService: RoonService
-    @AppStorage("uiMode") private var uiMode = "player"
+    @AppStorage("uiMode") private var uiMode = "roon"
     @AppStorage("appTheme") private var appTheme = "light"
+    @AppStorage("default_zone_name") private var defaultZoneName = ""
     @State private var coreIP: String = RoonService.savedCoreIP ?? ""
 
     var body: some View {
@@ -25,6 +26,19 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+            }
+
+            Section("Zone de lecture") {
+                Picker("Zone par defaut", selection: $defaultZoneName) {
+                    Text("Automatique (premiere zone)").tag("")
+                    ForEach(roonService.zones) { zone in
+                        Text(zone.display_name).tag(zone.display_name)
+                    }
+                }
+
+                Text("La zone selectionnee sera utilisee automatiquement au demarrage.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Connexion Roon Core") {
@@ -108,6 +122,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 480)
+        .frame(width: 450, height: 560)
     }
 }

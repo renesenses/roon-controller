@@ -16,6 +16,8 @@ struct RoonTransportBarView: View {
                         trackInfo(nowPlaying: np)
                     }
                     .frame(width: 280, alignment: .leading)
+                    .opacity(roonService.playbackTransitioning ? 0.4 : 1.0)
+                    .animation(.easeInOut(duration: 0.3), value: roonService.playbackTransitioning)
                 }
                 .buttonStyle(.plain)
                 .padding(.leading, 18)

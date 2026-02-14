@@ -43,7 +43,7 @@ struct RoonContentView: View {
             .padding(.leading, 12)
             .keyboardShortcut("\\", modifiers: .command)
         }
-        .background(Color.roonBackground)
+        .background(Color.roonBackground, ignoresSafeAreaEdges: [])
     }
 
     // MARK: - Home Constants (matching Roon native)
@@ -362,6 +362,7 @@ struct RoonContentView: View {
                         Color.white.opacity(0.1)
                     }
                 }
+                .id("\(tile.imageKey ?? "")-\(roonService.connectionState)")
                 .frame(width: dernierementCardSize, height: dernierementCardSize)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             } else {

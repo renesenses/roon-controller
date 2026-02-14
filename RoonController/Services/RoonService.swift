@@ -21,6 +21,7 @@ class RoonService: ObservableObject {
     var playbackHistory: [PlaybackHistoryItem] = []
     @Published var radioFavorites: [RadioFavorite] = []
     var seekPosition: Int = 0
+    @Published var playbackTransitioning: Bool = false
     @Published var browseLoading: Bool = false
     @Published var playlistCreationStatus: String?
     @Published var lastError: String?
@@ -255,8 +256,10 @@ class RoonService: ObservableObject {
             }
         }
 
-        if currentZone == nil, let first = zones.first {
-            selectZone(first)
+        if currentZone == nil, !zones.isEmpty {
+            let defaultName = UserDefaults.standard.string(forKey: "default_zone_name") ?? ""
+            let target = zones.first(where: { $0.display_name == defaultName }) ?? zones.first!
+            selectZone(target)
             // Fetch sidebar categories now that we have a zone for the browse API
             if sidebarCategories.isEmpty {
                 fetchSidebarCategories()
@@ -271,6 +274,7 @@ class RoonService: ObservableObject {
                 // Track changed — reset seek to server value or 0
                 currentTrackIdentity = newIdentity
                 seekPosition = zone.seek_position ?? 0
+                playbackTransitioning = false
             } else if zone.state == "playing", let serverSeek = zone.seek_position {
                 // Same track, playing: sync from server
                 seekPosition = serverSeek
@@ -511,10 +515,9 @@ class RoonService: ObservableObject {
 
     func browseBack() {
         pendingBrowseKey = nil
+        guard !browseStack.isEmpty else { return }
+        browseStack.removeLast()
         browse(popLevels: 1)
-        if !browseStack.isEmpty {
-            browseStack.removeLast()
-        }
     }
 
     func browseHome() {
@@ -591,15 +594,11 @@ class RoonService: ObservableObject {
         // Queue subscription is already active from selectZone();
         // Roon Core sends queue updates automatically when playback starts.
 
-        if let title = list?.title {
-            if let level = list?.level, level > 0 {
-                while browseStack.count >= level {
-                    browseStack.removeLast()
-                }
-                browseStack.append(title)
-            } else {
-                browseStack = [title]
+        if let title = list?.title, let level = list?.level, level > 0 {
+            while browseStack.count >= level {
+                browseStack.removeLast()
             }
+            browseStack.append(title)
         }
     }
 
@@ -826,26 +825,64 @@ class RoonService: ObservableObject {
         }
     }
 
-    func browseToCategory(itemKey: String) {
+    func browseToCategory(title: String) {
         guard let browseService = browseService else { return }
         let zoneId = currentZone?.zone_id
 
         pendingBrowseKey = nil
         browseStack.removeAll()
-        browseResult = nil
         browseLoading = true
 
         currentBrowseTask?.cancel()
         currentBrowseTask = Task {
             do {
-                // Reset to root first
-                _ = try await browseService.browse(zoneId: zoneId, popAll: true)
+                let decoder = JSONDecoder()
+
+                // Reset to root
+                let rootResponse = try await browseService.browse(zoneId: zoneId, popAll: true)
                 guard !Task.isCancelled else { return }
-                // Navigate into the category
-                let response = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
-                guard !Task.isCancelled else { return }
+
+                let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                // Try at root level first
+                if let item = rootItems.first(where: { $0.title == title }),
+                   let key = item.item_key {
+                    let response = try await browseService.browse(zoneId: zoneId, itemKey: key)
+                    guard !Task.isCancelled else { return }
+                    DispatchQueue.main.async { [weak self] in
+                        self?.handleBrowseResponse(response, isPageLoad: false)
+                    }
+                    return
+                }
+
+                // Not at root — navigate into Library first (item_key is session-bound)
+                if let libItem = rootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
+                   let libKey = libItem.item_key {
+                    let libResponse = try await browseService.browse(zoneId: zoneId, itemKey: libKey)
+                    guard !Task.isCancelled else { return }
+
+                    let libItems: [BrowseItem] = libResponse.items.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+
+                    if let item = libItems.first(where: { $0.title == title }),
+                       let key = item.item_key {
+                        let response = try await browseService.browse(zoneId: zoneId, itemKey: key)
+                        guard !Task.isCancelled else { return }
+                        DispatchQueue.main.async { [weak self] in
+                            self?.handleBrowseResponse(response, isPageLoad: false)
+                        }
+                        return
+                    }
+                }
+
+                // Fallback: nothing found
                 DispatchQueue.main.async { [weak self] in
-                    self?.handleBrowseResponse(response, isPageLoad: false)
+                    self?.browseLoading = false
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -1058,21 +1095,24 @@ class RoonService: ObservableObject {
         }
     }
 
+    /// Browse into an item to find and trigger a play action.
+    /// Returns the number of browse levels pushed (for pop-back).
+    @discardableResult
     private func playBrowseItem(
         browseService: RoonBrowseService,
         zoneId: String,
         itemKey: String,
         depth: Int = 0,
         hierarchy: String = "browse"
-    ) async throws {
-        guard depth <= 3 else { return }
-        guard !Task.isCancelled else { return }
+    ) async throws -> Int {
+        guard depth <= 3 else { return 0 }
+        guard !Task.isCancelled else { return 0 }
 
         let result = try await browseService.browse(hierarchy: hierarchy, zoneId: zoneId, itemKey: itemKey)
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled else { return 1 }
         let action = result.action
 
-        if action == "message" { return } // Action executed
+        if action == "message" { return 1 } // Action executed (1 level pushed)
 
         // Look for play actions
         let playFromHere = result.items.first { item in
@@ -1085,14 +1125,17 @@ class RoonService: ObservableObject {
 
         if let directAction = directAction, let key = directAction["item_key"] as? String {
             _ = try await browseService.browse(hierarchy: hierarchy, zoneId: zoneId, itemKey: key)
-            return
+            return 2 // 2 levels: item + action
         }
 
         // Recurse into nested action_list
         let nextItem = result.items.first { ($0["hint"] as? String) == "action_list" } ?? result.items.first
         if let nextItem = nextItem, let key = nextItem["item_key"] as? String {
-            try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, depth: depth + 1, hierarchy: hierarchy)
+            let subLevels = try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, depth: depth + 1, hierarchy: hierarchy)
+            return 1 + subLevels
         }
+
+        return 1
     }
 
     func playItem(itemKey: String) {
@@ -1106,19 +1149,25 @@ class RoonService: ObservableObject {
         }
     }
 
-    /// Play from the current browse session (item keys are session-bound).
-    /// Drills into the item to find a play action, then pops back to restore the playlist view.
+    /// Play from the current browse session (item keys are context-dependent within the session).
+    /// Drills into the item to find a play action, then pops back to restore the browse view.
     func playInCurrentSession(itemKey: String) {
         guard let browseService = browseService else { return }
         guard let zoneId = currentZone?.zone_id else { return }
+        playbackTransitioning = true
         currentPlayTask?.cancel()
         currentPlayTask = Task {
+            var levelsPushed = 0
             do {
-                try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: itemKey)
-                // Pop back to the playlist level so the browse view stays on the playlist
-                _ = try await browseService.browse(zoneId: zoneId, popLevels: 1)
+                // Refresh session with current zone (handles zone changes)
+                _ = try await browseService.browse(zoneId: zoneId, popLevels: 0)
+                levelsPushed = try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: itemKey)
             } catch {
-                // Play failed silently
+                // Play failed
+            }
+            // Always pop back the exact number of levels pushed
+            if levelsPushed > 0 {
+                try? await browseService.browse(zoneId: zoneId, popLevels: levelsPushed)
             }
         }
     }

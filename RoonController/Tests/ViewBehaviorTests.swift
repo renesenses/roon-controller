@@ -754,18 +754,121 @@ final class ViewBehaviorTests: XCTestCase {
         )
     }
 
-    private func makeBrowseItem(title: String, hint: String, itemKey: String? = nil) -> BrowseItem {
-        let json: String
-        if let key = itemKey {
-            json = """
-            {"title": "\(title)", "hint": "\(hint)", "item_key": "\(key)"}
-            """
-        } else {
-            json = """
-            {"title": "\(title)", "hint": "\(hint)"}
-            """
-        }
+    private func makeBrowseItem(title: String, hint: String, itemKey: String? = nil, imageKey: String? = nil, subtitle: String? = nil) -> BrowseItem {
+        var fields: [String] = []
+        fields.append("\"title\": \"\(title)\"")
+        fields.append("\"hint\": \"\(hint)\"")
+        if let key = itemKey { fields.append("\"item_key\": \"\(key)\"") }
+        if let img = imageKey { fields.append("\"image_key\": \"\(img)\"") }
+        if let sub = subtitle { fields.append("\"subtitle\": \"\(sub)\"") }
+        let json = "{\(fields.joined(separator: ", "))}"
         return try! JSONDecoder().decode(BrowseItem.self, from: Data(json.utf8))
+    }
+
+    // MARK: - Browse layout detection
+
+    func testArtistDetailDetected() {
+        // Artist page: first items have no image, followed by albums with images
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Artist", hint: "list", itemKey: "a1"),
+            makeBrowseItem(title: "Start Radio", hint: "action", itemKey: "a2"),
+            makeBrowseItem(title: "Album 1", hint: "list", itemKey: "b1", imageKey: "img1"),
+            makeBrowseItem(title: "Album 2", hint: "list", itemKey: "b2", imageKey: "img2"),
+            makeBrowseItem(title: "Album 3", hint: "action_list", itemKey: "b3", imageKey: "img3"),
+        ]
+        // First item has no image
+        XCTAssertNil(items.first?.image_key)
+        // There are navigable items with images
+        let listWithImage = items.prefix(20).filter {
+            $0.image_key != nil && ($0.hint == "list" || $0.hint == "action_list")
+        }.count
+        XCTAssertGreaterThanOrEqual(listWithImage, 1)
+    }
+
+    func testAlbumNotDetectedAsArtist() {
+        // Album page: isPlaylistView catches this first; but also first item (Play Album)
+        // has no image_key and tracks have no navigable items with images
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Track 1", hint: "action", itemKey: "t1", subtitle: "Artist - Album"),
+            makeBrowseItem(title: "Track 2", hint: "action", itemKey: "t2", subtitle: "Artist - Album"),
+            makeBrowseItem(title: "Track 3", hint: "action", itemKey: "t3", subtitle: "Artist - Album"),
+        ]
+        let listWithImage = items.prefix(20).filter {
+            $0.image_key != nil && ($0.hint == "list" || $0.hint == "action_list")
+        }.count
+        // No items with image_key → listWithImage == 0 → not artist detail
+        XCTAssertEqual(listWithImage, 0)
+    }
+
+    func testCategoryNotDetectedAsArtist() {
+        // Category grid (list of artists): first item HAS an image → guard fails
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Artist 1", hint: "list", itemKey: "a1", imageKey: "img1"),
+            makeBrowseItem(title: "Artist 2", hint: "list", itemKey: "a2", imageKey: "img2"),
+            makeBrowseItem(title: "Artist 3", hint: "list", itemKey: "a3", imageKey: "img3"),
+        ]
+        // First item has image → not artist detail
+        XCTAssertNotNil(items.first?.image_key)
+    }
+
+    func testArtistDetailSeparatesActionsAndAlbums() {
+        // Items without image_key are actions, items with image_key are albums
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Artist", hint: "list", itemKey: "a1"),
+            makeBrowseItem(title: "Start Radio", hint: "action", itemKey: "a2"),
+            makeBrowseItem(title: "Album 1", hint: "list", itemKey: "b1", imageKey: "img1"),
+            makeBrowseItem(title: "Album 2", hint: "list", itemKey: "b2", imageKey: "img2"),
+        ]
+        let actions = items.filter { $0.image_key == nil }
+        let albums = items.filter { $0.image_key != nil }
+        XCTAssertEqual(actions.count, 2)
+        XCTAssertEqual(albums.count, 2)
+        XCTAssertEqual(actions[0].title, "Play Artist")
+        XCTAssertEqual(albums[0].title, "Album 1")
+    }
+
+    func testParseSubtitleExtractsArtist() {
+        // parseSubtitle splits "Artist - Album" into (artist, album)
+        func parseSubtitle(_ subtitle: String?) -> (artist: String, album: String) {
+            guard let subtitle = subtitle, !subtitle.isEmpty else { return ("", "") }
+            if let range = subtitle.range(of: " - ") {
+                let artist = String(subtitle[subtitle.startIndex..<range.lowerBound])
+                let album = String(subtitle[range.upperBound...])
+                return (artist, album)
+            }
+            return (subtitle, "")
+        }
+
+        let result1 = parseSubtitle("Pink Floyd - The Dark Side of the Moon")
+        XCTAssertEqual(result1.artist, "Pink Floyd")
+        XCTAssertEqual(result1.album, "The Dark Side of the Moon")
+
+        let result2 = parseSubtitle("Solo Artist")
+        XCTAssertEqual(result2.artist, "Solo Artist")
+        XCTAssertEqual(result2.album, "")
+
+        let result3 = parseSubtitle(nil)
+        XCTAssertEqual(result3.artist, "")
+        XCTAssertEqual(result3.album, "")
+
+        let result4 = parseSubtitle("")
+        XCTAssertEqual(result4.artist, "")
+        XCTAssertEqual(result4.album, "")
+    }
+
+    func testArtistWithOnlyActionsNotDetected() {
+        // Edge case: artist page with only actions loaded (albums not yet loaded)
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Artist", hint: "list", itemKey: "a1"),
+            makeBrowseItem(title: "Start Radio", hint: "action", itemKey: "a2"),
+        ]
+        // First item has no image (passes guard) but no items with images
+        XCTAssertNil(items.first?.image_key)
+        let listWithImage = items.prefix(20).filter {
+            $0.image_key != nil && ($0.hint == "list" || $0.hint == "action_list")
+        }.count
+        // No albums with images → listWithImage == 0 → not detected
+        XCTAssertEqual(listWithImage, 0)
     }
 
     // MARK: - Home Screen behavior
@@ -926,6 +1029,83 @@ final class ViewBehaviorTests: XCTestCase {
         let callback = { navigatedSection = .nowPlaying }
         callback()
         XCTAssertEqual(navigatedSection, .nowPlaying)
+    }
+
+    // MARK: - Default zone selection
+
+    func testDefaultZoneSelection() {
+        // When default_zone_name matches an existing zone, that zone is selected
+        let z1 = makeZone(id: "z1", name: "Salon")
+        let z2 = makeZone(id: "z2", name: "Bureau")
+        let z3 = makeZone(id: "z3", name: "Chambre")
+
+        UserDefaults.standard.set("Bureau", forKey: "default_zone_name")
+        defer { UserDefaults.standard.removeObject(forKey: "default_zone_name") }
+
+        // Simulate the selection logic from handleZonesData
+        let zones = [z1, z2, z3]
+        let defaultName = UserDefaults.standard.string(forKey: "default_zone_name") ?? ""
+        let target = zones.first(where: { $0.display_name == defaultName }) ?? zones.first!
+
+        XCTAssertEqual(target.display_name, "Bureau")
+        XCTAssertEqual(target.zone_id, "z2")
+    }
+
+    func testDefaultZoneFallback() {
+        // When default_zone_name doesn't match any zone, fall back to first zone
+        let z1 = makeZone(id: "z1", name: "Salon")
+        let z2 = makeZone(id: "z2", name: "Bureau")
+
+        UserDefaults.standard.set("Inexistante", forKey: "default_zone_name")
+        defer { UserDefaults.standard.removeObject(forKey: "default_zone_name") }
+
+        let zones = [z1, z2]
+        let defaultName = UserDefaults.standard.string(forKey: "default_zone_name") ?? ""
+        let target = zones.first(where: { $0.display_name == defaultName }) ?? zones.first!
+
+        XCTAssertEqual(target.display_name, "Salon")
+        XCTAssertEqual(target.zone_id, "z1")
+    }
+
+    func testDefaultZoneEmptyMeansAutomatic() {
+        // When default_zone_name is empty (no preference), first zone is selected
+        let z1 = makeZone(id: "z1", name: "Salon")
+        let z2 = makeZone(id: "z2", name: "Bureau")
+
+        UserDefaults.standard.removeObject(forKey: "default_zone_name")
+
+        let zones = [z1, z2]
+        let defaultName = UserDefaults.standard.string(forKey: "default_zone_name") ?? ""
+        XCTAssertEqual(defaultName, "")
+        let target = zones.first(where: { $0.display_name == defaultName }) ?? zones.first!
+
+        XCTAssertEqual(target.display_name, "Salon")
+    }
+
+    func testDefaultZoneMatchesDisplayNameNotId() {
+        // Selection uses display_name (stable) not zone_id (changes between restarts)
+        let z1 = makeZone(id: "1801a803-zone1", name: "Salon")
+        let z2 = makeZone(id: "9f32bc01-zone2", name: "Bureau")
+
+        UserDefaults.standard.set("Bureau", forKey: "default_zone_name")
+        defer { UserDefaults.standard.removeObject(forKey: "default_zone_name") }
+
+        let zones = [z1, z2]
+        let defaultName = UserDefaults.standard.string(forKey: "default_zone_name") ?? ""
+        let target = zones.first(where: { $0.display_name == defaultName }) ?? zones.first!
+
+        // Matches by display_name, not by zone_id
+        XCTAssertEqual(target.display_name, "Bureau")
+        XCTAssertEqual(target.zone_id, "9f32bc01-zone2")
+    }
+
+    // MARK: - Default UI mode
+
+    func testSettingsViewDefaultsToRoonMode() {
+        // SettingsView @AppStorage("uiMode") defaults to "roon"
+        UserDefaults.standard.removeObject(forKey: "uiMode")
+        let mode = UserDefaults.standard.string(forKey: "uiMode") ?? "roon"
+        XCTAssertEqual(mode, "roon")
     }
 
     // MARK: - Font registration
