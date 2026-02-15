@@ -827,7 +827,7 @@ class RoonService: ObservableObject {
         guard streamingAlbumDepth > 0 else { return }
         let levels = streamingAlbumDepth
         streamingAlbumDepth = 0
-        streamingSections = []
+        // Keep streamingSections cached — carousels restore instantly
         pendingBrowseKey = nil
         browseStack.removeAll()
         browse(popLevels: levels)
@@ -1474,15 +1474,35 @@ class RoonService: ObservableObject {
         previousTask?.cancel()
         let targetLevel = browseResult?.list?.level ?? 0
         currentPlayTask = Task {
+            func log(_ msg: String) {
+                let line = "[\(Date())] \(msg)\n"
+                let path = "/tmp/play_debug.log"
+                if let data = line.data(using: .utf8) {
+                    if FileManager.default.fileExists(atPath: path) {
+                        if let fh = FileHandle(forWritingAtPath: path) {
+                            fh.seekToEndOfFile(); fh.write(data); fh.closeFile()
+                        }
+                    } else {
+                        FileManager.default.createFile(atPath: path, contents: data)
+                    }
+                }
+            }
+
             // Serialize play operations to avoid concurrent browse session mutations
-            if previousTask != nil { _ = await previousTask?.value }
-            guard !Task.isCancelled else { return }
+            if previousTask != nil {
+                log("Waiting for previous task...")
+                _ = await previousTask?.value
+            }
+            guard !Task.isCancelled else { log("CANCELLED"); return }
+
+            log("START key=\(itemKey) targetLevel=\(targetLevel)")
 
             var currentLevel = targetLevel
             do {
                 // Browse into the track → pushes 1 level (action menu)
                 let result = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
                 currentLevel = result.list?["level"] as? Int ?? currentLevel + 1
+                log("After browse: level=\(currentLevel) action=\(result.action ?? "nil") items=\(result.items.count)")
                 guard !Task.isCancelled else {
                     if currentLevel > targetLevel {
                         _ = try? await browseService.browse(zoneId: zoneId, popLevels: currentLevel - targetLevel)
@@ -1499,19 +1519,29 @@ class RoonService: ObservableObject {
 
                 // Execute the play action (often auto-pops back to the parent level)
                 if let action = playAction, let key = action["item_key"] as? String {
+                    let actionTitle = action["title"] as? String ?? "?"
                     let actionResult = try await browseService.browse(zoneId: zoneId, itemKey: key)
                     currentLevel = actionResult.list?["level"] as? Int ?? currentLevel
+                    log("After action '\(actionTitle)': level=\(currentLevel)")
+                } else {
+                    log("No play action found")
                 }
 
                 // Only pop if we're still above the target level
-                if currentLevel > targetLevel {
-                    _ = try await browseService.browse(zoneId: zoneId, popLevels: currentLevel - targetLevel)
+                let popNeeded = currentLevel - targetLevel
+                log("popNeeded=\(popNeeded) (current=\(currentLevel) target=\(targetLevel))")
+                if popNeeded > 0 {
+                    let popResult = try await browseService.browse(zoneId: zoneId, popLevels: popNeeded)
+                    let afterPop = popResult.list?["level"] as? Int ?? -1
+                    log("After pop \(popNeeded): level=\(afterPop)")
                 }
             } catch {
+                log("ERROR: \(error)")
                 if currentLevel > targetLevel {
                     _ = try? await browseService.browse(zoneId: zoneId, popLevels: currentLevel - targetLevel)
                 }
             }
+            log("END")
         }
     }
 

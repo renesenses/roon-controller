@@ -63,7 +63,7 @@ struct RoonBrowseContentView: View {
     /// Inside a streaming service section (tab bar + content)
     private var isInsideStreamingService: Bool {
         guard let cat = roonService.browseCategory, Self.streamingTitles.contains(cat) else { return false }
-        return !streamingSections.isEmpty
+        return !streamingSections.isEmpty || roonService.streamingAlbumDepth > 0
     }
 
     /// Root track list: flat list of playable tracks without album header
@@ -129,10 +129,12 @@ struct RoonBrowseContentView: View {
                 navBar
             }
 
-            // Streaming service tab bar
+            // Streaming service nav bar + tab bar (hide tabs when inside an album)
             if isInsideStreamingService {
                 streamingNavBar
-                streamingTabBar
+                if roonService.streamingAlbumDepth == 0 {
+                    streamingTabBar
+                }
             }
 
             // Search field — show for composers, tracks, playlist lists & generic views
@@ -1224,8 +1226,7 @@ struct RoonBrowseContentView: View {
         .onTapGesture {
             guard let albumTitle = item.title else { return }
             searchText = ""
-            // Keep browseCategory and streamingSections so streaming chrome stays
-            roonService.streamingSections = []
+            // Keep streamingSections cached for instant back navigation
             browseListId = UUID()
             roonService.browseStreamingItem(
                 albumTitle: albumTitle,
