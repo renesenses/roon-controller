@@ -45,6 +45,7 @@ class RoonService: ObservableObject {
         self.trackImageKeyCache = Self.loadImageKeyCache(
             from: storageDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
         )
+        loadStreamingSectionsCache()
         setupRemoteCommands()
     }
 
@@ -70,11 +71,22 @@ class RoonService: ObservableObject {
     private var currentBrowseTask: Task<Void, Never>?
     private var streamingFetchTask: Task<Void, Never>?
 
+    /// Cache of streaming sections keyed by "Qobuz:Nouvelles Sorties", "TIDAL:New Releases", etc.
+    private var streamingSectionsCache: [String: CachedStreamingSections] = [:]
+    private static let streamingSectionsCacheFile = "streaming_sections_cache.json"
+    private static let streamingSectionsCacheExpiry: TimeInterval = 24 * 60 * 60
+
+    private struct CachedStreamingSections: Codable {
+        let sections: [StreamingSection]
+        let date: Date
+    }
+
     func cancelStreamingFetch() {
         streamingFetchTask?.cancel()
         streamingFetchTask = nil
     }
     private var currentPlayTask: Task<Void, Never>?
+    private var prefetchStreamingTask: Task<Void, Never>?
     private var seekTimer: Timer?
     private var refreshTimer: Timer?
 
@@ -129,12 +141,15 @@ class RoonService: ObservableObject {
 
     func disconnect() {
         isConnected = false
+        prefetchStreamingTask?.cancel()
+        prefetchStreamingTask = nil
         Task {
             await connection.disconnect()
         }
         zones = []
         currentZone = nil
         zonesById = [:]
+        streamingSectionsCache.removeAll()
         connectionState = .disconnected // @Published triggers single objectWillChange
     }
 
@@ -171,6 +186,7 @@ class RoonService: ObservableObject {
             if !sidebarCategories.isEmpty {
                 fetchSidebarCategories()
                 fetchRecentlyAdded()
+                prefetchStreamingServices()
             }
             startRefreshTimer()
         case .failed(let error):
@@ -278,6 +294,7 @@ class RoonService: ObservableObject {
                 fetchSidebarCategories()
                 fetchRecentlyAdded()
                 fetchProfileName()
+                prefetchStreamingServices()
             }
         }
 
@@ -688,8 +705,20 @@ class RoonService: ObservableObject {
     /// After completion, the session is back at tab content level.
     func fetchStreamingSections(items: [BrowseItem]) {
         guard let browseService = browseService else { return }
+        // Guard: must be inside a tab (service + tab in browseStack) to avoid
+        // race condition where auto-nav hasn't completed yet
+        guard browseStack.count >= 2 else { return }
         let zoneId = currentZone?.zone_id
         let decoder = JSONDecoder()
+
+        // Check cache before fetching (skip empty cached entries)
+        let cacheKey = streamingSectionsCacheKey()
+        if let cached = streamingSectionsCache[cacheKey],
+           !cached.sections.isEmpty,
+           Date().timeIntervalSince(cached.date) < Self.streamingSectionsCacheExpiry {
+            streamingSections = cached.sections
+            return
+        }
 
         streamingSections = []
 
@@ -748,9 +777,30 @@ class RoonService: ObservableObject {
             }
             guard !Task.isCancelled else { return }
             DispatchQueue.main.async { [weak self] in
-                self?.streamingSections = sections
+                guard let self = self else { return }
+                self.streamingSections = sections
+                if !sections.isEmpty {
+                    self.streamingSectionsCache[cacheKey] = CachedStreamingSections(sections: sections, date: Date())
+                    self.saveStreamingSectionsCache()
+                }
             }
         }
+    }
+
+    /// Restore cached sections for a streaming tab, or clear for fresh fetch.
+    func prepareStreamingTabSwitch(tabTitle: String) {
+        let cacheKey = "\(browseCategory ?? ""):\(tabTitle)"
+        if let cached = streamingSectionsCache[cacheKey],
+           !cached.sections.isEmpty,
+           Date().timeIntervalSince(cached.date) < Self.streamingSectionsCacheExpiry {
+            streamingSections = cached.sections
+        } else {
+            streamingSections = []
+        }
+    }
+
+    private func streamingSectionsCacheKey() -> String {
+        "\(browseCategory ?? ""):\(browseStack.last ?? "")"
     }
 
     func browseHome() {
@@ -916,6 +966,18 @@ class RoonService: ObservableObject {
             }
             browseStack.append(title)
         }
+
+        // Auto-trigger streaming sections fetch after tab auto-navigation completes.
+        // The view's .onAppear fires too early (before browseStack has the tab title),
+        // so we trigger here once we're at the right level.
+        if let cat = browseCategory, Self.streamingServiceTitles.contains(cat),
+           browseStack.count == 2, streamingSections.isEmpty, streamingAlbumDepth == 0 {
+            let sample = newItems.prefix(10)
+            let listCount = sample.filter { $0.hint == "list" }.count
+            if newItems.count >= 2 && listCount > sample.count / 2 {
+                fetchStreamingSections(items: newItems)
+            }
+        }
     }
 
     private func handleBrowseLoadResponse(_ response: RoonBrowseService.LoadResponse) {
@@ -1004,6 +1066,7 @@ class RoonService: ObservableObject {
 
     private static let libraryTitles = Set(["Library", "Bibliothèque"])
     private static let hiddenTitles = Set(["Settings", "Paramètres"])
+    private static let streamingServiceTitles: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
 
     func fetchSidebarCategories() {
         let zoneId = currentZone?.zone_id
@@ -1205,6 +1268,9 @@ class RoonService: ObservableObject {
         streamingAlbumDepth = 0
         streamingSections = []
         cancelStreamingFetch()
+        // Clear stale browse result to prevent streamingServiceAutoNav from firing
+        // with old items (e.g. library content) before the new response arrives.
+        browseResult = nil
         browseLoading = true
 
         currentBrowseTask?.cancel()
@@ -1907,6 +1973,195 @@ class RoonService: ObservableObject {
         encoder.dateEncodingStrategy = .iso8601
         if let data = try? encoder.encode(playbackHistory) {
             try? data.write(to: path)
+        }
+    }
+
+    // MARK: - Streaming Sections Cache Persistence
+
+    private func loadStreamingSectionsCache() {
+        guard let dir = storageDir else { return }
+        let path = dir.appendingPathComponent(Self.streamingSectionsCacheFile)
+        guard let data = try? Data(contentsOf: path) else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        if let cache = try? decoder.decode([String: CachedStreamingSections].self, from: data) {
+            // Filter out expired entries
+            let now = Date()
+            streamingSectionsCache = cache.filter { now.timeIntervalSince($0.value.date) < Self.streamingSectionsCacheExpiry }
+        }
+    }
+
+    private func saveStreamingSectionsCache() {
+        guard let dir = storageDir else { return }
+        let path = dir.appendingPathComponent(Self.streamingSectionsCacheFile)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        if let data = try? encoder.encode(streamingSectionsCache) {
+            try? data.write(to: path)
+        }
+    }
+
+    // MARK: - Streaming Services Pre-fetch
+
+    func prefetchStreamingServices() {
+        prefetchStreamingTask?.cancel()
+        prefetchStreamingTask = Task {
+            // Wait for sidebar categories to be populated by fetchSidebarCategories()
+            for _ in 0..<20 {
+                if !sidebarCategories.isEmpty || Task.isCancelled { break }
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+            guard !Task.isCancelled, !sidebarCategories.isEmpty else { return }
+
+            let services = sidebarCategories.compactMap(\.title).filter {
+                Self.streamingServiceTitles.contains($0)
+            }
+            guard !services.isEmpty else { return }
+
+            let zoneId = currentZone?.zone_id
+
+            for serviceName in services {
+                guard !Task.isCancelled else { return }
+
+                // Skip if all cached entries for this service are still valid
+                let servicePrefix = "\(serviceName):"
+                let cachedEntries = streamingSectionsCache.filter { $0.key.hasPrefix(servicePrefix) }
+                if !cachedEntries.isEmpty &&
+                   cachedEntries.allSatisfy({ Date().timeIntervalSince($0.value.date) < Self.streamingSectionsCacheExpiry }) {
+                    continue
+                }
+
+                await prefetchServiceSections(serviceName: serviceName, zoneId: zoneId)
+            }
+
+            guard !Task.isCancelled else { return }
+            saveStreamingSectionsCache()
+        }
+    }
+
+    private func prefetchServiceSections(serviceName: String, zoneId: String?) async {
+        let session = RoonBrowseService(connection: connection, sessionKey: "prefetch_\(serviceName.lowercased())")
+        let decoder = JSONDecoder()
+
+        func decodeItems(_ dicts: [[String: Any]]) -> [BrowseItem] {
+            dicts.compactMap { dict in
+                guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                return try? decoder.decode(BrowseItem.self, from: data)
+            }
+        }
+
+        do {
+            // Browse root
+            let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
+            let rootItems = decodeItems(rootResponse.items)
+            guard !Task.isCancelled else { return }
+
+            // Find service at root level or inside Library
+            var serviceKey: String?
+            if let item = rootItems.first(where: { $0.title == serviceName }) {
+                serviceKey = item.item_key
+            } else if let libItem = rootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
+                      let libKey = libItem.item_key {
+                let libResponse = try await session.browse(zoneId: zoneId, itemKey: libKey)
+                let libItems = decodeItems(libResponse.items)
+                serviceKey = libItems.first(where: { $0.title == serviceName })?.item_key
+            }
+
+            guard let serviceKey = serviceKey, !Task.isCancelled else {
+                return
+            }
+
+            // Navigate into service → get tabs
+            let tabsResponse = try await session.browse(zoneId: zoneId, itemKey: serviceKey)
+            let tabs = decodeItems(tabsResponse.items)
+            guard !Task.isCancelled else { return }
+
+            // Only process tabs with non-empty titles (skip search/action items with empty titles)
+            let navigableTabs = tabs.filter { $0.title != nil && !$0.title!.isEmpty && $0.item_key != nil }
+            for tab in navigableTabs {
+                guard !Task.isCancelled else { return }
+                guard let tabKey = tab.item_key, let tabTitle = tab.title else { continue }
+
+                let cacheKey = "\(serviceName):\(tabTitle)"
+
+                // Skip if this tab's cache is still valid
+                if let cached = streamingSectionsCache[cacheKey],
+                   Date().timeIntervalSince(cached.date) < Self.streamingSectionsCacheExpiry {
+                    continue
+                }
+
+                // Navigate into tab
+                let tabContent = try await session.browse(zoneId: zoneId, itemKey: tabKey)
+                let tabItems = decodeItems(tabContent.items)
+                guard !Task.isCancelled else {
+                    _ = try? await session.browse(zoneId: zoneId, popLevels: 1)
+                    return
+                }
+
+                var sections: [StreamingSection] = []
+
+                for subItem in tabItems {
+                    guard !Task.isCancelled else {
+                        _ = try? await session.browse(zoneId: zoneId, popLevels: 1)
+                        return
+                    }
+                    guard let subKey = subItem.item_key, let subTitle = subItem.title else { continue }
+
+                    let subResponse = try await session.browse(zoneId: zoneId, itemKey: subKey)
+                    let subItems = decodeItems(subResponse.items)
+                    guard !Task.isCancelled else {
+                        _ = try? await session.browse(zoneId: zoneId, popLevels: 2)
+                        return
+                    }
+
+                    let hasImages = subItems.prefix(5).contains { $0.image_key != nil }
+
+                    if hasImages {
+                        sections.append(StreamingSection(
+                            id: subKey,
+                            title: subTitle,
+                            items: Array(subItems.prefix(10)),
+                            navigationTitles: [subTitle]
+                        ))
+                    } else {
+                        for subSubItem in subItems.prefix(4) {
+                            guard !Task.isCancelled else {
+                                _ = try? await session.browse(zoneId: zoneId, popLevels: 2)
+                                return
+                            }
+                            guard let subSubKey = subSubItem.item_key,
+                                  let subSubTitle = subSubItem.title else { continue }
+                            let sectionTitle = "\(subTitle) — \(subSubTitle)"
+                            let subSubResponse = try await session.browse(zoneId: zoneId, itemKey: subSubKey)
+                            let level2Items = decodeItems(subSubResponse.items)
+                            guard !Task.isCancelled else {
+                                _ = try? await session.browse(zoneId: zoneId, popLevels: 2)
+                                return
+                            }
+                            if !level2Items.isEmpty {
+                                sections.append(StreamingSection(
+                                    id: subSubKey,
+                                    title: sectionTitle,
+                                    items: Array(level2Items.prefix(10)),
+                                    navigationTitles: [subTitle, subSubTitle]
+                                ))
+                            }
+                            _ = try await session.browse(zoneId: zoneId, popLevels: 1)
+                        }
+                    }
+
+                    _ = try await session.browse(zoneId: zoneId, popLevels: 1)
+                }
+
+                if !sections.isEmpty {
+                    streamingSectionsCache[cacheKey] = CachedStreamingSections(sections: sections, date: Date())
+                }
+
+                // Pop back to tabs level
+                _ = try await session.browse(zoneId: zoneId, popLevels: 1)
+            }
+        } catch {
+            // Prefetch failed silently — will retry on next connection
         }
     }
 

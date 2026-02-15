@@ -201,7 +201,7 @@ struct BrowseResult: Codable, Equatable {
     var offset: Int?
 }
 
-struct StreamingSection: Identifiable, Equatable {
+struct StreamingSection: Identifiable, Equatable, Codable {
     let id: String
     let title: String
     let items: [BrowseItem]
