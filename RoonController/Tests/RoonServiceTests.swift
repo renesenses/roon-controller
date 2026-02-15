@@ -180,7 +180,8 @@ final class RoonServiceTests: XCTestCase {
 
     func testImageURLGeneration() {
         let url = service.imageURL(key: "abc123", width: 400, height: 400)
-        XCTAssertEqual(url?.absoluteString, "http://localhost:9150/image/abc123?width=400&height=400")
+        let port = LocalImageServer.currentPort
+        XCTAssertEqual(url?.absoluteString, "http://localhost:\(port)/image/abc123?width=400&height=400")
     }
 
     func testImageURLReturnsNilForNilKey() {
