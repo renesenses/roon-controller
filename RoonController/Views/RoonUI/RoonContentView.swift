@@ -367,7 +367,7 @@ struct RoonContentView: View {
                         Color.white.opacity(0.1)
                     }
                 }
-                .id("\(tile.imageKey ?? "")-\(roonService.connectionState)")
+                .id(tile.imageKey ?? "")
                 .frame(width: dernierementCardSize, height: dernierementCardSize)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             } else {

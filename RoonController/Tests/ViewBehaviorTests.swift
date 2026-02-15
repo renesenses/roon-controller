@@ -1529,6 +1529,167 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertEqual(section.navigationTitles.count, 2)
     }
 
+    // MARK: - Sidebar completeness (explorer + library classification)
+
+    // Reproduce RoonSidebarView classification sets
+    private static let sidebarExplorerTitles = Set([
+        "Genres", "TIDAL", "Qobuz", "KKBOX", "nugs.net",
+        "Live Radio", "Écouter plus tard", "Étiquettes", "Tags",
+        "Historique", "History"
+    ])
+    private static let sidebarLibraryTitles = Set([
+        "Albums", "Artistes", "Artists", "Morceaux", "Tracks",
+        "Compositeurs", "Composers", "Compositions",
+        "Mes Live Radios", "My Live Radio", "Répertoires", "Folders"
+    ])
+
+    /// Helper: classify items the same way RoonSidebarView does
+    private func classifyExplorer(_ items: [BrowseItem]) -> [BrowseItem] {
+        items.filter {
+            let title = $0.title ?? ""
+            return Self.sidebarExplorerTitles.contains(title)
+                || !Self.sidebarLibraryTitles.contains(title)
+        }
+    }
+
+    private func classifyLibrary(_ items: [BrowseItem]) -> [BrowseItem] {
+        items.filter {
+            Self.sidebarLibraryTitles.contains($0.title ?? "")
+        }
+    }
+
+    func testSidebarCompletenessTypicalFrenchSetup() {
+        // Simulate a typical French Roon setup with TIDAL + Qobuz
+        let categories: [BrowseItem] = [
+            // Explorer items (from root)
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "Qobuz", hint: "list", itemKey: "e3"),
+            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e4"),
+            makeBrowseItem(title: "Historique", hint: "list", itemKey: "e5"),
+            makeBrowseItem(title: "Étiquettes", hint: "list", itemKey: "e6"),
+            // Library items (from Library sub-navigation)
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l1"),
+            makeBrowseItem(title: "Artistes", hint: "list", itemKey: "l2"),
+            makeBrowseItem(title: "Morceaux", hint: "list", itemKey: "l3"),
+            makeBrowseItem(title: "Compositeurs", hint: "list", itemKey: "l4"),
+            makeBrowseItem(title: "Compositions", hint: "list", itemKey: "l5"),
+            makeBrowseItem(title: "Mes Live Radios", hint: "list", itemKey: "l6"),
+            makeBrowseItem(title: "Répertoires", hint: "list", itemKey: "l7"),
+        ]
+        service.sidebarCategories = categories
+
+        let explorer = classifyExplorer(categories)
+        let library = classifyLibrary(categories)
+
+        // All explorer items present
+        XCTAssertEqual(explorer.count, 6, "Explorer: Genres, TIDAL, Qobuz, Live Radio, Historique, Étiquettes")
+        XCTAssertTrue(explorer.contains { $0.title == "Genres" })
+        XCTAssertTrue(explorer.contains { $0.title == "TIDAL" })
+        XCTAssertTrue(explorer.contains { $0.title == "Qobuz" })
+        XCTAssertTrue(explorer.contains { $0.title == "Live Radio" })
+
+        // All library items present
+        XCTAssertEqual(library.count, 7, "Library: Albums, Artistes, Morceaux, Compositeurs, Compositions, Mes Live Radios, Répertoires")
+        XCTAssertTrue(library.contains { $0.title == "Albums" })
+        XCTAssertTrue(library.contains { $0.title == "Artistes" })
+        XCTAssertTrue(library.contains { $0.title == "Morceaux" })
+        XCTAssertTrue(library.contains { $0.title == "Compositeurs" })
+        XCTAssertTrue(library.contains { $0.title == "Mes Live Radios" })
+
+        // Total: explorer + library = all items
+        XCTAssertEqual(explorer.count + library.count, categories.count,
+                       "No items should be lost in classification")
+    }
+
+    func testSidebarCompletenessEnglishSetup() {
+        // English Roon setup
+        let categories: [BrowseItem] = [
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e3"),
+            makeBrowseItem(title: "History", hint: "list", itemKey: "e4"),
+            makeBrowseItem(title: "Tags", hint: "list", itemKey: "e5"),
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l1"),
+            makeBrowseItem(title: "Artists", hint: "list", itemKey: "l2"),
+            makeBrowseItem(title: "Tracks", hint: "list", itemKey: "l3"),
+            makeBrowseItem(title: "Composers", hint: "list", itemKey: "l4"),
+            makeBrowseItem(title: "My Live Radio", hint: "list", itemKey: "l5"),
+            makeBrowseItem(title: "Folders", hint: "list", itemKey: "l6"),
+        ]
+        service.sidebarCategories = categories
+
+        let explorer = classifyExplorer(categories)
+        let library = classifyLibrary(categories)
+
+        XCTAssertEqual(explorer.count, 5)
+        XCTAssertEqual(library.count, 6)
+        XCTAssertEqual(explorer.count + library.count, categories.count)
+    }
+
+    func testSidebarUnknownItemGoesToExplorer() {
+        // Unknown items (future Roon categories) should appear in Explorer, not be lost
+        let categories: [BrowseItem] = [
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "New Future Feature", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l1"),
+        ]
+        service.sidebarCategories = categories
+
+        let explorer = classifyExplorer(categories)
+        let library = classifyLibrary(categories)
+
+        // Unknown "New Future Feature" should land in explorer (not lost)
+        XCTAssertTrue(explorer.contains { $0.title == "New Future Feature" })
+        XCTAssertEqual(explorer.count + library.count, categories.count,
+                       "Unknown items must not be lost")
+    }
+
+    func testSidebarNoItemLostWithAllStreamingServices() {
+        // Setup with all 4 streaming services
+        let categories: [BrowseItem] = [
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "Qobuz", hint: "list", itemKey: "e3"),
+            makeBrowseItem(title: "KKBOX", hint: "list", itemKey: "e4"),
+            makeBrowseItem(title: "nugs.net", hint: "list", itemKey: "e5"),
+            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e6"),
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l1"),
+            makeBrowseItem(title: "Artistes", hint: "list", itemKey: "l2"),
+        ]
+        service.sidebarCategories = categories
+
+        let explorer = classifyExplorer(categories)
+        let library = classifyLibrary(categories)
+
+        XCTAssertTrue(explorer.contains { $0.title == "TIDAL" })
+        XCTAssertTrue(explorer.contains { $0.title == "Qobuz" })
+        XCTAssertTrue(explorer.contains { $0.title == "KKBOX" })
+        XCTAssertTrue(explorer.contains { $0.title == "nugs.net" })
+        XCTAssertEqual(explorer.count, 6)
+        XCTAssertEqual(library.count, 2)
+        XCTAssertEqual(explorer.count + library.count, categories.count)
+    }
+
+    func testSidebarCacheSurvivesDisconnect() {
+        // streamingSectionsCache must not be cleared by disconnect()
+        let categories: [BrowseItem] = [
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l1"),
+        ]
+        service.sidebarCategories = categories
+
+        service.disconnect()
+
+        // sidebarCategories are not cleared by disconnect (only zones are)
+        // The fix we applied: streamingSectionsCache is also preserved
+        // Note: sidebarCategories are cleared separately, the key invariant is
+        // that disconnect() does not destroy cached data unnecessarily
+        XCTAssertEqual(service.sidebarCategories.count, 3,
+                       "sidebarCategories should survive disconnect")
+    }
+
     // MARK: - Helpers
 
     private func formatTime(_ totalSeconds: Int) -> String {

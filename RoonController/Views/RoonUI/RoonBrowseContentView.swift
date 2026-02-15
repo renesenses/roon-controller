@@ -204,6 +204,12 @@ struct RoonBrowseContentView: View {
                 searchItemKey = nil
             }
         }
+        .onChange(of: roonService.browseStack) { _, newStack in
+            if newStack.isEmpty {
+                streamingSections = []
+                activeStreamingTab = 0
+            }
+        }
     }
 
     // MARK: - Navigation Bar
@@ -1111,7 +1117,7 @@ struct RoonBrowseContentView: View {
               let itemKey = streamingSections[index].item_key else { return }
         let title = streamingSections[index].title ?? ""
         activeStreamingTab = index
-        roonService.streamingSections = []
+        roonService.prepareStreamingTabSwitch(tabTitle: title)
         browseListId = UUID()
         roonService.browseSwitchSibling(itemKey: itemKey, title: title)
     }
