@@ -19,6 +19,7 @@ class RoonService: ObservableObject {
     @Published var browseResult: BrowseResult?
     @Published var browseStack: [String] = []
     var browseCategory: String?
+    var streamingAlbumDepth: Int = 0
     @Published var streamingSections: [StreamingSection] = []
     var queueItems: [QueueItem] = []
     var playbackHistory: [PlaybackHistoryItem] = []
@@ -574,6 +575,10 @@ class RoonService: ObservableObject {
             return
         }
         pendingBrowseKey = browseKey
+        // Track depth when navigating deeper inside a streaming album
+        if itemKey != nil && streamingAlbumDepth > 0 {
+            streamingAlbumDepth += 1
+        }
 
         guard let browseService = browseService else { return }
         let zoneId = currentZone?.zone_id
@@ -631,6 +636,9 @@ class RoonService: ObservableObject {
         pendingBrowseKey = nil
         guard !browseStack.isEmpty else { return }
         browseStack.removeLast()
+        if streamingAlbumDepth > 0 {
+            streamingAlbumDepth -= 1
+        }
         browse(popLevels: 1)
     }
 
@@ -702,7 +710,7 @@ class RoonService: ObservableObject {
                     let hasImages = level1Items.prefix(5).contains { $0.image_key != nil }
 
                     if hasImages {
-                        sections.append(StreamingSection(id: itemKey, title: title, items: Array(level1Items.prefix(10)), navigationPath: [itemKey]))
+                        sections.append(StreamingSection(id: itemKey, title: title, items: Array(level1Items.prefix(10)), navigationTitles: [title]))
                     } else {
                         for subItem in level1Items.prefix(4) {
                             guard !Task.isCancelled else {
@@ -718,7 +726,7 @@ class RoonService: ObservableObject {
                             }
                             let level2Items = decodeItems(subResponse.items)
                             if !level2Items.isEmpty {
-                                sections.append(StreamingSection(id: subKey, title: sectionTitle, items: Array(level2Items.prefix(10)), navigationPath: [itemKey, subKey]))
+                                sections.append(StreamingSection(id: subKey, title: sectionTitle, items: Array(level2Items.prefix(10)), navigationTitles: [title, subTitle]))
                             }
                             _ = try await browseService.browse(zoneId: zoneId, popLevels: 1)
                         }
@@ -740,6 +748,7 @@ class RoonService: ObservableObject {
         pendingBrowseKey = nil
         browseStack.removeAll()
         browseCategory = nil
+        streamingAlbumDepth = 0
         streamingSections = []
         // Keep old browseResult visible while loading root items
         browseLoading = true
@@ -747,9 +756,9 @@ class RoonService: ObservableObject {
     }
 
     /// Navigate into a streaming carousel item.
-    /// Waits for the fetch to finish (it restores the session to tab content level),
-    /// then navigates: section path → item.
-    func browseStreamingItem(itemKey: String, navigationPath: [String]) {
+    /// Waits for the fetch to finish (session at tab content level),
+    /// then re-navigates by matching titles to get fresh item keys.
+    func browseStreamingItem(albumTitle: String, sectionTitles: [String]) {
         guard let browseService = browseService else { return }
         let zoneId = currentZone?.zone_id
 
@@ -757,65 +766,71 @@ class RoonService: ObservableObject {
         pendingBrowseKey = nil
         browseLoading = true
 
-        // Don't cancel the fetch — let it finish so it pops back properly
         let fetchTask = streamingFetchTask
 
         currentBrowseTask = Task {
-            let logPath = "/tmp/streaming_click.log"
-            func log(_ msg: String) {
-                let line = "[\(Date())] \(msg)\n"
-                if let data = line.data(using: .utf8) {
-                    if FileManager.default.fileExists(atPath: logPath) {
-                        if let fh = FileHandle(forWritingAtPath: logPath) {
-                            fh.seekToEndOfFile(); fh.write(data); fh.closeFile()
-                        }
-                    } else {
-                        FileManager.default.createFile(atPath: logPath, contents: data)
-                    }
-                }
-            }
-
-            log("START itemKey=\(itemKey) path=\(navigationPath) fetchTask=\(fetchTask != nil)")
-
             // Wait for fetch to complete (session back at tab content level)
             if fetchTask != nil {
-                log("Waiting for fetch to complete...")
                 _ = await fetchTask?.value
-                log("Fetch completed")
             }
             streamingFetchTask = nil
             guard !Task.isCancelled else {
-                log("CANCELLED after fetch wait")
-                DispatchQueue.main.async { [weak self] in self?.browseLoading = false }
+                browseLoading = false
                 return
             }
 
             do {
-                // Main session is at tab content level.
-                // Navigate section path (1-2 levels deep from tab content)
-                for pathKey in navigationPath {
-                    log("Navigating path key: \(pathKey)")
-                    let pathResp = try await browseService.browse(zoneId: zoneId, itemKey: pathKey)
-                    log("Path response: action=\(pathResp.action ?? "nil") items=\(pathResp.items.count) list=\(pathResp.list ?? [:])")
-                    guard !Task.isCancelled else { log("CANCELLED in path"); return }
+                let decoder = JSONDecoder()
+                func decodeItems(_ dicts: [[String: Any]]) -> [BrowseItem] {
+                    dicts.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
                 }
 
-                // Navigate into the album/item
-                log("Navigating to album: \(itemKey)")
-                let response = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
-                log("Album response: action=\(response.action ?? "nil") items=\(response.items.count) list=\(response.list ?? [:])")
-                guard !Task.isCancelled else { log("CANCELLED after album"); return }
-                log("Calling handleBrowseResponse")
-                DispatchQueue.main.async { [weak self] in
-                    self?.handleBrowseResponse(response, isPageLoad: false)
+                // Load tab content items with fresh keys
+                let tabLoad = try await browseService.load(offset: 0, count: 100)
+                guard !Task.isCancelled else { return }
+                var currentItems = decodeItems(tabLoad.items)
+
+                // Re-navigate section path by matching titles
+                for pathTitle in sectionTitles {
+                    guard let match = currentItems.first(where: { $0.title == pathTitle }),
+                          let matchKey = match.item_key else {
+                        browseLoading = false
+                        return
+                    }
+                    let resp = try await browseService.browse(zoneId: zoneId, itemKey: matchKey)
+                    guard !Task.isCancelled else { return }
+                    currentItems = decodeItems(resp.items)
                 }
+
+                // Find album by title and navigate into it
+                guard let album = currentItems.first(where: { $0.title == albumTitle }),
+                      let albumKey = album.item_key else {
+                    browseLoading = false
+                    return
+                }
+
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: albumKey)
+                guard !Task.isCancelled else { return }
+                streamingAlbumDepth = sectionTitles.count + 1
+                handleBrowseResponse(response, isPageLoad: false)
             } catch {
-                log("ERROR: \(error)")
-                DispatchQueue.main.async { [weak self] in
-                    self?.browseLoading = false
-                }
+                browseLoading = false
             }
         }
+    }
+
+    /// Pop back from a streaming album to the tab content level, restoring carousel view.
+    func browseBackFromStreamingAlbum() {
+        guard streamingAlbumDepth > 0 else { return }
+        let levels = streamingAlbumDepth
+        streamingAlbumDepth = 0
+        streamingSections = []
+        pendingBrowseKey = nil
+        browseStack.removeAll()
+        browse(popLevels: levels)
     }
 
     /// Navigate to browse root, find the search item, and submit a query.
@@ -1403,23 +1418,20 @@ class RoonService: ObservableObject {
     }
 
     /// Browse into an item to find and trigger a play action.
-    /// Returns the number of browse levels pushed (for pop-back).
-    @discardableResult
     private func playBrowseItem(
         browseService: RoonBrowseService,
         zoneId: String,
         itemKey: String,
         depth: Int = 0,
         hierarchy: String = "browse"
-    ) async throws -> Int {
-        guard depth <= 3 else { return 0 }
-        guard !Task.isCancelled else { return 0 }
+    ) async throws {
+        guard depth <= 3 else { return }
+        guard !Task.isCancelled else { return }
 
         let result = try await browseService.browse(hierarchy: hierarchy, zoneId: zoneId, itemKey: itemKey)
-        guard !Task.isCancelled else { return 1 }
-        let action = result.action
+        guard !Task.isCancelled else { return }
 
-        if action == "message" { return 1 } // Action executed (1 level pushed)
+        if result.action == "message" { return }
 
         // Look for play actions
         let playFromHere = result.items.first { item in
@@ -1432,24 +1444,19 @@ class RoonService: ObservableObject {
 
         if let directAction = directAction, let key = directAction["item_key"] as? String {
             _ = try await browseService.browse(hierarchy: hierarchy, zoneId: zoneId, itemKey: key)
-            return 2 // 2 levels: item + action
+            return
         }
 
         // Recurse into nested action_list
         let nextItem = result.items.first { ($0["hint"] as? String) == "action_list" } ?? result.items.first
         if let nextItem = nextItem, let key = nextItem["item_key"] as? String {
-            let subLevels = try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, depth: depth + 1, hierarchy: hierarchy)
-            return 1 + subLevels
+            try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, depth: depth + 1, hierarchy: hierarchy)
         }
-
-        return 1
     }
 
     func playItem(itemKey: String) {
         guard let zoneId = currentZone?.zone_id else { return }
-        // Cancel any in-flight play operation
         currentPlayTask?.cancel()
-        // Use a dedicated session to avoid corrupting the UI browse session
         let playSession = RoonBrowseService(connection: connection, sessionKey: "play_item")
         currentPlayTask = Task {
             try? await playBrowseItem(browseService: playSession, zoneId: zoneId, itemKey: itemKey)
