@@ -149,7 +149,6 @@ class RoonService: ObservableObject {
         zones = []
         currentZone = nil
         zonesById = [:]
-        streamingSectionsCache.removeAll()
         connectionState = .disconnected // @Published triggers single objectWillChange
     }
 
