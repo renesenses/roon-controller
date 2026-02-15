@@ -67,7 +67,7 @@ Roon Controller is a **control app only** — it doesn't output audio. For audio
 **[Download RoonController.dmg](https://github.com/renesenses/roon-controller/releases/tag/v1.0.0)**
 
 Requirements:
-- macOS 15.0 (Sequoia) or later (tested on macOS 26 Tahoe)
+- macOS 12.0 (Monterey) or later (tested on macOS 26 Tahoe)
 - A Roon Core on the local network
 
 Installation:
@@ -83,7 +83,7 @@ The app works well on my setup (Mac Studio, macOS Tahoe, Roon 2.x, USB DAC via R
 - **Multiple zones** (grouped or ungrouped)
 - **Large libraries** (10k+ albums)
 - **Different Macs** (M1, M2, M3, M4, Intel?)
-- **Different macOS versions** (Sequoia, Tahoe)
+- **Different macOS versions** (Monterey, Ventura, Sonoma, Sequoia, Tahoe)
 - **Different network setups** (VLANs, multiple subnets)
 
 If you try it, please let me know:

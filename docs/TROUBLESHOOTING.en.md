@@ -186,7 +186,7 @@
 **Solutions**:
 - Check Xcode version: minimum **16.0**
 - Check target: **macOS** (not iOS/iPadOS)
-- Check settings: Deployment Target **macOS 15.0**, Swift **6.0**
+- Check settings: Deployment Target **macOS 12.0**, Swift **6.0**
 - If the project is out of sync, regenerate it: `cd RoonController && xcodegen generate`
 
 ### `Unable to find module dependency: 'RoonController'` in tests

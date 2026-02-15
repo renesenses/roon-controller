@@ -37,11 +37,34 @@ timeline
                 : Pre-fetch streaming + cache disque
                 : My Live Radio
                 : +29 tests (273)
+    2026-02-15 : v1.0.6
+                : Compatibilite macOS 12 (Monterey)
+                : Extensions #available
+                : +5 tests (278)
 ```
 
 ## [Unreleased]
 
 ### Planned — v1.1.0
+
+## [1.0.6] - 2026-02-15
+
+### Changed
+
+- Deployment target abaisse de macOS 15 (Sequoia) a macOS 12 (Monterey) (`730927d`)
+- `.tint()` remplace par `.accentColor()` pour macOS 12 (11 occurrences) (`730927d`)
+- `NavigationSplitView` remplace par `NavigationView` + `.navigationViewStyle(.columns)` (`730927d`)
+- `.onChange(of:) { old, new in }` remplace par `.onChangeCompat(of:)` avec wrapper `#available` (`730927d`)
+- `.tracking()` remplace par `.trackingCompat()` avec fallback `.kerning()` (14 occurrences) (`730927d`)
+- `.scrollContentBackground(.hidden)` et `.formStyle(.grouped)` encapsules dans des extensions `#available` (`730927d`)
+- `.defaultSize()` supprime (`.frame(minWidth:minHeight:)` suffisant) (`730927d`)
+- `onTapGesture { location in }` remplace par `DragGesture(minimumDistance: 0)` (`730927d`)
+- `String.split(separator: String)` remplace par `range(of:)` pour macOS 12 (`730927d`)
+
+### Added
+
+- `CompatibilityModifiers.swift` : extensions centralisees (`onChangeCompat`, `hideScrollBackground`, `groupedFormStyleCompat`, `trackingCompat`) (`730927d`)
+- 5 nouveaux tests unitaires (278 au total) (`730927d`)
 
 **UI Roon native**
 - Pages detail artiste (discographie, bio) et album (pistes, header hero)
@@ -196,7 +219,8 @@ timeline
 - CI/CD GitHub Actions avec integration Claude Code
 - Documentation technique bilingue
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/renesenses/roon-controller/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/renesenses/roon-controller/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/renesenses/roon-controller/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/renesenses/roon-controller/compare/v1.0.2...v1.0.3

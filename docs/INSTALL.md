@@ -6,7 +6,7 @@
 
 | Composant | Version minimale |
 |-----------|-----------------|
-| macOS | 15.0 (Sequoia) — compatible macOS 26.x (Tahoe) |
+| macOS | 12.0 (Monterey) ou superieur — compatible macOS 26.x (Tahoe) |
 | Xcode | 16.0 |
 | Roon Core | 2.x |
 

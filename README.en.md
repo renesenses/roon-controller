@@ -51,7 +51,7 @@ graph LR
 
 ## Requirements
 
-- **macOS 15.0** (Sequoia) or later (tested on macOS 26 Tahoe)
+- **macOS 12.0** (Monterey) or later (tested on macOS 26 Tahoe)
 - **Xcode 26** or later
 - An active **Roon Core** on the local network
 - **Roon Bridge** (recommended) to expose the Mac's audio outputs (DAC) to the Core
@@ -144,10 +144,11 @@ Roon client/
 |   |   +-- SettingsView.swift           # Settings (manual connection)
 |   |   +-- Helpers/
 |   |       +-- RoonColors.swift         # Roon color palette
+|   |       +-- CompatibilityModifiers.swift  # macOS 12+ compatibility extensions
 |   +-- Tests/
 |       +-- RoonModelsTests.swift        # Data model tests
 |       +-- RoonServiceTests.swift       # Service and MOO protocol tests
-|       +-- ViewBehaviorTests.swift      # View behavior tests (273 tests total)
+|       +-- ViewBehaviorTests.swift      # View behavior tests (278 tests total)
 |
 +-- docs/
     +-- INSTALL.md / INSTALL.en.md       # Installation guide

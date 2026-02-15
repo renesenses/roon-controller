@@ -248,7 +248,7 @@ The CI workflow requires no secrets — no code signing, no deployment.
 | Runner | `macos-15` (Sequoia) | macOS 15.x |
 | Xcode | 16.4 (managed by GitHub) | 16.x |
 | Swift | 6.1 | 6.x |
-| Deployment target | macOS 15.0 | macOS 15.0 |
+| Deployment target | macOS 12.0 | macOS 12.0 |
 
 > **Note**: The runner's Xcode version may be newer than the local version. This is intentional — the weekly cron build detects incompatibilities early.
 
