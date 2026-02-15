@@ -36,6 +36,7 @@ class RoonService: ObservableObject {
     var recentlyAdded: [BrowseItem] = []
     @Published var profileName: String?
     @Published var streamingCacheVersion: Int = 0
+    @Published var myLiveRadioStations: [BrowseItem] = []
 
     // MARK: - Storage
 
@@ -1457,6 +1458,25 @@ class RoonService: ObservableObject {
         }
         guard let station = station, let key = station["item_key"] as? String else { return }
         try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, hierarchy: "internet_radio")
+    }
+
+    /// Fetch all stations from the internet_radio hierarchy into myLiveRadioStations
+    func fetchMyLiveRadioStations() {
+        let zoneId = currentZone?.zone_id
+        let session = RoonBrowseService(connection: connection, sessionKey: "my_live_radio")
+        Task {
+            do {
+                let result = try await session.browse(hierarchy: "internet_radio", zoneId: zoneId, popAll: true)
+                let decoder = JSONDecoder()
+                let items: [BrowseItem] = result.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+                self.myLiveRadioStations = items
+            } catch {
+                // silently fail — stations remain empty
+            }
+        }
     }
 
     /// Play a station from My Live Radio by name (stations are at the internet_radio root)

@@ -11,10 +11,10 @@ struct SidebarView: View {
     @State private var searchItemKey: String?
 
     enum SidebarSection: Hashable, RawRepresentable {
-        case zones, browse, queue, history, favorites
+        case zones, browse, queue, history, favorites, myLiveRadios
         case streaming(serviceName: String)
 
-        static let fixedSections: [SidebarSection] = [.zones, .browse, .queue, .history, .favorites]
+        static let fixedSections: [SidebarSection] = [.zones, .browse, .queue, .history, .favorites, .myLiveRadios]
 
         init?(rawValue: String) {
             switch rawValue {
@@ -23,6 +23,7 @@ struct SidebarView: View {
             case "queue": self = .queue
             case "history": self = .history
             case "favorites": self = .favorites
+            case "myLiveRadios": self = .myLiveRadios
             default:
                 if rawValue.hasPrefix("streaming:") {
                     let name = String(rawValue.dropFirst("streaming:".count))
@@ -40,6 +41,7 @@ struct SidebarView: View {
             case .queue: "queue"
             case .history: "history"
             case .favorites: "favorites"
+            case .myLiveRadios: "myLiveRadios"
             case .streaming(let name): "streaming:\(name)"
             }
         }
@@ -51,6 +53,7 @@ struct SidebarView: View {
             case .queue: "File d'attente"
             case .history: "Historique"
             case .favorites: "Favoris"
+            case .myLiveRadios: "My Live Radio"
             case .streaming(let name): LocalizedStringKey(name)
             }
         }
@@ -62,6 +65,7 @@ struct SidebarView: View {
             case .queue: "list.number"
             case .history: "clock"
             case .favorites: "heart"
+            case .myLiveRadios: "dot.radiowaves.left.and.right"
             case .streaming(let name):
                 switch name {
                 case "Qobuz": "headphones"
@@ -127,6 +131,8 @@ struct SidebarView: View {
                 case .favorites:
                     FavoritesView()
                         .environmentObject(roonService)
+                case .myLiveRadios:
+                    myLiveRadiosSection
                 case .streaming(let serviceName):
                     streamingServiceContent(serviceName: serviceName)
                 }
@@ -464,6 +470,127 @@ struct SidebarView: View {
                     Spacer()
                 }
             }
+        }
+    }
+
+    // MARK: - My Live Radios Section
+
+    private var myLiveRadiosSection: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .foregroundStyle(Color.roonAccent)
+                Text("My Live Radio")
+                    .font(.headline)
+                    .foregroundStyle(Color.roonText)
+
+                if !roonService.myLiveRadioStations.isEmpty {
+                    Text("\(roonService.myLiveRadioStations.count)")
+                        .font(.caption2)
+                        .foregroundStyle(Color.roonSecondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.roonSurface))
+                }
+
+                Spacer()
+
+                Button {
+                    roonService.fetchMyLiveRadioStations()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                        .foregroundStyle(Color.roonSecondary)
+                }
+                .buttonStyle(.plain)
+                .help("Recharger")
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+                .overlay(Color.roonTertiary.opacity(0.3))
+
+            if roonService.myLiveRadioStations.isEmpty {
+                VStack(spacing: 12) {
+                    Spacer()
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .font(.title2)
+                        .foregroundStyle(Color.roonTertiary)
+                    Text("Aucune station")
+                        .font(.caption)
+                        .foregroundStyle(Color.roonSecondary)
+                    Button("Charger les radios") {
+                        roonService.fetchMyLiveRadioStations()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Color.roonAccent)
+                    Spacer()
+                }
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(roonService.myLiveRadioStations) { station in
+                            HStack(spacing: 10) {
+                                if let url = roonService.imageURL(key: station.image_key, width: 80, height: 80) {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .success(let img):
+                                            img.resizable().aspectRatio(contentMode: .fill)
+                                        default:
+                                            Color.roonSurface
+                                        }
+                                    }
+                                    .frame(width: 36, height: 36)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                } else {
+                                    Image(systemName: "radio")
+                                        .font(.title3)
+                                        .foregroundStyle(Color.roonTertiary)
+                                        .frame(width: 36, height: 36)
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(station.title ?? "")
+                                        .foregroundStyle(Color.roonText)
+                                        .lineLimit(1)
+                                    if let subtitle = station.subtitle, !subtitle.isEmpty {
+                                        Text(subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(Color.roonSecondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    if let name = station.title {
+                                        roonService.playMyLiveRadioStation(stationName: name)
+                                    }
+                                } label: {
+                                    Image(systemName: "play.circle.fill")
+                                        .font(.body)
+                                        .foregroundStyle(Color.roonAccent)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if let name = station.title {
+                                    roonService.playMyLiveRadioStation(stationName: name)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear {
+            roonService.fetchMyLiveRadioStations()
         }
     }
 

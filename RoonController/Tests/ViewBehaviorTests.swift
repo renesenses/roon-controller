@@ -1693,7 +1693,7 @@ final class ViewBehaviorTests: XCTestCase {
     // MARK: - SidebarSection RawRepresentable
 
     func testSidebarSectionFixedRoundTrip() {
-        let fixed: [SidebarView.SidebarSection] = [.zones, .browse, .queue, .history, .favorites]
+        let fixed: [SidebarView.SidebarSection] = [.zones, .browse, .queue, .history, .favorites, .myLiveRadios]
         for section in fixed {
             let raw = section.rawValue
             let decoded = SidebarView.SidebarSection(rawValue: raw)
@@ -1720,9 +1720,10 @@ final class ViewBehaviorTests: XCTestCase {
 
     func testSidebarSectionFixedSections() {
         let fixed = SidebarView.SidebarSection.fixedSections
-        XCTAssertEqual(fixed.count, 5)
+        XCTAssertEqual(fixed.count, 6)
         XCTAssertEqual(fixed[0], .zones)
         XCTAssertEqual(fixed[4], .favorites)
+        XCTAssertEqual(fixed[5], .myLiveRadios)
     }
 
     func testSidebarSectionIcons() {
@@ -1730,6 +1731,36 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertEqual(SidebarView.SidebarSection.browse.icon, "square.grid.2x2")
         XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "TIDAL").icon, "waveform")
         XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "Qobuz").icon, "headphones")
+    }
+
+    // MARK: - My Live Radios section
+
+    func testMyLiveRadiosSidebarSectionExists() {
+        let fixed = SidebarView.SidebarSection.fixedSections
+        XCTAssertTrue(fixed.contains(.myLiveRadios), "myLiveRadios must be in fixedSections")
+    }
+
+    func testMyLiveRadiosSectionRawValueRoundTrip() {
+        let section = SidebarView.SidebarSection.myLiveRadios
+        XCTAssertEqual(section.rawValue, "myLiveRadios")
+        let decoded = SidebarView.SidebarSection(rawValue: "myLiveRadios")
+        XCTAssertEqual(decoded, section)
+    }
+
+    func testMyLiveRadiosSectionLabelAndIcon() {
+        let section = SidebarView.SidebarSection.myLiveRadios
+        XCTAssertEqual(section.icon, "dot.radiowaves.left.and.right")
+    }
+
+    func testMyLiveRadioStationsInitiallyEmpty() {
+        XCTAssertTrue(service.myLiveRadioStations.isEmpty)
+    }
+
+    func testMyLiveRadioStationsCanBeSet() {
+        let station = makeBrowseItem(title: "FIP", hint: "action", itemKey: "r1", imageKey: "img1")
+        service.myLiveRadioStations = [station]
+        XCTAssertEqual(service.myLiveRadioStations.count, 1)
+        XCTAssertEqual(service.myLiveRadioStations.first?.title, "FIP")
     }
 
     // MARK: - cachedStreamingSectionsForService
