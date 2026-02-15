@@ -266,12 +266,8 @@
 		D1876C3791EAAF794DAB00BA = {
 			isa = PBXGroup;
 			children = (
-				C386E6C9C18E39CC8E474385 /* Models */,
-				0C5E0AC3BE53A9BCFA3E1962 /* Resources */,
 				CAB6FEEBE53B9F2C8A3D473A /* RoonController */,
-				5CD54845E7E35CE717F3994E /* Services */,
 				0D878111769E34072232B468 /* Tests */,
-				5BFD6DA1FCF413299E25BF32 /* Views */,
 				F52F554ADB65682218CA9C0B /* Products */,
 			);
 			sourceTree = "<group>";
