@@ -296,8 +296,8 @@ struct RoonNowPlayingView: View {
             if !roonService.queueItems.isEmpty {
                 Text("A SUIVRE")
                     .font(.latoBold(11))
+                    .trackingCompat(1.5)
                     .foregroundStyle(Color.roonTertiary)
-                    .tracking(1.5)
 
                 VStack(spacing: 0) {
                     ForEach(roonService.queueItems.prefix(5), id: \.queue_item_id) { item in

@@ -33,7 +33,7 @@ struct ConnectionView: View {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .controlSize(.small)
-                                .tint(Color.roonSecondary)
+                                .accentColor(Color.roonSecondary)
                             Text("Connexion au Roon Core...")
                                 .foregroundStyle(Color.roonSecondary)
                         }
@@ -44,10 +44,10 @@ struct ConnectionView: View {
                             HStack(spacing: 8) {
                                 ProgressView()
                                     .controlSize(.small)
-                                    .tint(Color.roonAccent)
+                                    .accentColor(Color.roonAccent)
                                 Text("En attente d'approbation...")
-                                    .foregroundStyle(Color.roonAccent)
                                     .fontWeight(.medium)
+                                    .foregroundStyle(Color.roonAccent)
                             }
                             Text("Ouvrez Roon, allez dans Parametres > Extensions\net autorisez « Roon Controller ».")
                                 .foregroundStyle(Color.roonSecondary)
@@ -93,7 +93,7 @@ struct ConnectionView: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(Color.roonAccent)
+                        .accentColor(Color.roonAccent)
                         .disabled(coreIP.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
@@ -108,7 +108,7 @@ struct ConnectionView: View {
                     }
                 }
                 .buttonStyle(.bordered)
-                .tint(Color.roonAccent)
+                .accentColor(Color.roonAccent)
 
                 if let error = roonService.lastError {
                     Text(error)

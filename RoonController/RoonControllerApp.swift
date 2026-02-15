@@ -15,14 +15,13 @@ struct RoonControllerApp: App {
                 .environmentObject(roonService)
                 .frame(minWidth: 800, minHeight: 500)
                 .preferredColorScheme(colorScheme)
-                .tint(Color.roonAccent)
+                .accentColor(Color.roonAccent)
                 .task {
                     roonService.connect()
                 }
                 .onAppear { RoonFonts.registerAll(); applyAppearance() }
-                .onChange(of: appTheme) { _, _ in applyAppearance() }
+                .onChangeCompat(of: appTheme) { applyAppearance() }
         }
-        .defaultSize(width: 1200, height: 800)
 
         Settings {
             SettingsView()

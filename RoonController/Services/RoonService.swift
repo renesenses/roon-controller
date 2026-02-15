@@ -2400,12 +2400,9 @@ class RoonService: ObservableObject {
             var artistName = fav.artist
             var trackName = fav.title
             // Handle old format "Artist - Track"
-            if artistName.isEmpty && trackName.contains(" - ") {
-                let parts = trackName.split(separator: " - ", maxSplits: 1)
-                if parts.count == 2 {
-                    artistName = String(parts[0])
-                    trackName = String(parts[1])
-                }
+            if artistName.isEmpty, let range = trackName.range(of: " - ") {
+                artistName = String(trackName[trackName.startIndex..<range.lowerBound])
+                trackName = String(trackName[range.upperBound...])
             }
             // CSV escape: double quotes around fields, double any internal quotes
             let escapedArtist = artistName.replacingOccurrences(of: "\"", with: "\"\"")

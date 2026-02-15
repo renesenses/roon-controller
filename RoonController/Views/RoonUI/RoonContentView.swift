@@ -172,8 +172,8 @@ struct RoonContentView: View {
                     .foregroundStyle(Color.roonText)
                 Text(label)
                     .font(.lato(11))
+                    .trackingCompat(1)
                     .foregroundStyle(Color.roonSecondary)
-                    .tracking(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -254,8 +254,8 @@ struct RoonContentView: View {
                 } label: {
                     Text("PLUS")
                         .font(.latoBold(11))
+                        .trackingCompat(1)
                         .foregroundStyle(.white.opacity(0.9))
-                        .tracking(1)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
                         .background(Capsule().fill(.white.opacity(0.15)))
@@ -283,7 +283,7 @@ struct RoonContentView: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 4)
                 }
-                .onChange(of: scrollTarget) { _, newTarget in
+                .onChangeCompat(of: scrollTarget) { (newTarget: String?) in
                     guard let target = newTarget else { return }
                     withAnimation(.easeInOut(duration: 0.3)) {
                         proxy.scrollTo(target, anchor: .leading)
@@ -344,8 +344,8 @@ struct RoonContentView: View {
         Button(action: action) {
             Text(title)
                 .font(.latoBold(12))
+                .trackingCompat(1)
                 .foregroundStyle(.white)
-                .tracking(1)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(

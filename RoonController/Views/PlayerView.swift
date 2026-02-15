@@ -92,7 +92,7 @@ struct PlayerView: View {
                     artPlaceholder
                 case .empty:
                     ProgressView()
-                        .tint(.roonSecondary)
+                        .accentColor(.roonSecondary)
                         .frame(width: 400, height: 400)
                 @unknown default:
                     artPlaceholder
@@ -173,13 +173,15 @@ struct PlayerView: View {
                 }
                 .frame(height: 3)
                 .contentShape(Rectangle())
-                .onTapGesture { location in
-                    if duration > 0 {
-                        let fraction = location.x / geo.size.width
-                        let seekTo = Int(fraction * duration)
-                        roonService.seek(position: seekTo)
-                    }
-                }
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            if duration > 0 {
+                                let fraction = max(0, min(1, value.location.x / geo.size.width))
+                                roonService.seek(position: Int(fraction * duration))
+                            }
+                        }
+                )
             }
             .frame(height: 3)
 

@@ -119,8 +119,8 @@ struct RoonSidebarView: View {
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.inter(10))
+            .trackingCompat(1.5)
             .foregroundStyle(Color.roonTertiary)
-            .tracking(1.5)
             .padding(.horizontal, 18)
             .padding(.top, 18)
             .padding(.bottom, 6)

@@ -37,8 +37,8 @@ struct RoonFavoritesView: View {
         HStack(alignment: .lastTextBaseline, spacing: 10) {
             Text("Favoris")
                 .font(.inter(28))
+                .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
-                .tracking(-0.8)
 
             Text("\(roonService.radioFavorites.count) morceaux")
                 .font(.lato(12))

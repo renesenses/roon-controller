@@ -288,7 +288,7 @@ struct RoonTransportBarView: View {
                     step: volume.step ?? 1
                 )
                 .controlSize(.mini)
-                .tint(Color.roonAccent)
+                .accentColor(Color.roonAccent)
                 .frame(width: 90)
 
                 Text("\(Int(value))")

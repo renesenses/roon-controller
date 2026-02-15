@@ -22,8 +22,8 @@ struct RoonQueueView: View {
         HStack(alignment: .lastTextBaseline, spacing: 10) {
             Text("File d'attente")
                 .font(.inter(28))
+                .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
-                .tracking(-0.8)
 
             Text("\(roonService.queueItems.count) morceaux")
                 .font(.lato(12))

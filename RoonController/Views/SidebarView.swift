@@ -231,7 +231,7 @@ struct SidebarView: View {
                                         step: volume.step ?? 1
                                     )
                                     .controlSize(.mini)
-                                    .tint(Color.roonAccent)
+                                    .accentColor(Color.roonAccent)
                                 }
 
                                 Text("\(Int(value))")
@@ -255,7 +255,7 @@ struct SidebarView: View {
             )
         }
         .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
+        .hideScrollBackground()
     }
 
     @ViewBuilder
@@ -466,7 +466,7 @@ struct SidebarView: View {
                         roonService.browse()
                     }
                     .buttonStyle(.bordered)
-                    .tint(Color.roonAccent)
+                    .accentColor(Color.roonAccent)
                     Spacer()
                 }
             }
@@ -525,7 +525,7 @@ struct SidebarView: View {
                         roonService.fetchMyLiveRadioStations()
                     }
                     .buttonStyle(.bordered)
-                    .tint(Color.roonAccent)
+                    .accentColor(Color.roonAccent)
                     Spacer()
                 }
             } else {

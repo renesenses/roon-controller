@@ -22,8 +22,8 @@ struct RoonHistoryView: View {
         HStack(alignment: .lastTextBaseline, spacing: 10) {
             Text("Historique")
                 .font(.inter(28))
+                .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
-                .tracking(-0.8)
 
             Text("\(roonService.playbackHistory.count) morceaux")
                 .font(.lato(12))

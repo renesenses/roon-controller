@@ -134,7 +134,7 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
+        .groupedFormStyleCompat()
         .frame(width: 450)
         .frame(minHeight: 500, idealHeight: 620)
     }

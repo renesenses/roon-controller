@@ -11,11 +11,11 @@ struct ContentView: View {
             } else if uiMode == "roon" {
                 RoonLayoutView()
             } else {
-                NavigationSplitView {
+                NavigationView {
                     SidebarView()
-                } detail: {
                     PlayerView()
                 }
+                .navigationViewStyle(.columns)
             }
         }
         .background(Color.roonBackground)

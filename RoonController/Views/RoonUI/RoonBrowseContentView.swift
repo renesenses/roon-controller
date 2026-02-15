@@ -204,7 +204,7 @@ struct RoonBrowseContentView: View {
                 searchItemKey = nil
             }
         }
-        .onChange(of: roonService.browseStack) { _, newStack in
+        .onChangeCompat(of: roonService.browseStack) { (newStack: [String]) in
             if newStack.isEmpty {
                 streamingSections = []
                 activeStreamingTab = 0
@@ -238,8 +238,8 @@ struct RoonBrowseContentView: View {
                  ? (startWithRadio ? String(localized: "Radio") : String(localized: "Bibliotheque"))
                  : (roonService.browseStack.last ?? ""))
                 .font(.inter(28))
+                .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
-                .tracking(-0.8)
                 .lineLimit(1)
 
             if roonService.browseLoading {
@@ -557,7 +557,7 @@ struct RoonBrowseContentView: View {
                 }
             }
             .buttonStyle(.bordered)
-            .tint(Color.roonAccent)
+            .accentColor(Color.roonAccent)
             Spacer()
         }
     }
@@ -609,8 +609,8 @@ struct RoonBrowseContentView: View {
                 // Title
                 Text(list?.title ?? "")
                     .font(.inter(28))
+                    .trackingCompat(-0.8)
                     .foregroundStyle(Color.roonText)
-                    .tracking(-0.8)
                     .lineLimit(2)
 
                 // Artist name (extracted from first track with a subtitle)
@@ -860,8 +860,8 @@ struct RoonBrowseContentView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Discographie")
                     .font(.inter(20))
+                    .trackingCompat(-0.5)
                     .foregroundStyle(Color.roonText)
-                    .tracking(-0.5)
                     .padding(.horizontal, 28)
                     .padding(.top, 12)
 
@@ -1049,8 +1049,8 @@ struct RoonBrowseContentView: View {
 
             Text(roonService.browseCategory ?? "")
                 .font(.inter(28))
+                .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
-                .tracking(-0.8)
                 .lineLimit(1)
 
             if roonService.browseLoading {
@@ -1092,7 +1092,7 @@ struct RoonBrowseContentView: View {
                     } label: {
                         Text((section.title ?? "").uppercased())
                             .font(.latoBold(11))
-                            .tracking(0.5)
+                            .trackingCompat(0.5)
                             .foregroundStyle(index == activeStreamingTab ? Color.roonAccent : Color.roonSecondary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
@@ -1167,8 +1167,8 @@ struct RoonBrowseContentView: View {
             HStack {
                 Text(section.title)
                     .font(.inter(20))
+                    .trackingCompat(-0.5)
                     .foregroundStyle(Color.roonText)
-                    .tracking(-0.5)
                 Spacer()
             }
             .padding(.horizontal, 28)

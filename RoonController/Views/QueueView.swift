@@ -63,7 +63,7 @@ struct QueueView: View {
                 )
             }
             .listStyle(.plain)
-            .scrollContentBackground(.hidden)
+            .hideScrollBackground()
         }
     }
 
