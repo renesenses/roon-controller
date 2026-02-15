@@ -46,6 +46,7 @@ class RoonService: ObservableObject {
             from: storageDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
         )
         loadStreamingSectionsCache()
+        loadSidebarCache()
         setupRemoteCommands()
     }
 
@@ -79,6 +80,14 @@ class RoonService: ObservableObject {
     private struct CachedStreamingSections: Codable {
         let sections: [StreamingSection]
         let date: Date
+    }
+
+    /// Sidebar categories/playlists disk cache for instant display on launch
+    private static let sidebarCacheFile = "sidebar_cache.json"
+
+    private struct CachedSidebar: Codable {
+        let categories: [BrowseItem]
+        let playlists: [BrowseItem]
     }
 
     func cancelStreamingFetch() {
@@ -1071,57 +1080,27 @@ class RoonService: ObservableObject {
         let zoneId = currentZone?.zone_id
 
         Task {
-            do {
-                let decoder = JSONDecoder()
-
-                // Session 1: Browse root → then into Library (same session so item_key is valid)
-                let rootSession = RoonBrowseService(connection: connection, sessionKey: "sidebar")
-                let rootResponse = try await rootSession.browse(zoneId: zoneId, popAll: true)
-                let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
+            let decoder = JSONDecoder()
+            func decodeItems(_ dicts: [[String: Any]]) -> [BrowseItem] {
+                dicts.compactMap { dict in
                     guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
                     return try? decoder.decode(BrowseItem.self, from: data)
                 }
+            }
 
-                // Navigate into Library using the SAME session (item_key is session-bound)
-                var libraryItems: [BrowseItem] = []
+            // Session 1: Browse root → Library → categories
+            var libraryItems: [BrowseItem] = []
+            do {
+                let rootSession = RoonBrowseService(connection: connection, sessionKey: "sidebar")
+                let rootResponse = try await rootSession.browse(zoneId: zoneId, popAll: true)
+                let rootItems = decodeItems(rootResponse.items)
+
                 if let libItem = rootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
                    let libKey = libItem.item_key {
                     let libResponse = try await rootSession.browse(zoneId: zoneId, itemKey: libKey)
-                    libraryItems = libResponse.items.compactMap { dict in
-                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-                        return try? decoder.decode(BrowseItem.self, from: data)
-                    }
+                    libraryItems = decodeItems(libResponse.items)
                 }
 
-                // Session 2: Browse root → then into Playlists
-                var playlists: [BrowseItem] = []
-                let plSession = RoonBrowseService(connection: connection, sessionKey: "sidebar_pl")
-                let plRootResponse = try await plSession.browse(zoneId: zoneId, popAll: true)
-                let plRootItems: [BrowseItem] = plRootResponse.items.compactMap { dict in
-                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-                    return try? decoder.decode(BrowseItem.self, from: data)
-                }
-                if let plItem = plRootItems.first(where: { Self.playlistTitles.contains($0.title ?? "") }),
-                   let plKey = plItem.item_key {
-                    let plResponse = try await plSession.browse(zoneId: zoneId, itemKey: plKey)
-                    let totalCount = (plResponse.list?["count"] as? Int) ?? 0
-                    playlists = plResponse.items.compactMap { dict in
-                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-                        return try? decoder.decode(BrowseItem.self, from: data)
-                    }
-                    // Paginate to load all playlists beyond the initial 100
-                    while playlists.count < totalCount {
-                        let more = try await plSession.load(offset: playlists.count, count: 100)
-                        let moreItems: [BrowseItem] = more.items.compactMap { dict in
-                            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-                            return try? decoder.decode(BrowseItem.self, from: data)
-                        }
-                        if moreItems.isEmpty { break }
-                        playlists.append(contentsOf: moreItems)
-                    }
-                }
-
-                // Merge: root items (except Library, Settings, Playlists, search) + library sub-items
                 var allItems: [BrowseItem] = rootItems.filter {
                     let t = $0.title ?? ""
                     return $0.input_prompt == nil
@@ -1130,28 +1109,47 @@ class RoonService: ObservableObject {
                         && !Self.hiddenTitles.contains(t)
                 }
                 allItems.append(contentsOf: libraryItems.filter { $0.input_prompt == nil })
+                self.sidebarCategories = allItems
+            } catch {
+                // Categories fetch failed, keep cached data
+            }
 
-                await MainActor.run {
-                    self.sidebarCategories = allItems
+            // Session 2: Browse root → Playlists (separate session, item_keys are session-bound)
+            do {
+                let plSession = RoonBrowseService(connection: connection, sessionKey: "sidebar_pl")
+                let plRoot = try await plSession.browse(zoneId: zoneId, popAll: true)
+                let plRootItems = decodeItems(plRoot.items)
+                if let plItem = plRootItems.first(where: { Self.playlistTitles.contains($0.title ?? "") }),
+                   let plKey = plItem.item_key {
+                    let plResponse = try await plSession.browse(zoneId: zoneId, itemKey: plKey)
+                    let totalCount = (plResponse.list?["count"] as? Int) ?? 0
+                    var playlists = decodeItems(plResponse.items)
+                    while playlists.count < totalCount {
+                        let more = try await plSession.load(offset: playlists.count, count: 100)
+                        let moreItems = decodeItems(more.items)
+                        if moreItems.isEmpty { break }
+                        playlists.append(contentsOf: moreItems)
+                    }
                     self.sidebarPlaylists = playlists
                 }
+            } catch {
+                // Playlists fetch failed, keep cached data
+            }
 
-                // Session 3: Fetch library counts — navigate root → Library, then each sub-item
-                if !libraryItems.isEmpty {
-                    let countSession = RoonBrowseService(connection: connection, sessionKey: "sidebar_counts")
-                    // Navigate to Library level
-                    let cRoot = try await countSession.browse(zoneId: zoneId, popAll: true)
-                    let cRootItems: [BrowseItem] = cRoot.items.compactMap { dict in
-                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-                        return try? decoder.decode(BrowseItem.self, from: data)
-                    }
-                    if let libItem = cRootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
-                       let libKey = libItem.item_key {
+            // Persist to disk for instant display on next launch
+            saveSidebarCache()
+
+            // Counts in background (non-blocking — sidebar is already fully populated)
+            if !libraryItems.isEmpty {
+                Task {
+                    do {
+                        let countSession = RoonBrowseService(connection: self.connection, sessionKey: "sidebar_counts")
+                        let cRoot = try await countSession.browse(zoneId: zoneId, popAll: true)
+                        let cRootItems = decodeItems(cRoot.items)
+                        guard let libItem = cRootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
+                              let libKey = libItem.item_key else { return }
                         let cLib = try await countSession.browse(zoneId: zoneId, itemKey: libKey)
-                        let cLibItems: [BrowseItem] = cLib.items.compactMap { dict in
-                            guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-                            return try? decoder.decode(BrowseItem.self, from: data)
-                        }
+                        let cLibItems = decodeItems(cLib.items)
 
                         var counts: [String: Int] = [:]
                         for item in cLibItems {
@@ -1164,20 +1162,16 @@ class RoonService: ObservableObject {
                                 if let list = catResponse.list, let count = list["count"] as? Int {
                                     counts[normalizedKey] = count
                                 }
-                                // Pop back to Library level for next item
                                 _ = try await countSession.browse(zoneId: zoneId, popLevels: 1)
                             } catch {
                                 // Count fetch failed for this item, continue
                             }
                         }
-
-                        await MainActor.run {
-                            self.libraryCounts = counts
-                        }
+                        self.libraryCounts = counts
+                    } catch {
+                        // Counts fetch failed, non-critical
                     }
                 }
-            } catch {
-                // Sidebar fetch failed silently
             }
         }
     }
@@ -1996,6 +1990,27 @@ class RoonService: ObservableObject {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         if let data = try? encoder.encode(streamingSectionsCache) {
+            try? data.write(to: path)
+        }
+    }
+
+    // MARK: - Sidebar Cache Persistence
+
+    private func loadSidebarCache() {
+        guard let dir = storageDir else { return }
+        let path = dir.appendingPathComponent(Self.sidebarCacheFile)
+        guard let data = try? Data(contentsOf: path) else { return }
+        if let cached = try? JSONDecoder().decode(CachedSidebar.self, from: data) {
+            sidebarCategories = cached.categories
+            sidebarPlaylists = cached.playlists
+        }
+    }
+
+    private func saveSidebarCache() {
+        guard let dir = storageDir else { return }
+        let path = dir.appendingPathComponent(Self.sidebarCacheFile)
+        let cached = CachedSidebar(categories: sidebarCategories, playlists: sidebarPlaylists)
+        if let data = try? JSONEncoder().encode(cached) {
             try? data.write(to: path)
         }
     }
