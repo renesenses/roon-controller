@@ -20,63 +20,75 @@ actor LocalImageServer {
 
     private var listener: NWListener?
     private var isRunning = false
+    /// Next port offset to try when current port fails.
+    private var nextPortOffset: UInt16 = 0
 
     // MARK: - Start / Stop
 
     func start() {
         guard !isRunning else { return }
+        tryBind(portOffset: nextPortOffset)
+    }
 
+    private func tryBind(portOffset: UInt16) {
+        guard portOffset < UInt16(Self.maxPortRetries) else {
+            logger.error("Image server failed to bind any port in range \(Self.basePort)-\(Self.basePort + UInt16(Self.maxPortRetries) - 1)")
+            return
+        }
+
+        // Clean up previous listener if any
+        listener?.cancel()
+        listener = nil
+
+        let port = Self.basePort + portOffset
         let params = NWParameters.tcp
         params.allowLocalEndpointReuse = true
 
-        for offset in 0..<UInt16(Self.maxPortRetries) {
-            let port = Self.basePort + offset
-            do {
-                let listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: port)!)
-                self.listener = listener
-                Self.currentPort = port
+        do {
+            let listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: port)!)
+            self.listener = listener
+            Self.currentPort = port
 
-                listener.stateUpdateHandler = { [weak self] state in
-                    switch state {
-                    case .ready:
-                        logger.info("Image server listening on port \(port)")
-                        Task { await self?.setRunning(true) }
-                    case .failed(let error):
-                        logger.warning("Image server failed on port \(port): \(error.localizedDescription)")
-                        Task { await self?.restart() }
-                    default:
-                        break
-                    }
+            listener.stateUpdateHandler = { [weak self] state in
+                switch state {
+                case .ready:
+                    logger.info("Image server listening on port \(port)")
+                    Task { await self?.setRunning(true, portOffset: portOffset) }
+                case .failed(let error):
+                    logger.warning("Image server port \(port) failed: \(error.localizedDescription)")
+                    Task { await self?.handleBindFailure(portOffset: portOffset) }
+                default:
+                    break
                 }
-
-                listener.newConnectionHandler = { [weak self] connection in
-                    Task { await self?.handleConnection(connection) }
-                }
-
-                listener.start(queue: .global(qos: .utility))
-                logger.info("Image server starting on port \(port)")
-                return // success — stop trying other ports
-            } catch {
-                logger.warning("Port \(port) unavailable: \(error.localizedDescription)")
-                continue
             }
+
+            listener.newConnectionHandler = { [weak self] connection in
+                Task { await self?.handleConnection(connection) }
+            }
+
+            listener.start(queue: .global(qos: .utility))
+        } catch {
+            logger.warning("Port \(port) unavailable: \(error.localizedDescription)")
+            tryBind(portOffset: portOffset + 1)
         }
-        logger.error("Image server failed to bind any port in range \(Self.basePort)-\(Self.basePort + UInt16(Self.maxPortRetries) - 1)")
+    }
+
+    private func setRunning(_ value: Bool, portOffset: UInt16) {
+        isRunning = value
+        nextPortOffset = portOffset  // remember working port for restart
+    }
+
+    private func handleBindFailure(portOffset: UInt16) {
+        listener?.cancel()
+        listener = nil
+        isRunning = false
+        tryBind(portOffset: portOffset + 1)
     }
 
     func stop() {
         listener?.cancel()
         listener = nil
         isRunning = false
-    }
-
-    private func setRunning(_ value: Bool) {
-        isRunning = value
-    }
-
-    private func restart() {
-        stop()
-        start()
     }
 
     // MARK: - URL Generation
