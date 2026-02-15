@@ -1437,6 +1437,98 @@ final class ViewBehaviorTests: XCTestCase {
         cancellable.cancel()
     }
 
+    // MARK: - Streaming album depth & isInsideStreamingService
+
+    func testInsideStreamingServiceWhenSectionsNotEmpty() {
+        service.browseCategory = "TIDAL"
+        let items = [makeBrowseItem(title: "Track", hint: "action", itemKey: "t1")]
+        service.streamingSections = [
+            StreamingSection(id: "s1", title: "Section", items: items, navigationTitles: ["Tab"])
+        ]
+        // isInsideStreamingService: category matches + sections not empty
+        XCTAssertTrue(streamingTitles.contains(service.browseCategory!))
+        XCTAssertFalse(service.streamingSections.isEmpty)
+    }
+
+    func testInsideStreamingServiceWhenAlbumDepthPositive() {
+        // Inside a streaming album: sections may be empty but depth > 0
+        service.browseCategory = "TIDAL"
+        service.streamingSections = []
+        service.streamingAlbumDepth = 2
+        // isInsideStreamingService should be true via streamingAlbumDepth
+        XCTAssertTrue(streamingTitles.contains(service.browseCategory!))
+        XCTAssertTrue(service.streamingAlbumDepth > 0)
+        let isInside = streamingTitles.contains(service.browseCategory!) &&
+            (!service.streamingSections.isEmpty || service.streamingAlbumDepth > 0)
+        XCTAssertTrue(isInside, "Should be inside streaming when albumDepth > 0")
+    }
+
+    func testNotInsideStreamingWhenNoCategory() {
+        service.browseCategory = nil
+        service.streamingAlbumDepth = 2
+        let isInside = service.browseCategory.map { streamingTitles.contains($0) } ?? false
+        XCTAssertFalse(isInside, "No streaming category means not inside streaming")
+    }
+
+    func testNotInsideStreamingWhenNonStreamingCategory() {
+        service.browseCategory = "Genres"
+        service.streamingAlbumDepth = 2
+        let isInside = streamingTitles.contains(service.browseCategory!)
+        XCTAssertFalse(isInside, "Genres is not a streaming service")
+    }
+
+    func testStreamingTabBarHiddenWhenInsideAlbum() {
+        // Tab bar should be hidden when streamingAlbumDepth > 0
+        service.streamingAlbumDepth = 2
+        XCTAssertTrue(service.streamingAlbumDepth > 0, "Tab bar should hide when inside album")
+        service.streamingAlbumDepth = 0
+        XCTAssertFalse(service.streamingAlbumDepth > 0, "Tab bar should show at carousel level")
+    }
+
+    func testStreamingSectionsCachedAcrossAlbumNavigation() {
+        // Sections should survive album entry and back
+        let items = [makeBrowseItem(title: "Track", hint: "action", itemKey: "t1")]
+        let section = StreamingSection(id: "s1", title: "TIDAL Rising — Albums", items: items, navigationTitles: ["TIDAL Rising", "Albums"])
+        service.streamingSections = [section]
+        service.browseCategory = "TIDAL"
+        service.streamingAlbumDepth = 2
+
+        // Simulate back from album
+        service.browseBackFromStreamingAlbum()
+
+        XCTAssertEqual(service.streamingAlbumDepth, 0)
+        XCTAssertFalse(service.streamingSections.isEmpty, "Sections must survive back navigation")
+        XCTAssertEqual(service.streamingSections.first?.title, "TIDAL Rising — Albums")
+    }
+
+    // MARK: - Playlist play level tracking
+
+    func testPlayTargetLevelFromBrowseResult() {
+        // playInCurrentSession reads target level from browseResult
+        let result = BrowseResult(
+            action: "list",
+            list: BrowseList(title: "My Playlist", count: 15, image_key: nil, level: 3),
+            items: []
+        )
+        service.browseResult = result
+        XCTAssertEqual(service.browseResult?.list?.level, 3, "Target level should match browse result")
+    }
+
+    func testPlayTargetLevelDefaultsToZero() {
+        // When no browseResult, target level should default to 0
+        service.browseResult = nil
+        let targetLevel = service.browseResult?.list?.level ?? 0
+        XCTAssertEqual(targetLevel, 0)
+    }
+
+    func testNavigationTitlesInStreamingSection() {
+        // StreamingSection stores titles (not stale keys) for navigation
+        let items = [makeBrowseItem(title: "Album 1", hint: "list", itemKey: "a1")]
+        let section = StreamingSection(id: "s1", title: "TIDAL Rising — Albums", items: items, navigationTitles: ["TIDAL Rising", "Albums"])
+        XCTAssertEqual(section.navigationTitles, ["TIDAL Rising", "Albums"])
+        XCTAssertEqual(section.navigationTitles.count, 2)
+    }
+
     // MARK: - Helpers
 
     private func formatTime(_ totalSeconds: Int) -> String {

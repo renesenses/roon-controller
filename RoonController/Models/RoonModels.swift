@@ -205,8 +205,9 @@ struct StreamingSection: Identifiable, Equatable {
     let id: String
     let title: String
     let items: [BrowseItem]
-    /// Item keys to navigate from tab level to reach this section's context
-    let navigationPath: [String]
+    /// Titles to navigate from tab level to reach this section's context.
+    /// Item keys are session-specific and change on each re-visit, so we match by title.
+    let navigationTitles: [String]
 }
 
 // MARK: - WebSocket Messages

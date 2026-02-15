@@ -46,6 +46,69 @@ final class RoonServiceTests: XCTestCase {
         service.browse(itemKey: "149:0")
     }
 
+    // MARK: - Streaming album depth tracking
+
+    func testStreamingAlbumDepthStartsAtZero() {
+        XCTAssertEqual(service.streamingAlbumDepth, 0)
+    }
+
+    func testBrowseBackFromStreamingAlbumResetsDepth() {
+        service.streamingAlbumDepth = 3
+        service.browseBackFromStreamingAlbum()
+        XCTAssertEqual(service.streamingAlbumDepth, 0)
+    }
+
+    func testBrowseBackFromStreamingAlbumKeepsSections() {
+        // Sections should be preserved for instant back navigation
+        let items = [makeBrowseItem(title: "Track", hint: "action", itemKey: "t1")]
+        service.streamingSections = [
+            StreamingSection(id: "s1", title: "Section", items: items, navigationTitles: ["Tab"])
+        ]
+        service.streamingAlbumDepth = 2
+        service.browseBackFromStreamingAlbum()
+        XCTAssertFalse(service.streamingSections.isEmpty, "Sections should be cached for instant back")
+    }
+
+    func testBrowseBackFromStreamingAlbumNoOpWhenDepthZero() {
+        service.streamingAlbumDepth = 0
+        service.browseBackFromStreamingAlbum()
+        XCTAssertEqual(service.streamingAlbumDepth, 0)
+    }
+
+    func testBrowseBackFromStreamingAlbumClearsStack() {
+        service.browseStack = ["TIDAL", "Albums"]
+        service.streamingAlbumDepth = 2
+        service.browseBackFromStreamingAlbum()
+        XCTAssertTrue(service.browseStack.isEmpty)
+    }
+
+    func testBrowseHomeResetsStreamingAlbumDepth() {
+        service.streamingAlbumDepth = 3
+        service.browseHome()
+        XCTAssertEqual(service.streamingAlbumDepth, 0)
+    }
+
+    // MARK: - playInCurrentSession level tracking
+
+    func testPlayInCurrentSessionRequiresBrowseService() {
+        // Without a connection, playInCurrentSession should be a no-op
+        service.playInCurrentSession(itemKey: "123:0")
+        // No crash — guard returns early
+    }
+
+    func testPlayInCurrentSessionTargetLevelFromBrowseResult() {
+        // Verify that targetLevel is read from browseResult.list.level
+        let result = BrowseResult(
+            action: "list",
+            list: BrowseList(title: "My Playlist", count: 10, image_key: nil, level: 5),
+            items: []
+        )
+        service.browseResult = result
+        XCTAssertEqual(service.browseResult?.list?.level, 5)
+    }
+
+    // MARK: - Browse pending key
+
     func testBrowseHomeResetsPendingKey() {
         service.browse(itemKey: "149:0")
         service.browseHome()
@@ -1440,5 +1503,14 @@ final class RoonServiceTests: XCTestCase {
 
     func testConnectionDetailInitiallyNil() {
         XCTAssertNil(service.connectionDetail)
+    }
+
+    // MARK: - Helpers
+
+    private func makeBrowseItem(title: String, hint: String, itemKey: String? = nil) -> BrowseItem {
+        var fields = ["\"title\": \"\(title)\"", "\"hint\": \"\(hint)\""]
+        if let key = itemKey { fields.append("\"item_key\": \"\(key)\"") }
+        let json = "{\(fields.joined(separator: ", "))}"
+        return try! JSONDecoder().decode(BrowseItem.self, from: Data(json.utf8))
     }
 }

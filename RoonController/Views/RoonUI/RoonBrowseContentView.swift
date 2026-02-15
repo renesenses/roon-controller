@@ -63,7 +63,7 @@ struct RoonBrowseContentView: View {
     /// Inside a streaming service section (tab bar + content)
     private var isInsideStreamingService: Bool {
         guard let cat = roonService.browseCategory, Self.streamingTitles.contains(cat) else { return false }
-        return !streamingSections.isEmpty
+        return !streamingSections.isEmpty || roonService.streamingAlbumDepth > 0
     }
 
     /// Root track list: flat list of playable tracks without album header
@@ -129,10 +129,12 @@ struct RoonBrowseContentView: View {
                 navBar
             }
 
-            // Streaming service tab bar
+            // Streaming service nav bar + tab bar (hide tabs when inside an album)
             if isInsideStreamingService {
                 streamingNavBar
-                streamingTabBar
+                if roonService.streamingAlbumDepth == 0 {
+                    streamingTabBar
+                }
             }
 
             // Search field — show for composers, tracks, playlist lists & generic views
@@ -1008,9 +1010,14 @@ struct RoonBrowseContentView: View {
         HStack(spacing: 12) {
             Button {
                 searchText = ""
-                streamingSections = []
                 browseListId = UUID()
-                roonService.browseHome()
+                if roonService.streamingAlbumDepth > 0 {
+                    // Pop back to tab content level, restore carousel view
+                    roonService.browseBackFromStreamingAlbum()
+                } else {
+                    streamingSections = []
+                    roonService.browseHome()
+                }
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 14, weight: .medium))
@@ -1153,7 +1160,7 @@ struct RoonBrowseContentView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 16) {
                     ForEach(section.items) { item in
-                        streamingCarouselCard(item, navigationPath: section.navigationPath)
+                        streamingCarouselCard(item, sectionTitles: section.navigationTitles)
                     }
                 }
                 .padding(.horizontal, 28)
@@ -1161,7 +1168,7 @@ struct RoonBrowseContentView: View {
         }
     }
 
-    private func streamingCarouselCard(_ item: BrowseItem, navigationPath: [String]) -> some View {
+    private func streamingCarouselCard(_ item: BrowseItem, sectionTitles: [String]) -> some View {
         let cardWidth: CGFloat = 180
         return VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .bottomTrailing) {
@@ -1217,14 +1224,13 @@ struct RoonBrowseContentView: View {
         .frame(width: cardWidth)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard let itemKey = item.item_key else { return }
+            guard let albumTitle = item.title else { return }
             searchText = ""
-            roonService.browseCategory = nil
-            streamingSections = []
+            // Keep streamingSections cached for instant back navigation
             browseListId = UUID()
             roonService.browseStreamingItem(
-                itemKey: itemKey,
-                navigationPath: navigationPath
+                albumTitle: albumTitle,
+                sectionTitles: sectionTitles
             )
         }
     }
