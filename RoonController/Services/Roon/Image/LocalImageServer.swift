@@ -1,15 +1,22 @@
 import Foundation
 import Network
+import os
+
+private let logger = Logger(subsystem: "com.bertrand.RoonController", category: "LocalImageServer")
 
 // MARK: - Local Image Server
 
-/// Minimal HTTP server on localhost:9150 that serves Roon images to SwiftUI AsyncImage views.
-/// URL format: `http://localhost:9150/image/{key}?width=N&height=N`
-/// This avoids modifying any views that use AsyncImage(url:).
+/// Minimal HTTP server on localhost that serves Roon images to SwiftUI AsyncImage views.
+/// URL format: `http://localhost:{port}/image/{key}?width=N&height=N`
+/// Tries ports 9150-9159 to avoid conflicts (e.g. Roon Core on the same machine).
 actor LocalImageServer {
 
     static let shared = LocalImageServer()
-    static let port: UInt16 = 9150
+    private static let basePort: UInt16 = 9150
+    private static let maxPortRetries = 10
+
+    /// Thread-safe published port for synchronous access from SwiftUI views.
+    nonisolated(unsafe) static private(set) var currentPort: UInt16 = basePort
 
     private var listener: NWListener?
     private var isRunning = false
@@ -22,29 +29,39 @@ actor LocalImageServer {
         let params = NWParameters.tcp
         params.allowLocalEndpointReuse = true
 
-        do {
-            let listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: Self.port)!)
-            self.listener = listener
+        for offset in 0..<UInt16(Self.maxPortRetries) {
+            let port = Self.basePort + offset
+            do {
+                let listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: port)!)
+                self.listener = listener
+                Self.currentPort = port
 
-            listener.stateUpdateHandler = { [weak self] state in
-                switch state {
-                case .ready:
-                    Task { await self?.setRunning(true) }
-                case .failed:
-                    Task { await self?.restart() }
-                default:
-                    break
+                listener.stateUpdateHandler = { [weak self] state in
+                    switch state {
+                    case .ready:
+                        logger.info("Image server listening on port \(port)")
+                        Task { await self?.setRunning(true) }
+                    case .failed(let error):
+                        logger.warning("Image server failed on port \(port): \(error.localizedDescription)")
+                        Task { await self?.restart() }
+                    default:
+                        break
+                    }
                 }
-            }
 
-            listener.newConnectionHandler = { [weak self] connection in
-                Task { await self?.handleConnection(connection) }
-            }
+                listener.newConnectionHandler = { [weak self] connection in
+                    Task { await self?.handleConnection(connection) }
+                }
 
-            listener.start(queue: .global(qos: .utility))
-        } catch {
-            // Failed to start listener
+                listener.start(queue: .global(qos: .utility))
+                logger.info("Image server starting on port \(port)")
+                return // success — stop trying other ports
+            } catch {
+                logger.warning("Port \(port) unavailable: \(error.localizedDescription)")
+                continue
+            }
         }
+        logger.error("Image server failed to bind any port in range \(Self.basePort)-\(Self.basePort + UInt16(Self.maxPortRetries) - 1)")
     }
 
     func stop() {
@@ -64,9 +81,9 @@ actor LocalImageServer {
 
     // MARK: - URL Generation
 
-    /// Generate a URL for an image served by this local server.
+    /// Generate a URL for an image served by this local server (synchronous, no await needed).
     nonisolated static func imageURL(key: String, width: Int = 300, height: Int = 300) -> URL? {
-        URL(string: "http://localhost:\(port)/image/\(key)?width=\(width)&height=\(height)")
+        URL(string: "http://localhost:\(currentPort)/image/\(key)?width=\(width)&height=\(height)")
     }
 
     // MARK: - Connection Handling

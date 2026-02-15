@@ -104,9 +104,14 @@ struct RoonContentView: View {
     // MARK: - Greeting Header
 
     private var greetingHeader: some View {
-        let fullName = NSFullUserName()
-        let firstName = fullName.components(separatedBy: " ").first ?? fullName
-        return Text("Bonjour, \(firstName)")
+        let name: String
+        if let profile = roonService.profileName {
+            name = profile
+        } else {
+            let fullName = NSFullUserName()
+            name = fullName.components(separatedBy: " ").first ?? fullName
+        }
+        return Text("Bonjour, \(name)")
             .font(.grifoM(48))
             .foregroundStyle(Color.roonText)
             .padding(.horizontal, pagePadding)

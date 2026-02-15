@@ -19,6 +19,7 @@ struct RoonBrowseContentView: View {
     private static let streamingTitles: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
     private static let tracksTitles: Set<String> = ["Morceaux", "Tracks"]
     private static let composerTitles: Set<String> = ["Compositeurs", "Composers"]
+    private static let radioTitles: Set<String> = ["My Live Radio", "Mes Live Radios"]
 
     private var filteredBrowseItems: [BrowseItem] {
         guard let result = roonService.browseResult else { return [] }
@@ -39,6 +40,8 @@ struct RoonBrowseContentView: View {
     private var isPlaylistView: Bool {
         guard roonService.browseResult?.list != nil else { return false }
         if let cat = roonService.browseCategory, Self.tracksTitles.contains(cat),
+           roonService.browseStack.count <= 1 { return false }
+        if let last = roonService.browseStack.last, Self.radioTitles.contains(last),
            roonService.browseStack.count <= 1 { return false }
         let items = filteredBrowseItems
         guard items.count >= 2 else { return false }
@@ -80,6 +83,12 @@ struct RoonBrowseContentView: View {
     /// Composer root: list or grid of composers
     private var isComposerView: Bool {
         guard let cat = roonService.browseCategory, Self.composerTitles.contains(cat) else { return false }
+        return roonService.browseStack.count <= 1
+    }
+
+    /// Radio stations view: grid of saved radio stations
+    private var isRadioStationsView: Bool {
+        guard let last = roonService.browseStack.last, Self.radioTitles.contains(last) else { return false }
         return roonService.browseStack.count <= 1
     }
 
@@ -140,7 +149,7 @@ struct RoonBrowseContentView: View {
             // Search field — show for composers, tracks, playlist lists & generic views
             // Hide for artist detail, playlist/album detail, streaming service, and genres
             if roonService.browseResult != nil &&
-               !isArtistDetailView && !isPlaylistView && !isStreamingServiceRoot && !isInsideStreamingService && !isGenreView || isPlaylistListView || isTrackListView || isComposerView {
+               !isArtistDetailView && !isPlaylistView && !isStreamingServiceRoot && !isInsideStreamingService && !isGenreView || isPlaylistListView || isTrackListView || isComposerView || isRadioStationsView {
                 searchField
             }
 
@@ -162,6 +171,8 @@ struct RoonBrowseContentView: View {
                     genreContent(items: items)
                 } else if isComposerView {
                     composerContent(items: items)
+                } else if isRadioStationsView {
+                    radioStationsContent(items: items)
                 } else if isPlaylistView && searchText.isEmpty {
                     playlistContent(items: items)
                 } else if isArtistDetailView && searchText.isEmpty {
@@ -1232,6 +1243,103 @@ struct RoonBrowseContentView: View {
                 albumTitle: albumTitle,
                 sectionTitles: sectionTitles
             )
+        }
+    }
+
+    // MARK: - Radio Stations Grid
+
+    private func radioStationsContent(items: [BrowseItem]) -> some View {
+        ScrollView {
+            // Header
+            HStack(spacing: 10) {
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.roonAccent)
+                if let count = roonService.browseResult?.list?.count {
+                    Text("\(count) stations")
+                        .font(.lato(14))
+                        .foregroundStyle(Color.roonSecondary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 28)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 18)],
+                spacing: 20
+            ) {
+                ForEach(items) { item in
+                    radioStationCard(item)
+                        .hoverScale()
+                        .onAppear { loadMoreIfNeeded(item: item) }
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+        .id(browseListId)
+    }
+
+    private func radioStationCard(_ item: BrowseItem) -> some View {
+        let cardSize: CGFloat = 180
+        return VStack(alignment: .leading, spacing: 6) {
+            ZStack(alignment: .bottomTrailing) {
+                if let url = roonService.imageURL(key: item.image_key, width: 480, height: 480) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable().aspectRatio(contentMode: .fill)
+                        default:
+                            Color.roonGrey2
+                        }
+                    }
+                    .frame(width: cardSize, height: cardSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.roonGrey2)
+                        .frame(width: cardSize, height: cardSize)
+                        .overlay {
+                            Image(systemName: "dot.radiowaves.left.and.right")
+                                .font(.system(size: 28))
+                                .foregroundStyle(Color.roonTertiary)
+                        }
+                }
+
+                if let title = item.title {
+                    Button {
+                        roonService.playMyLiveRadioStation(stationName: title)
+                    } label: {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Color.roonAccent)
+                            .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(6)
+                }
+            }
+
+            Text(item.title ?? "")
+                .font(.lato(15))
+                .foregroundStyle(Color.roonText)
+                .lineLimit(2)
+
+            if let subtitle = item.subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.lato(13))
+                    .foregroundStyle(Color.roonSecondary)
+                    .lineLimit(1)
+            }
+        }
+        .frame(width: cardSize)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if let title = item.title {
+                roonService.playMyLiveRadioStation(stationName: title)
+            }
         }
     }
 

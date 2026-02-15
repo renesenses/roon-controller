@@ -34,6 +34,7 @@ class RoonService: ObservableObject {
     @Published var sidebarPlaylists: [BrowseItem] = []
     @Published var libraryCounts: [String: Int] = [:]
     var recentlyAdded: [BrowseItem] = []
+    @Published var profileName: String?
 
     // MARK: - Storage
 
@@ -250,9 +251,10 @@ class RoonService: ObservableObject {
         // Sort zones consistently (Dictionary.values has no guaranteed order)
         let allZones = Array(zonesById.values).sorted { $0.zone_id < $1.zone_id }
 
-        // Track history before notifying views (may modify playbackHistory)
-        for zone in allZones {
-            trackPlaybackHistory(zone: zone)
+        // Track history only for the selected zone (avoids pollution from other zones)
+        if let selectedZoneId = currentZone?.zone_id,
+           let selectedZone = zonesById[selectedZoneId] {
+            trackPlaybackHistory(zone: selectedZone)
         }
 
         // Single objectWillChange for all mutations below
@@ -275,6 +277,7 @@ class RoonService: ObservableObject {
             if sidebarCategories.isEmpty {
                 fetchSidebarCategories()
                 fetchRecentlyAdded()
+                fetchProfileName()
             }
         }
 
@@ -491,6 +494,12 @@ class RoonService: ObservableObject {
             MPNowPlayingInfoPropertyPlaybackRate: (zone.state == "playing") ? 1.0 : 0.0
         ]
 
+        // Preserve existing artwork when updating (avoid overwriting async-fetched artwork)
+        var mergedInfo = info
+        if let existingArtwork = MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyArtwork] {
+            mergedInfo[MPMediaItemPropertyArtwork] = existingArtwork
+        }
+
         // Only fetch artwork when track changes
         if identity != lastNowPlayingIdentity {
             lastNowPlayingIdentity = identity
@@ -500,7 +509,7 @@ class RoonService: ObservableObject {
                     if let imgData = await RoonImageProvider.shared.fetchImage(key: imageKey, width: 600, height: 600),
                        let probe = NSImage(data: imgData) {
                         let artwork = Self.makeArtwork(data: imgData, size: probe.size)
-                        var updated = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? info
+                        var updated = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? mergedInfo
                         updated[MPMediaItemPropertyArtwork] = artwork
                         MPNowPlayingInfoCenter.default().nowPlayingInfo = updated
                     }
@@ -508,7 +517,7 @@ class RoonService: ObservableObject {
             }
         }
 
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = mergedInfo
 
         switch zone.state {
         case "playing": MPNowPlayingInfoCenter.default().playbackState = .playing
@@ -939,6 +948,49 @@ class RoonService: ObservableObject {
         }
     }
 
+    // MARK: - Profile Name
+
+    private static let settingsTitles = Set(["Settings", "Paramètres"])
+    private static let profileTitles = Set(["Profile", "Profil"])
+
+    /// Fetch the active Roon profile name via the browse "settings" hierarchy.
+    func fetchProfileName() {
+        Task {
+            do {
+                let decoder = JSONDecoder()
+                let session = RoonBrowseService(connection: connection, sessionKey: "profile")
+                let zoneId = currentZone?.zone_id
+
+                // Browse root to find Settings
+                let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
+                let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                guard let settingsItem = rootItems.first(where: { Self.settingsTitles.contains($0.title ?? "") }),
+                      let settingsKey = settingsItem.item_key else { return }
+
+                // Navigate into Settings
+                let settingsResponse = try await session.browse(zoneId: zoneId, itemKey: settingsKey)
+                let settingsItems: [BrowseItem] = settingsResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                // The active profile is shown as subtitle of the "Profile" item
+                if let profileItem = settingsItems.first(where: { Self.profileTitles.contains($0.title ?? "") }),
+                   let name = profileItem.subtitle, !name.isEmpty {
+                    await MainActor.run {
+                        self.profileName = name
+                    }
+                }
+            } catch {
+                // Profile fetch failed silently — greeting will fall back to macOS username
+            }
+        }
+    }
+
     // MARK: - Sidebar Categories
 
     private static let playlistTitles = Set(["Listes de lecture", "Playlists"])
@@ -1150,6 +1202,9 @@ class RoonService: ObservableObject {
         pendingBrowseKey = nil
         browseStack.removeAll()
         browseCategory = title
+        streamingAlbumDepth = 0
+        streamingSections = []
+        cancelStreamingFetch()
         browseLoading = true
 
         currentBrowseTask?.cancel()
@@ -1263,6 +1318,20 @@ class RoonService: ObservableObject {
         }
         guard let station = station, let key = station["item_key"] as? String else { return }
         try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: key, hierarchy: "internet_radio")
+    }
+
+    /// Play a station from My Live Radio by name (stations are at the internet_radio root)
+    func playMyLiveRadioStation(stationName: String) {
+        guard let zoneId = currentZone?.zone_id else { return }
+        currentPlayTask?.cancel()
+        let session = RoonBrowseService(connection: connection, sessionKey: "play_radio")
+        currentPlayTask = Task {
+            do {
+                try await playRadioStation(browseService: session, zoneId: zoneId, stationName: stationName)
+            } catch {
+                // silently fail
+            }
+        }
     }
 
     private func performPlaySearch(
