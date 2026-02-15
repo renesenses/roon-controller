@@ -1458,23 +1458,52 @@ class RoonService: ObservableObject {
 
     /// Play from the current browse session (item keys are context-dependent within the session).
     /// Drills into the item to find a play action, then pops back to restore the browse view.
+    /// Uses the API-reported `level` to pop back precisely — some actions (like "Play From Here")
+    /// auto-pop, so we must not blindly count levels pushed.
     func playInCurrentSession(itemKey: String) {
         guard let browseService = browseService else { return }
         guard let zoneId = currentZone?.zone_id else { return }
-        playbackTransitioning = true
-        currentPlayTask?.cancel()
+        let previousTask = currentPlayTask
+        previousTask?.cancel()
+        let targetLevel = browseResult?.list?.level ?? 0
         currentPlayTask = Task {
-            var levelsPushed = 0
+            // Serialize play operations to avoid concurrent browse session mutations
+            if previousTask != nil { _ = await previousTask?.value }
+            guard !Task.isCancelled else { return }
+
+            var currentLevel = targetLevel
             do {
-                // Refresh session with current zone (handles zone changes)
-                _ = try await browseService.browse(zoneId: zoneId, popLevels: 0)
-                levelsPushed = try await playBrowseItem(browseService: browseService, zoneId: zoneId, itemKey: itemKey)
+                // Browse into the track → pushes 1 level (action menu)
+                let result = try await browseService.browse(zoneId: zoneId, itemKey: itemKey)
+                currentLevel = result.list?["level"] as? Int ?? currentLevel + 1
+                guard !Task.isCancelled else {
+                    if currentLevel > targetLevel {
+                        _ = try? await browseService.browse(zoneId: zoneId, popLevels: currentLevel - targetLevel)
+                    }
+                    return
+                }
+
+                // Find a play action (prefer "Play From Here" / "Lire a partir d'ici")
+                let playAction = result.items.first { item in
+                    let hint = item["hint"] as? String ?? ""
+                    let t = (item["title"] as? String ?? "").lowercased()
+                    return hint == "action" && (t.contains("play from here") || (t.contains("lire") && t.contains("partir")))
+                } ?? result.items.first { ($0["hint"] as? String) == "action" }
+
+                // Execute the play action (often auto-pops back to the parent level)
+                if let action = playAction, let key = action["item_key"] as? String {
+                    let actionResult = try await browseService.browse(zoneId: zoneId, itemKey: key)
+                    currentLevel = actionResult.list?["level"] as? Int ?? currentLevel
+                }
+
+                // Only pop if we're still above the target level
+                if currentLevel > targetLevel {
+                    _ = try await browseService.browse(zoneId: zoneId, popLevels: currentLevel - targetLevel)
+                }
             } catch {
-                // Play failed
-            }
-            // Always pop back the exact number of levels pushed
-            if levelsPushed > 0 {
-                try? await browseService.browse(zoneId: zoneId, popLevels: levelsPushed)
+                if currentLevel > targetLevel {
+                    _ = try? await browseService.browse(zoneId: zoneId, popLevels: currentLevel - targetLevel)
+                }
             }
         }
     }
