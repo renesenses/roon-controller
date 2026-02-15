@@ -1690,6 +1690,113 @@ final class ViewBehaviorTests: XCTestCase {
                        "sidebarCategories should survive disconnect")
     }
 
+    // MARK: - SidebarSection RawRepresentable
+
+    func testSidebarSectionFixedRoundTrip() {
+        let fixed: [SidebarView.SidebarSection] = [.zones, .browse, .queue, .history, .favorites]
+        for section in fixed {
+            let raw = section.rawValue
+            let decoded = SidebarView.SidebarSection(rawValue: raw)
+            XCTAssertEqual(decoded, section, "Round-trip failed for \(raw)")
+        }
+    }
+
+    func testSidebarSectionStreamingRoundTrip() {
+        let tidal = SidebarView.SidebarSection.streaming(serviceName: "TIDAL")
+        XCTAssertEqual(tidal.rawValue, "streaming:TIDAL")
+        let decoded = SidebarView.SidebarSection(rawValue: "streaming:TIDAL")
+        XCTAssertEqual(decoded, tidal)
+
+        let qobuz = SidebarView.SidebarSection.streaming(serviceName: "Qobuz")
+        XCTAssertEqual(qobuz.rawValue, "streaming:Qobuz")
+        let decodedQ = SidebarView.SidebarSection(rawValue: "streaming:Qobuz")
+        XCTAssertEqual(decodedQ, qobuz)
+    }
+
+    func testSidebarSectionInvalidRawValue() {
+        XCTAssertNil(SidebarView.SidebarSection(rawValue: "invalid"))
+        XCTAssertNil(SidebarView.SidebarSection(rawValue: ""))
+    }
+
+    func testSidebarSectionFixedSections() {
+        let fixed = SidebarView.SidebarSection.fixedSections
+        XCTAssertEqual(fixed.count, 5)
+        XCTAssertEqual(fixed[0], .zones)
+        XCTAssertEqual(fixed[4], .favorites)
+    }
+
+    func testSidebarSectionIcons() {
+        XCTAssertEqual(SidebarView.SidebarSection.zones.icon, "hifispeaker.2")
+        XCTAssertEqual(SidebarView.SidebarSection.browse.icon, "square.grid.2x2")
+        XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "TIDAL").icon, "waveform")
+        XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "Qobuz").icon, "headphones")
+    }
+
+    // MARK: - cachedStreamingSectionsForService
+
+    func testCachedStreamingSectionsFiltersByService() {
+        // Write a cache file with TIDAL and Qobuz entries, then create a service that loads it
+        let cacheDir = tempDir!
+        let items = [makeBrowseItem(title: "Album", hint: "list", itemKey: "a1")]
+        let section1 = StreamingSection(id: "s1", title: "New Releases", items: items, navigationTitles: ["New Releases"])
+        let section2 = StreamingSection(id: "s2", title: "Top Albums", items: items, navigationTitles: ["Top Albums"])
+
+        struct CachedEntry: Codable {
+            let sections: [StreamingSection]
+            let date: Date
+        }
+
+        let cache: [String: CachedEntry] = [
+            "TIDAL:New Releases": CachedEntry(sections: [section1], date: Date()),
+            "Qobuz:Top Albums": CachedEntry(sections: [section2], date: Date())
+        ]
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try! encoder.encode(cache)
+        let path = cacheDir.appendingPathComponent("streaming_sections_cache.json")
+        try! data.write(to: path)
+
+        let svc = RoonService(storageDirectory: cacheDir)
+        let tidalSections = svc.cachedStreamingSectionsForService("TIDAL")
+        XCTAssertEqual(tidalSections.count, 1)
+        XCTAssertEqual(tidalSections.first?.title, "New Releases")
+
+        let qobuzSections = svc.cachedStreamingSectionsForService("Qobuz")
+        XCTAssertEqual(qobuzSections.count, 1)
+        XCTAssertEqual(qobuzSections.first?.title, "Top Albums")
+
+        let kkboxSections = svc.cachedStreamingSectionsForService("KKBOX")
+        XCTAssertTrue(kkboxSections.isEmpty)
+    }
+
+    func testCachedStreamingSectionsExcludesExpired() {
+        let cacheDir = tempDir!
+        let items = [makeBrowseItem(title: "Album", hint: "list", itemKey: "a1")]
+        let section = StreamingSection(id: "s1", title: "Old Section", items: items, navigationTitles: ["Old"])
+
+        struct CachedEntry: Codable {
+            let sections: [StreamingSection]
+            let date: Date
+        }
+
+        // 25 hours ago — expired
+        let expiredDate = Date().addingTimeInterval(-25 * 60 * 60)
+        let cache: [String: CachedEntry] = [
+            "TIDAL:Old": CachedEntry(sections: [section], date: expiredDate)
+        ]
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try! encoder.encode(cache)
+        let path = cacheDir.appendingPathComponent("streaming_sections_cache.json")
+        try! data.write(to: path)
+
+        let svc = RoonService(storageDirectory: cacheDir)
+        let sections = svc.cachedStreamingSectionsForService("TIDAL")
+        XCTAssertTrue(sections.isEmpty, "Expired entries should be excluded")
+    }
+
     // MARK: - Helpers
 
     private func formatTime(_ totalSeconds: Int) -> String {

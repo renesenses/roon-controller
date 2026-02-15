@@ -35,6 +35,7 @@ class RoonService: ObservableObject {
     @Published var libraryCounts: [String: Int] = [:]
     var recentlyAdded: [BrowseItem] = []
     @Published var profileName: String?
+    @Published var streamingCacheVersion: Int = 0
 
     // MARK: - Storage
 
@@ -898,6 +899,85 @@ class RoonService: ObservableObject {
         pendingBrowseKey = nil
         browseStack.removeAll()
         browse(popLevels: levels)
+    }
+
+    /// Navigate from root into a streaming service, match through section titles, and open an album.
+    /// Used by the sidebar streaming tab to switch to the browse section with the album displayed.
+    func browseToStreamingAlbum(serviceName: String, albumTitle: String, sectionTitles: [String]) {
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+
+        pendingBrowseKey = nil
+        browseStack.removeAll()
+        browseCategory = serviceName
+        streamingAlbumDepth = 0
+        streamingSections = []
+        cancelStreamingFetch()
+        browseResult = nil
+        browseLoading = true
+
+        currentBrowseTask?.cancel()
+        currentBrowseTask = Task {
+            do {
+                let decoder = JSONDecoder()
+                func decodeItems(_ dicts: [[String: Any]]) -> [BrowseItem] {
+                    dicts.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+                }
+
+                // Reset to root
+                let rootResponse = try await browseService.browse(zoneId: zoneId, popAll: true)
+                guard !Task.isCancelled else { return }
+                var currentItems = decodeItems(rootResponse.items)
+
+                // Find service at root level
+                guard let serviceItem = currentItems.first(where: { $0.title == serviceName }),
+                      let serviceKey = serviceItem.item_key else {
+                    browseLoading = false
+                    return
+                }
+
+                let serviceResponse = try await browseService.browse(zoneId: zoneId, itemKey: serviceKey)
+                guard !Task.isCancelled else { return }
+                currentItems = decodeItems(serviceResponse.items)
+
+                // Auto-navigate into the first tab (same pattern as browseToCategory handler)
+                if let firstTab = currentItems.first, let tabKey = firstTab.item_key {
+                    let tabResponse = try await browseService.browse(zoneId: zoneId, itemKey: tabKey)
+                    guard !Task.isCancelled else { return }
+                    currentItems = decodeItems(tabResponse.items)
+                }
+
+                // Navigate section path by matching titles
+                for pathTitle in sectionTitles {
+                    guard let match = currentItems.first(where: { $0.title == pathTitle }),
+                          let matchKey = match.item_key else {
+                        browseLoading = false
+                        return
+                    }
+                    let resp = try await browseService.browse(zoneId: zoneId, itemKey: matchKey)
+                    guard !Task.isCancelled else { return }
+                    currentItems = decodeItems(resp.items)
+                }
+
+                // Find and open album
+                guard let album = currentItems.first(where: { $0.title == albumTitle }),
+                      let albumKey = album.item_key else {
+                    browseLoading = false
+                    return
+                }
+
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: albumKey)
+                guard !Task.isCancelled else { return }
+                // +3 = service + first tab + sectionTitles.count levels + album
+                streamingAlbumDepth = sectionTitles.count + 3
+                handleBrowseResponse(response, isPageLoad: false)
+            } catch {
+                browseLoading = false
+            }
+        }
     }
 
     /// Navigate to browse root, find the search item, and submit a query.
@@ -1992,6 +2072,17 @@ class RoonService: ObservableObject {
         if let data = try? encoder.encode(streamingSectionsCache) {
             try? data.write(to: path)
         }
+        streamingCacheVersion += 1
+    }
+
+    /// Returns cached streaming sections for a given service, excluding expired entries.
+    func cachedStreamingSectionsForService(_ serviceName: String) -> [StreamingSection] {
+        let prefix = "\(serviceName):"
+        let now = Date()
+        return streamingSectionsCache
+            .filter { $0.key.hasPrefix(prefix) && now.timeIntervalSince($0.value.date) < Self.streamingSectionsCacheExpiry }
+            .sorted { $0.key < $1.key }
+            .flatMap { $0.value.sections }
     }
 
     // MARK: - Sidebar Cache Persistence

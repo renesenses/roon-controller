@@ -10,8 +10,39 @@ struct SidebarView: View {
     @State private var roonSearchText: String = ""
     @State private var searchItemKey: String?
 
-    enum SidebarSection: String, CaseIterable {
+    enum SidebarSection: Hashable, RawRepresentable {
         case zones, browse, queue, history, favorites
+        case streaming(serviceName: String)
+
+        static let fixedSections: [SidebarSection] = [.zones, .browse, .queue, .history, .favorites]
+
+        init?(rawValue: String) {
+            switch rawValue {
+            case "zones": self = .zones
+            case "browse": self = .browse
+            case "queue": self = .queue
+            case "history": self = .history
+            case "favorites": self = .favorites
+            default:
+                if rawValue.hasPrefix("streaming:") {
+                    let name = String(rawValue.dropFirst("streaming:".count))
+                    self = .streaming(serviceName: name)
+                } else {
+                    return nil
+                }
+            }
+        }
+
+        var rawValue: String {
+            switch self {
+            case .zones: "zones"
+            case .browse: "browse"
+            case .queue: "queue"
+            case .history: "history"
+            case .favorites: "favorites"
+            case .streaming(let name): "streaming:\(name)"
+            }
+        }
 
         var label: LocalizedStringKey {
             switch self {
@@ -20,20 +51,45 @@ struct SidebarView: View {
             case .queue: "File d'attente"
             case .history: "Historique"
             case .favorites: "Favoris"
+            case .streaming(let name): LocalizedStringKey(name)
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .zones: "hifispeaker.2"
+            case .browse: "square.grid.2x2"
+            case .queue: "list.number"
+            case .history: "clock"
+            case .favorites: "heart"
+            case .streaming(let name):
+                switch name {
+                case "Qobuz": "headphones"
+                default: "waveform"
+                }
             }
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Mode toggle + Section Picker
-            HStack {
-                Picker("", selection: $selectedSection) {
-                    ForEach(SidebarSection.allCases, id: \.self) { section in
-                        Text(section.label).tag(section)
+            // Mode toggle + Section icon bar
+            HStack(spacing: 0) {
+                ForEach(SidebarSection.fixedSections, id: \.self) { section in
+                    sidebarButton(section)
+                }
+
+                if !availableStreamingServices.isEmpty {
+                    Divider()
+                        .frame(height: 16)
+                        .padding(.horizontal, 4)
+
+                    ForEach(availableStreamingServices, id: \.self) { name in
+                        sidebarButton(.streaming(serviceName: name))
                     }
                 }
-                .pickerStyle(.segmented)
+
+                Spacer()
 
                 Button {
                     uiMode = "roon"
@@ -50,7 +106,8 @@ struct SidebarView: View {
                 .buttonStyle(.plain)
                 .help("Mode Roon")
             }
-            .padding(12)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
 
             Divider()
                 .overlay(Color.roonTertiary.opacity(0.3))
@@ -70,6 +127,8 @@ struct SidebarView: View {
                 case .favorites:
                     FavoritesView()
                         .environmentObject(roonService)
+                case .streaming(let serviceName):
+                    streamingServiceContent(serviceName: serviceName)
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: selectedSection)
@@ -440,5 +499,130 @@ struct SidebarView: View {
         roonService.browse(itemKey: itemKey, input: roonSearchText)
         roonSearchText = ""
         searchItemKey = nil
+    }
+
+    // MARK: - Streaming service detection
+
+    private static let streamingServiceTitles: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
+
+    private var availableStreamingServices: [String] {
+        roonService.sidebarCategories.compactMap(\.title).filter {
+            Self.streamingServiceTitles.contains($0)
+        }
+    }
+
+    // MARK: - Icon bar button
+
+    private func sidebarButton(_ section: SidebarSection) -> some View {
+        Button {
+            selectedSection = section
+        } label: {
+            Image(systemName: section.icon)
+                .font(.system(size: 13))
+                .foregroundStyle(selectedSection == section ? Color.roonAccent : Color.roonSecondary)
+                .frame(width: 28, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(selectedSection == section ? Color.roonAccent.opacity(0.15) : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
+        .help(section.label)
+    }
+
+    // MARK: - Streaming Service Content
+
+    private func streamingServiceContent(serviceName: String) -> some View {
+        let sections = roonService.cachedStreamingSectionsForService(serviceName)
+        return Group {
+            if sections.isEmpty {
+                VStack(spacing: 12) {
+                    Spacer()
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Chargement de \(serviceName)...")
+                        .font(.caption)
+                        .foregroundStyle(Color.roonSecondary)
+                    Spacer()
+                }
+                .onAppear {
+                    roonService.prefetchStreamingServices()
+                }
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        ForEach(sections) { section in
+                            streamingSectionView(section: section, serviceName: serviceName)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .id("streaming_\(serviceName)_\(roonService.streamingCacheVersion)")
+    }
+
+    private func streamingSectionView(section: StreamingSection, serviceName: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(section.title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color.roonSecondary)
+                .textCase(.uppercase)
+                .padding(.horizontal, 12)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(section.items) { item in
+                        streamingCard(item: item, section: section, serviceName: serviceName)
+                    }
+                }
+                .padding(.horizontal, 12)
+            }
+        }
+    }
+
+    private func streamingCard(item: BrowseItem, section: StreamingSection, serviceName: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let url = roonService.imageURL(key: item.image_key, width: 200, height: 200) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        Color.roonSurface
+                    }
+                }
+                .frame(width: 100, height: 100)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            } else {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.roonSurface)
+                    .frame(width: 100, height: 100)
+            }
+
+            Text(item.title ?? "")
+                .font(.caption2)
+                .foregroundStyle(Color.roonText)
+                .lineLimit(2)
+                .frame(width: 100, alignment: .leading)
+
+            if let subtitle = item.subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundStyle(Color.roonSecondary)
+                    .lineLimit(1)
+                    .frame(width: 100, alignment: .leading)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedSection = .browse
+            roonService.browseToStreamingAlbum(
+                serviceName: serviceName,
+                albumTitle: item.title ?? "",
+                sectionTitles: section.navigationTitles
+            )
+        }
     }
 }
