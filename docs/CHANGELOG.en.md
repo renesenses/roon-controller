@@ -32,6 +32,11 @@ timeline
                 : macOS Now Playing (Control Center)
                 : Default zone setting
                 : +41 tests (244)
+    2026-02-15 : v1.0.5
+                : TIDAL/Qobuz tabs in Player
+                : Streaming pre-fetch + disk cache
+                : My Live Radio
+                : +29 tests (273)
 ```
 
 ## [Unreleased]
@@ -58,6 +63,35 @@ timeline
 - Playback via Browse API `internet_radio` instead of text search
 - Roon playlist creation from favorites
 - Simplified UX: swipe-to-delete, sort, filter by station
+
+## [1.0.5] - 2026-02-15
+
+### Added
+
+- TIDAL and Qobuz tabs in Player sidebar with compact carousels (`a157663`)
+- SF Symbols icon bar replacing segmented Picker (5 fixed + dynamic services) (`a157663`)
+- Per-service streaming view: sections in `LazyVStack`, horizontal 100px card carousels (`a157663`)
+- Card tap → album navigation in Browse section via `browseToStreamingAlbum()` (`a157663`)
+- `cachedStreamingSectionsForService()`: filtered streaming cache read per service (`a157663`)
+- `streamingCacheVersion`: reactive counter to signal cache updates to UI (`a157663`)
+- Streaming sections pre-fetch with 24h disk cache (`8744236`)
+- Sidebar categories disk cache for instant display on launch (`8744236`)
+- My Live Radio grid view with station playback (`200b4e5`)
+- 29 new unit tests (273 total): SidebarSection round-trip, streaming cache, album navigation (`a157663`, `cb8218a`)
+
+### Changed
+
+- `SidebarSection` refactored with `.streaming(serviceName:)` associated value and custom `RawRepresentable` (`a157663`)
+- Tab bar padding reduced to accommodate dynamic icons (`a157663`)
+
+### Fixed
+
+- TIDAL/Qobuz navigation by title instead of session keys (expired keys) (`d767492`)
+- Playlist track playback: use API level instead of counting pushes (`232f09b`)
+- Streaming album back: restore carousels without reload (`cb8218a`)
+- Cover art flickering fix on track change (`8744236`)
+- Image server: async port retry with dynamic port test (`cdff283`)
+- Fix pbxproj: remove duplicate group references (`a48060c`)
 
 ## [1.0.4] - 2026-02-14
 
@@ -162,7 +196,8 @@ timeline
 - CI/CD with GitHub Actions and Claude Code integration
 - Bilingual technical documentation
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/renesenses/roon-controller/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/renesenses/roon-controller/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/renesenses/roon-controller/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/renesenses/roon-controller/compare/v1.0.1...v1.0.2

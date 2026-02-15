@@ -86,7 +86,10 @@
 |---|------|-------------------|
 | 7.1 | Clic sur Genres dans la sidebar | Grille de cartes genre avec gradients colores |
 | 7.2 | Clic sur un genre | Navigation vers les sous-genres ou albums (grille normale) |
-| 7.3 | Clic sur TIDAL dans la sidebar | Carousel par sections avec cartes icones |
+| 7.3 | Clic sur TIDAL dans la sidebar | Carousel par sections avec cartes icones (mode Roon) |
+| 7.3b | Onglet TIDAL dans la sidebar Player | Carousels compacts 100px depuis le cache disque |
+| 7.3c | Onglet Qobuz dans la sidebar Player | Carousels compacts 100px depuis le cache disque |
+| 7.3d | Tap sur une carte streaming (Player) | Navigation vers l'album dans la section Bibliotheque |
 | 7.4 | Clic sur Morceaux dans la sidebar | Tableau de morceaux avec pochettes (pas de header playlist) |
 | 7.5 | Scroll dans la vue Morceaux | Les pochettes se chargent en avance (prefetch) |
 | 7.6 | Clic sur Compositeurs dans la sidebar | Grille circulaire avec initiales |
@@ -146,7 +149,7 @@ Ou depuis Xcode : **Product > Test** (Cmd+U).
 |---------|-------------|
 | `Tests/RoonModelsTests.swift` | Decodage JSON des modeles (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
 | `Tests/RoonServiceTests.swift` | Logique du service (browse guard, historique, selection de zone, URL image) et protocole MOO (parsing, construction, request ID) |
-| `Tests/ViewBehaviorTests.swift` | Tests comportement des vues (zone par defaut, filtrage playlists, mode UI, vues browse specialisees, Now Playing) |
+| `Tests/ViewBehaviorTests.swift` | Tests comportement des vues (zone par defaut, filtrage playlists, mode UI, vues browse specialisees, Now Playing, onglets streaming) |
 
 ### Detail des tests
 

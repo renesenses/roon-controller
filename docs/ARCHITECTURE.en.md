@@ -350,7 +350,7 @@ The app has two display modes selectable in Settings:
 |------|------|
 | `ContentView` | Routing: `ConnectionView` if disconnected, `RoonLayoutView` if Roon mode, otherwise `NavigationSplitView` Player |
 | `PlayerView` | Player: artwork with blurred background, track info, seek bar, transport controls |
-| `SidebarView` | Sidebar with tabs: Zones, Library, Queue, History, Favorites |
+| `SidebarView` | Sidebar with icons: Zones, Library, Queue, History, Favorites + dynamic TIDAL/Qobuz tabs (streaming carousels from disk cache) |
 
 **Roon mode** — native Roon layout with sidebar, content and transport bar:
 

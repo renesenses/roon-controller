@@ -38,7 +38,49 @@ gantt
     macOS Now Playing (Control Center)  :done, 2026-02-14, 1d
     Default zone, settings              :done, 2026-02-14, 1d
     +41 tests (244)                     :done, 2026-02-14, 1d
+
+    section v1.0.5
+    TIDAL/Qobuz tabs in Player          :done, 2026-02-15, 1d
+    Streaming pre-fetch + disk cache     :done, 2026-02-15, 1d
+    My Live Radio                        :done, 2026-02-15, 1d
+    +29 tests (273)                      :done, 2026-02-15, 1d
 ```
+
+---
+
+## 2026-02-15
+
+### Activities
+
+- TIDAL and Qobuz tabs in Player sidebar (`a157663`):
+  - Replaced segmented Picker with compact SF Symbols icon bar
+  - `SidebarSection` refactored with `.streaming(serviceName:)` and custom `RawRepresentable` for `@SceneStorage`
+  - Per-service streaming view: sections in `LazyVStack`, horizontal 100px card carousels
+  - Card tap → album navigation in Browse via `browseToStreamingAlbum()`
+- Streaming sections pre-fetch with 24h disk cache (`8744236`)
+- Sidebar categories disk cache for instant display on launch (`8744236`)
+- My Live Radio grid view with station playback (`200b4e5`)
+- Fix TIDAL/Qobuz navigation by title instead of expired session keys (`d767492`)
+- Fix playlist playback via API level instead of counting pushes (`232f09b`)
+- Fix cover art flickering and async image server (`8744236`, `cdff283`)
+- 29 new unit tests (273 total): SidebarSection round-trip, streaming cache, album navigation
+
+### Decisions
+
+- Icon bar instead of segmented Picker: segmented picker cannot fit 7 tabs in 250px
+- Streaming cache read via `cachedStreamingSectionsForService()` + reactive `streamingCacheVersion` counter to avoid unnecessary re-renders
+
+### Commits
+
+- `a157663` — Add TIDAL & Qobuz streaming tabs to Player sidebar
+- `a48060c` — Fix pbxproj: remove duplicate group references from root
+- `8744236` — Add streaming pre-fetch, sidebar disk cache, and cover flickering fix
+- `b1e4449` — Merge feature/qobuz-integration: community feedback fixes + My Live Radio
+- `cdff283` — Fix image server async port retry and dynamic port test
+- `200b4e5` — Add My Live Radio grid view with station playback
+- `cb8218a` — Add tests and fix streaming album navigation UX
+- `d767492` — Fix TIDAL navigation: title-based browse and streaming album back
+- `232f09b` — Fix playlist track play: use API level instead of counting pushes
 
 ---
 

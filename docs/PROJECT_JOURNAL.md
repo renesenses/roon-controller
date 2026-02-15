@@ -38,7 +38,49 @@ gantt
     macOS Now Playing (Control Center)  :done, 2026-02-14, 1d
     Zone par defaut, settings           :done, 2026-02-14, 1d
     +41 tests (244)                     :done, 2026-02-14, 1d
+
+    section v1.0.5
+    Onglets TIDAL/Qobuz dans Player     :done, 2026-02-15, 1d
+    Pre-fetch streaming + cache disque   :done, 2026-02-15, 1d
+    My Live Radio                        :done, 2026-02-15, 1d
+    +29 tests (273)                      :done, 2026-02-15, 1d
 ```
+
+---
+
+## 2026-02-15
+
+### Activites
+
+- Onglets TIDAL et Qobuz dans la sidebar du mode Player (`a157663`) :
+  - Remplacement du Picker segmente par une barre d'icones SF Symbols compacte
+  - `SidebarSection` refactorise avec `.streaming(serviceName:)` et `RawRepresentable` custom pour `@SceneStorage`
+  - Vue streaming par service : sections en `LazyVStack`, carousels horizontaux de cartes 100px
+  - Navigation tap carte → album dans Browse via `browseToStreamingAlbum()`
+- Pre-fetch des sections streaming avec cache disque 24h (`8744236`)
+- Cache disque des categories sidebar pour affichage instantane au lancement (`8744236`)
+- Vue My Live Radio avec grille de stations et lecture directe (`200b4e5`)
+- Fix navigation TIDAL/Qobuz par titre au lieu de cles de session expirees (`d767492`)
+- Fix lecture playlists via niveau API au lieu de compter les pushes (`232f09b`)
+- Fix scintillement pochettes et serveur image async (`8744236`, `cdff283`)
+- 29 nouveaux tests unitaires (273 au total) : SidebarSection round-trip, cache streaming, navigation albums
+
+### Decisions
+
+- Barre d'icones au lieu du Picker segmente : le segmented picker ne tient pas avec 7 onglets dans 250px
+- Cache streaming consulte par `cachedStreamingSectionsForService()` + compteur reactif `streamingCacheVersion` pour eviter les re-renders inutiles
+
+### Commits
+
+- `a157663` — Add TIDAL & Qobuz streaming tabs to Player sidebar
+- `a48060c` — Fix pbxproj: remove duplicate group references from root
+- `8744236` — Add streaming pre-fetch, sidebar disk cache, and cover flickering fix
+- `b1e4449` — Merge feature/qobuz-integration: community feedback fixes + My Live Radio
+- `cdff283` — Fix image server async port retry and dynamic port test
+- `200b4e5` — Add My Live Radio grid view with station playback
+- `cb8218a` — Add tests and fix streaming album navigation UX
+- `d767492` — Fix TIDAL navigation: title-based browse and streaming album back
+- `232f09b` — Fix playlist track play: use API level instead of counting pushes
 
 ---
 

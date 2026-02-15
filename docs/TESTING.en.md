@@ -84,7 +84,10 @@
 |---|------|-----------------|
 | 7.1 | Click Genres in sidebar | Grid of genre cards with colored gradients |
 | 7.2 | Click on a genre | Navigation to sub-genres or albums (normal grid) |
-| 7.3 | Click TIDAL in sidebar | Carousel by sections with icon cards |
+| 7.3 | Click TIDAL in sidebar | Carousel by sections with icon cards (Roon mode) |
+| 7.3b | TIDAL tab in Player sidebar | Compact 100px carousels from disk cache |
+| 7.3c | Qobuz tab in Player sidebar | Compact 100px carousels from disk cache |
+| 7.3d | Tap streaming card (Player) | Navigation to album in Library section |
 | 7.4 | Click Tracks in sidebar | Track table with artwork (no playlist header) |
 | 7.5 | Scroll in Tracks view | Artwork loads ahead (prefetch) |
 | 7.6 | Click Composers in sidebar | Circular grid with initials |
@@ -144,7 +147,7 @@ Or from Xcode: **Product > Test** (Cmd+U).
 |------|-------------|
 | `Tests/RoonModelsTests.swift` | JSON decoding of models (BrowseItem, InputPrompt, QueueItem, PlaybackHistoryItem, RoonZone, BrowseResult) |
 | `Tests/RoonServiceTests.swift` | Service logic (browse guard, history, zone selection, image URL) and MOO protocol (parsing, construction, request ID) |
-| `Tests/ViewBehaviorTests.swift` | View behavior tests (default zone, playlist filtering, UI mode, specialized browse views, Now Playing) |
+| `Tests/ViewBehaviorTests.swift` | View behavior tests (default zone, playlist filtering, UI mode, specialized browse views, Now Playing, streaming tabs) |
 
 ### Test Details
 

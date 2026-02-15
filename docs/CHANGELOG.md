@@ -32,6 +32,11 @@ timeline
                 : macOS Now Playing (Control Center)
                 : Zone par defaut
                 : +41 tests (244)
+    2026-02-15 : v1.0.5
+                : Onglets TIDAL/Qobuz dans Player
+                : Pre-fetch streaming + cache disque
+                : My Live Radio
+                : +29 tests (273)
 ```
 
 ## [Unreleased]
@@ -58,6 +63,35 @@ timeline
 - Lecture via Browse API `internet_radio` au lieu de recherche textuelle
 - Creation de playlist Roon depuis les favoris
 - UX simplifiee : swipe-to-delete, tri, filtre par station
+
+## [1.0.5] - 2026-02-15
+
+### Added
+
+- Onglets TIDAL et Qobuz dans la sidebar du mode Player avec carousels compacts (`a157663`)
+- Barre d'icones SF Symbols remplacant le Picker segmente (5 fixes + services dynamiques) (`a157663`)
+- Vue streaming par service : sections en `LazyVStack`, carousels horizontaux de cartes 100px (`a157663`)
+- Navigation tap carte → album dans la section Browse via `browseToStreamingAlbum()` (`a157663`)
+- `cachedStreamingSectionsForService()` : lecture du cache streaming filtree par service (`a157663`)
+- `streamingCacheVersion` : compteur reactif pour signaler les mises a jour du cache au UI (`a157663`)
+- Pre-fetch des sections streaming avec cache disque 24h (`8744236`)
+- Cache disque des categories sidebar pour affichage instantane au lancement (`8744236`)
+- Vue My Live Radio avec grille de stations et lecture directe (`200b4e5`)
+- 29 nouveaux tests unitaires (273 au total) : SidebarSection round-trip, cache streaming, navigation albums (`a157663`, `cb8218a`)
+
+### Changed
+
+- `SidebarSection` refactorise avec `associated value` `.streaming(serviceName:)` et `RawRepresentable` custom (`a157663`)
+- Padding de la barre d'onglets reduit pour accueillir les icones dynamiques (`a157663`)
+
+### Fixed
+
+- Navigation TIDAL/Qobuz par titre au lieu de cles de session (cles expirees) (`d767492`)
+- Lecture des playlists : utilise le niveau API au lieu de compter les pushes (`232f09b`)
+- Retour album streaming : restauration des carousels sans rechargement (`cb8218a`)
+- Correction du scintillement des pochettes lors du changement de piste (`8744236`)
+- Serveur image : retry async sur le port avec test dynamique (`cdff283`)
+- Fix pbxproj : suppression des references de groupe dupliquees (`a48060c`)
 
 ## [1.0.4] - 2026-02-14
 
@@ -162,7 +196,8 @@ timeline
 - CI/CD GitHub Actions avec integration Claude Code
 - Documentation technique bilingue
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/renesenses/roon-controller/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/renesenses/roon-controller/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/renesenses/roon-controller/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/renesenses/roon-controller/compare/v1.0.1...v1.0.2

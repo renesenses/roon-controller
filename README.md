@@ -33,7 +33,9 @@ graph LR
 - Navigation dans la bibliotheque Roon (Browse API)
 - Recherche dans les resultats de navigation
 - Vues Browse specialisees : Genres, TIDAL/streaming, Morceaux, Compositeurs
+- Onglets TIDAL et Qobuz dans le mode Player avec carousels compacts et cache disque
 - Vue playlists style Roon avec pagination complete (200+ playlists)
+- Vue My Live Radio avec grille de stations et lecture directe
 - Integration macOS Now Playing : infos piste, pochette et controles dans le Control Center
 - Bascule rapide entre mode Roon et mode Player
 - Zone de lecture par defaut dans les parametres (persistee par nom)
@@ -135,7 +137,7 @@ Roon client/
 │   │   ├── ContentView.swift            # Vue racine (connexion ou lecteur)
 │   │   ├── ConnectionView.swift         # Ecran de connexion
 │   │   ├── PlayerView.swift             # Lecteur principal (pochette, controles, seek)
-│   │   ├── SidebarView.swift            # Barre laterale (zones, bibliotheque, queue, historique)
+│   │   ├── SidebarView.swift            # Barre laterale (zones, bibliotheque, queue, historique, TIDAL, Qobuz)
 │   │   ├── QueueView.swift              # File d'attente
 │   │   ├── HistoryView.swift            # Historique de lecture
 │   │   ├── FavoritesView.swift          # Favoris radio (sauvegarde, export CSV)
@@ -145,7 +147,7 @@ Roon client/
 │   └── Tests/
 │       ├── RoonModelsTests.swift        # Tests modeles de donnees
 │       ├── RoonServiceTests.swift       # Tests service et protocole MOO
-│       └── ViewBehaviorTests.swift      # Tests comportement des vues (244 tests au total)
+│       └── ViewBehaviorTests.swift      # Tests comportement des vues (273 tests au total)
 │
 └── docs/
     ├── INSTALL.md                   # Guide d'installation

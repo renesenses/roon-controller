@@ -352,7 +352,7 @@ L'app dispose de deux modes d'affichage selectionnables dans les Settings :
 |-----|------|
 | `ContentView` | Routage : `ConnectionView` si deconnecte, `RoonLayoutView` si mode Roon, sinon `NavigationSplitView` Player |
 | `PlayerView` | Lecteur : pochette avec fond flou, infos piste, seek bar, controles transport |
-| `SidebarView` | Barre laterale avec onglets : Zones, Bibliotheque, File d'attente, Historique, Favoris |
+| `SidebarView` | Barre laterale avec icones : Zones, Bibliotheque, File d'attente, Historique, Favoris + onglets dynamiques TIDAL/Qobuz (carousels streaming depuis le cache disque) |
 
 **Mode Roon** — layout natif Roon avec sidebar, contenu et barre de transport :
 
