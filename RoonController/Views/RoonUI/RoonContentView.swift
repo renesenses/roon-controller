@@ -24,6 +24,8 @@ struct RoonContentView: View {
                 RoonHistoryView()
             case .favorites:
                 RoonFavoritesView()
+            case .karaoke:
+                RoonKaraokeView()
             case .nowPlaying:
                 RoonNowPlayingView()
             }

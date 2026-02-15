@@ -52,6 +52,10 @@
 		CC3D4E5F6A7B8C9D0E1F2A3B /* RoonHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* RoonHistoryView.swift */; };
 		EE5F6A7B8C9D0E1F2A3B4C5D /* RoonFavoritesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* RoonFavoritesView.swift */; };
 		FCCC73617CB748309BD3C119 /* RoonImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBEFAB1D0DFC3EB7B52A76C /* RoonImageCache.swift */; };
+		B1C2D3E4F5A6B7C8D9E0F1A2 /* LyricsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* LyricsModels.swift */; };
+		D1E2F3A4B5C6D7E8F9A0B1C2 /* LyricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B6C7D8E9F0A1B2 /* LyricsService.swift */; };
+		F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonKaraokeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F2A3B4C5D6E7F8A9B0C1D2 /* RoonKaraokeView.swift */; };
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* LyricsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B3C4D5E6F7A8B9C0D1E2F3 /* LyricsServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,6 +118,10 @@
 		ED2B62A70A4641D8240F8444 /* RoonServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonServiceTests.swift; sourceTree = "<group>"; };
 		EEE5C81111DFF879D58805C8 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		FA4CC50B43FC90C6F9D537D1 /* GrifoS-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GrifoS-Medium.otf"; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* LyricsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsModels.swift; sourceTree = "<group>"; };
+		C1D2E3F4A5B6C7D8E9F0A1B2 /* LyricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsService.swift; sourceTree = "<group>"; };
+		E1F2A3B4C5D6E7F8A9B0C1D2 /* RoonKaraokeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoonKaraokeView.swift; sourceTree = "<group>"; };
+		A2B3C4D5E6F7A8B9C0D1E2F3 /* LyricsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -128,6 +136,7 @@
 		0D878111769E34072232B468 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				A2B3C4D5E6F7A8B9C0D1E2F3 /* LyricsServiceTests.swift */,
 				502C0AF9FE6B1E36CBBB5699 /* RoonModelsTests.swift */,
 				ED2B62A70A4641D8240F8444 /* RoonServiceTests.swift */,
 				404C1103FFA0EE042C1E70BD /* ViewBehaviorTests.swift */,
@@ -173,6 +182,7 @@
 		5CD54845E7E35CE717F3994E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C1D2E3F4A5B6C7D8E9F0A1B2 /* LyricsService.swift */,
 				A5C52F8ADAC395F6CAABFC56 /* RoonService.swift */,
 				BAA42F1B92C46E0DC726CF80 /* Roon */,
 			);
@@ -186,6 +196,7 @@
 				806233BB77614B1725CD1517 /* RoonContentView.swift */,
 				FF6A7B8C9D0E1F2A3B4C5D6E /* RoonFavoritesView.swift */,
 				DD4E5F6A7B8C9D0E1F2A3B4C /* RoonHistoryView.swift */,
+				E1F2A3B4C5D6E7F8A9B0C1D2 /* RoonKaraokeView.swift */,
 				DBB3CECF881DB8755B583D5A /* RoonLayoutView.swift */,
 				B5E297680B0437BEEA2513CD /* RoonNowPlayingView.swift */,
 				BB2C3D4E5F6A7B8C9D0E1F2A /* RoonQueueView.swift */,
@@ -230,6 +241,7 @@
 		C386E6C9C18E39CC8E474385 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* LyricsModels.swift */,
 				6F75FB3DE82DDCA6F017225C /* RoonModels.swift */,
 			);
 			path = Models;
@@ -392,6 +404,7 @@
 				A8A720BA6B2B39B2BE4319B2 /* RoonModelsTests.swift in Sources */,
 				DA3008D61AB3C948441093AE /* RoonServiceTests.swift in Sources */,
 				EE8D52DC5E6762AA5F16D3A3 /* ViewBehaviorTests.swift in Sources */,
+				B2C3D4E5F6A7B8C9D0E1F2A3 /* LyricsServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -434,6 +447,9 @@
 				A8A4A4D0C7408CC33789698E /* SOODDiscovery.swift in Sources */,
 				C959637010EB96B877AB45F6 /* SettingsView.swift in Sources */,
 				0206ACCC748F3AC269561DEE /* SidebarView.swift in Sources */,
+				B1C2D3E4F5A6B7C8D9E0F1A2 /* LyricsModels.swift in Sources */,
+				D1E2F3A4B5C6D7E8F9A0B1C2 /* LyricsService.swift in Sources */,
+				F1A2B3C4D5E6F7A8B9C0D1E2 /* RoonKaraokeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

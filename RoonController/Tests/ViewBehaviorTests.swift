@@ -700,7 +700,7 @@ final class ViewBehaviorTests: XCTestCase {
     func testRoonSidebarSections() {
         // All RoonSection cases have labels and icons
         let sections = RoonSection.allCases
-        XCTAssertEqual(sections.count, 7)
+        XCTAssertEqual(sections.count, 8)
         for section in sections {
             XCTAssertFalse(section.label.isEmpty)
             XCTAssertFalse(section.icon.isEmpty)
