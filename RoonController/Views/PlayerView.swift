@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct PlayerView: View {
     @EnvironmentObject var roonService: RoonService
@@ -25,6 +26,51 @@ struct PlayerView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    togglePlayerSidebar()
+                } label: {
+                    Image(systemName: "sidebar.leading")
+                        .foregroundStyle(Color.roonSecondary)
+                }
+                .help("Afficher/masquer la barre laterale (⌘\\)")
+                .keyboardShortcut("\\", modifiers: .command)
+            }
+        }
+    }
+
+    /// Toggle the sidebar, handling the case where the user dragged the divider to zero width.
+    private func togglePlayerSidebar() {
+        guard let window = NSApp.keyWindow,
+              let splitVC = findSplitViewController(from: window.contentViewController),
+              !splitVC.splitViewItems.isEmpty else {
+            NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
+            return
+        }
+
+        let sidebarItem = splitVC.splitViewItems[0]
+
+        if sidebarItem.isCollapsed {
+            sidebarItem.isCollapsed = false
+        } else {
+            let sidebarWidth = splitVC.splitView.subviews[0].frame.width
+            if sidebarWidth < 1 {
+                // Sidebar was dragged to zero — restore it
+                splitVC.splitView.setPosition(250, ofDividerAt: 0)
+            } else {
+                sidebarItem.isCollapsed = true
+            }
+        }
+    }
+
+    private func findSplitViewController(from vc: NSViewController?) -> NSSplitViewController? {
+        guard let vc = vc else { return nil }
+        if let splitVC = vc as? NSSplitViewController { return splitVC }
+        for child in vc.children {
+            if let found = findSplitViewController(from: child) { return found }
+        }
+        return nil
     }
 
     // MARK: - Blurred Background
