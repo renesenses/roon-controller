@@ -75,6 +75,66 @@ actor RoonImageCache {
         // Disk cache
         let fileURL = diskCacheDir.appendingPathComponent(safeFileName(key))
         try? data.write(to: fileURL)
+
+        // Auto-trim if a size limit is configured
+        let maxMB = UserDefaults.standard.integer(forKey: "cache_max_size_mb")
+        if maxMB > 0 {
+            trimDiskCache(toSizeLimit: Int64(maxMB) * 1_000_000)
+        }
+    }
+
+    // MARK: - Disk Cache Size
+
+    func diskCacheSize() -> Int64 {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: diskCacheDir, includingPropertiesForKeys: [.fileSizeKey]
+        ) else { return 0 }
+
+        var total: Int64 = 0
+        for file in files {
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: file.path),
+               let size = attrs[.size] as? Int64 {
+                total += size
+            }
+        }
+        return total
+    }
+
+    func trimDiskCache(toSizeLimit maxBytes: Int64) {
+        evictExpired()
+
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: diskCacheDir, includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey]
+        ) else { return }
+
+        // Gather file info
+        struct FileInfo {
+            let url: URL
+            let size: Int64
+            let modDate: Date
+        }
+
+        var infos: [FileInfo] = []
+        var totalSize: Int64 = 0
+        for file in files {
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: file.path),
+               let size = attrs[.size] as? Int64,
+               let modDate = attrs[.modificationDate] as? Date {
+                infos.append(FileInfo(url: file, size: size, modDate: modDate))
+                totalSize += size
+            }
+        }
+
+        guard totalSize > maxBytes else { return }
+
+        // Sort oldest first
+        infos.sort { $0.modDate < $1.modDate }
+
+        for info in infos {
+            guard totalSize > maxBytes else { break }
+            try? FileManager.default.removeItem(at: info.url)
+            totalSize -= info.size
+        }
     }
 
     // MARK: - Eviction

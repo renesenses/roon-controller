@@ -6,6 +6,8 @@ struct SettingsView: View {
     @AppStorage("appTheme") private var appTheme = "light"
     @AppStorage("default_zone_name") private var defaultZoneName = ""
     @AppStorage("sidebar_playlist_count") private var sidebarPlaylistCount = 10
+    @AppStorage("cache_max_size_mb") private var cacheMaxSizeMB = 0
+    @State private var cacheSizeMB: Double = 0
     @State private var coreIP: String = RoonService.savedCoreIP ?? ""
 
     var body: some View {
@@ -86,6 +88,41 @@ struct SettingsView: View {
                 }
                 .onAppear {
                     roonService.fetchAvailableProfiles()
+                }
+            }
+
+            Section("Cache images") {
+                HStack {
+                    Text("Taille actuelle")
+                    Spacer()
+                    Text(formatCacheSize(cacheSizeMB))
+                        .foregroundStyle(.secondary)
+                }
+
+                Picker("Taille maximale", selection: $cacheMaxSizeMB) {
+                    Text("100 Mo").tag(100)
+                    Text("250 Mo").tag(250)
+                    Text("500 Mo").tag(500)
+                    Text("1 Go").tag(1000)
+                    Text("Illimité").tag(0)
+                }
+
+                Button("Vider le cache") {
+                    Task {
+                        await RoonImageCache.shared.clearAll()
+                        let bytes = await RoonImageCache.shared.diskCacheSize()
+                        cacheSizeMB = Double(bytes) / 1_000_000
+                    }
+                }
+
+                Text("Les images des pochettes sont mises en cache sur le disque pour un accès plus rapide.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .onAppear {
+                Task {
+                    let bytes = await RoonImageCache.shared.diskCacheSize()
+                    cacheSizeMB = Double(bytes) / 1_000_000
                 }
             }
 
@@ -172,5 +209,13 @@ struct SettingsView: View {
         .groupedFormStyleCompat()
         .frame(width: 450)
         .frame(minHeight: 500, idealHeight: 620)
+    }
+
+    private func formatCacheSize(_ mb: Double) -> String {
+        if mb >= 1000 {
+            return String(format: "%.1f Go", mb / 1000)
+        } else {
+            return "\(Int(mb)) Mo"
+        }
     }
 }

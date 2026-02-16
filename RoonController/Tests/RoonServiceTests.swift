@@ -1482,6 +1482,65 @@ final class RoonServiceTests: XCTestCase {
         XCTAssertNil(result, "clearAll must remove all cached items")
     }
 
+    // MARK: - Image Cache Size & Trim
+
+    func testDiskCacheSizeEmptyIsZero() async {
+        let cache = RoonImageCache()
+        await cache.clearAll()
+        let size = await cache.diskCacheSize()
+        XCTAssertEqual(size, 0, "Empty cache should have size 0")
+    }
+
+    func testDiskCacheSizeAfterStore() async {
+        let cache = RoonImageCache()
+        await cache.clearAll()
+        let testData = Data(repeating: 0xAB, count: 1024)
+        await cache.store(key: "size_test_\(UUID().uuidString)", data: testData)
+        let size = await cache.diskCacheSize()
+        XCTAssertGreaterThan(size, 0, "Cache size should be > 0 after storing data")
+    }
+
+    func testTrimDiskCacheRemovesOldestFiles() async {
+        let cache = RoonImageCache()
+        await cache.clearAll()
+
+        // Store 3 files with small delays to ensure different modification dates
+        let data1k = Data(repeating: 0x01, count: 1000)
+        await cache.store(key: "trim_old_1", data: data1k)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        await cache.store(key: "trim_old_2", data: data1k)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        await cache.store(key: "trim_recent", data: data1k)
+
+        // Trim to 1500 bytes — should keep only the most recent file(s)
+        await cache.trimDiskCache(toSizeLimit: 1500)
+
+        let sizeAfter = await cache.diskCacheSize()
+        XCTAssertLessThanOrEqual(sizeAfter, 1500, "Cache size should be under the limit after trim")
+
+        // Most recent file should still be retrievable
+        let recent = await cache.get(key: "trim_recent")
+        XCTAssertNotNil(recent, "Most recent file should survive trim")
+    }
+
+    func testTrimDiskCacheKeepsAllWhenUnderLimit() async {
+        let cache = RoonImageCache()
+        await cache.clearAll()
+
+        let data = Data(repeating: 0x01, count: 500)
+        await cache.store(key: "keep_1", data: data)
+        await cache.store(key: "keep_2", data: data)
+        await cache.store(key: "keep_3", data: data)
+
+        let sizeBefore = await cache.diskCacheSize()
+
+        // Trim with generous limit — nothing should be removed
+        await cache.trimDiskCache(toSizeLimit: 1_000_000)
+
+        let sizeAfter = await cache.diskCacheSize()
+        XCTAssertEqual(sizeAfter, sizeBefore, "No files should be removed when under limit")
+    }
+
     // MARK: - History size limit
 
     func testHistorySizeDoesNotExceedReasonableLimit() {
