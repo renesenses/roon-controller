@@ -108,7 +108,7 @@ mindmap
 ### L-011: Unsigned app — user workaround required {#l-011}
 
 - **Context**: Without a Developer ID ($99/year), the app is unsigned. macOS Gatekeeper blocks launch by default.
-- **Lesson**: Clearly document the "right-click > Open" procedure for users. Consider signing if the user base grows.
+- **Lesson**: Clearly document the installation procedure for unsigned apps. On macOS Sequoia/Tahoe, "right-click > Open" no longer works — users must use `xattr -cr` or go to System Settings > Privacy & Security > Open Anyway. Consider signing if the user base grows.
 - **Impact**: Installation friction for new users, mitigated by documentation.
 
 ### L-012: Universal binary to support Intel and Apple Silicon {#l-012}

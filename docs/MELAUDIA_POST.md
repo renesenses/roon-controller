@@ -47,7 +47,7 @@ L'app fonctionne bien chez moi (macOS Sequoia, Roon 2.x, DAC connecte via Roon B
 
 Si vous utilisez Roon et avez un Mac sous macOS 15+, le DMG est telechareable ici : https://github.com/renesenses/roon-controller/releases/tag/v1.0.0
 
-L'app n'est pas signee Apple (pas de compte Developer), il faut donc faire clic droit > Ouvrir la premiere fois.
+L'app n'est pas signee Apple (pas de compte Developer). Au premier lancement : ouvrez un Terminal et lancez `xattr -cr "/Applications/Roon Controller.app"`, ou bien lancez l'app, macOS la bloquera, puis allez dans **Reglages Systeme > Confidentialite et securite > Ouvrir quand meme**.
 
 N'hesitez pas si vous avez des questions ou des retours !
 

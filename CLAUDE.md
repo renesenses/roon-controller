@@ -58,4 +58,4 @@ hdiutil create -volname "Roon Controller" -srcfolder "/Applications/Roon Control
 - `RadioFavorite` : stocke `title` (morceau), `artist`, `stationName` separement. Ancien format `"Artiste - Titre"` dans title avec artist vide est gere (backward-compatible)
 - Export CSV favoris : format `Artist,Title` compatible Soundiiz. L'API Roon Browse ne supporte pas "Add to Playlist" pour les extensions
 - Seek interpolation : timer local 1s quand state=="playing", resynchronise par `zones_seek_changed` du serveur
-- L'app n'est pas signee (pas de Developer ID). Les utilisateurs doivent faire clic droit > Ouvrir la premiere fois
+- L'app n'est pas signee (pas de Developer ID). Au premier lancement : `xattr -cr "/Applications/Roon Controller.app"` ou Reglages Systeme > Confidentialite et securite > Ouvrir quand meme. Le "clic droit > Ouvrir" ne fonctionne plus sur macOS Sequoia/Tahoe

@@ -108,7 +108,7 @@ mindmap
 ### L-011 : App non signee — contournement utilisateur necessaire {#l-011}
 
 - **Contexte** : Sans Developer ID (99$/an), l'app n'est pas signee. macOS Gatekeeper bloque le lancement par defaut.
-- **Lecon** : Documenter clairement la procedure "clic droit > Ouvrir" pour les utilisateurs. Envisager la signature si le nombre d'utilisateurs augmente.
+- **Lecon** : Documenter clairement la procedure d'installation pour les applications non signees. Sur macOS Sequoia/Tahoe, "clic droit > Ouvrir" ne fonctionne plus — il faut utiliser `xattr -cr` ou passer par Reglages Systeme > Confidentialite et securite > Ouvrir quand meme. Envisager la signature si le nombre d'utilisateurs augmente.
 - **Impact** : Friction a l'installation pour les nouveaux utilisateurs, attenuee par la documentation.
 
 ### L-012 : Binary universel pour supporter Intel et Apple Silicon {#l-012}

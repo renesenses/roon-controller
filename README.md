@@ -63,7 +63,9 @@ graph LR
 Telechargez le fichier **RoonController.dmg** depuis la [page Releases](https://github.com/renesenses/roon-controller/releases), puis :
 
 1. Ouvrez le DMG et glissez **Roon Controller.app** dans `/Applications`
-2. Au premier lancement, faites **clic droit > Ouvrir** (l'app n'est pas signee)
+2. **Premier lancement** (app non signee) :
+   - Ouvrez un Terminal et lancez : `xattr -cr "/Applications/Roon Controller.app"`
+   - Ou bien : lancez l'app, macOS la bloquera, puis allez dans **Reglages Systeme > Confidentialite et securite** et cliquez **Ouvrir quand meme**
 3. Autorisez l'extension dans **Roon > Parametres > Extensions**
 
 ### Depuis les sources

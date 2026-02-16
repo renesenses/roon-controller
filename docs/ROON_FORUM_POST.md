@@ -72,7 +72,9 @@ Requirements:
 
 Installation:
 1. Open the DMG, drag **Roon Controller.app** to `/Applications`
-2. First launch: **right-click > Open** (the app is not code-signed)
+2. First launch (app is not code-signed):
+   - Open Terminal and run: `xattr -cr "/Applications/Roon Controller.app"`
+   - Or: launch the app, macOS will block it, then go to **System Settings > Privacy & Security** and click **Open Anyway**
 3. Authorize "Roon Controller macOS" in **Roon > Settings > Extensions**
 
 ## Looking for beta testers

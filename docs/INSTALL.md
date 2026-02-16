@@ -12,7 +12,23 @@
 
 > Aucun backend externe n'est necessaire. L'app se connecte directement au Roon Core via les protocoles natifs SOOD et MOO.
 
-## 1. Build avec Xcode
+## 1. Installation depuis le DMG
+
+Telechargez le fichier **RoonController.dmg** depuis la [page Releases](https://github.com/renesenses/roon-controller/releases), puis :
+
+1. Ouvrez le DMG et glissez **Roon Controller.app** dans `/Applications`
+2. **Premier lancement** — l'app n'est pas signee (pas de Developer ID). macOS la bloquera. Deux options :
+   - **Option A (recommandee)** : ouvrez un Terminal et lancez :
+     ```bash
+     xattr -cr "/Applications/Roon Controller.app"
+     ```
+     Puis lancez l'app normalement.
+   - **Option B** : double-cliquez sur l'app, macOS affiche un message de blocage. Allez dans **Reglages Systeme > Confidentialite et securite**, faites defiler vers le bas et cliquez **Ouvrir quand meme**.
+3. Autorisez l'extension dans **Roon > Parametres > Extensions**
+
+> **Note** : sur macOS Sequoia (15) et Tahoe (26), le "clic droit > Ouvrir" ne suffit plus pour les applications non signees. Il faut obligatoirement passer par `xattr -cr` ou Confidentialite et securite.
+
+## 2. Build avec Xcode
 
 ```bash
 cd "Roon client/RoonController"
@@ -30,13 +46,13 @@ cd "Roon client/RoonController"
 xcodebuild -scheme RoonController -configuration Debug build
 ```
 
-## 2. Autorisation dans Roon
+## 3. Autorisation dans Roon
 
 Au premier lancement, l'extension apparait dans **Roon > Parametres > Extensions** comme "Roon Controller macOS". Cliquez sur **Autoriser** pour activer le pairing.
 
 Le token d'autorisation est sauvegarde dans `UserDefaults` et persiste entre les redemarrages. L'extension est re-autorisee automatiquement aux lancements suivants.
 
-## 3. Topologie reseau
+## 4. Topologie reseau
 
 ```
 ┌──────────────────┐
@@ -52,7 +68,7 @@ Le token d'autorisation est sauvegarde dans `UserDefaults` et persiste entre les
 
 L'app et le Roon Core doivent etre sur le meme reseau local pour que la decouverte SOOD fonctionne. Si le Core est sur un sous-reseau different, utilisez la connexion manuelle par IP.
 
-## 4. Connexion manuelle
+## 5. Connexion manuelle
 
 Si la decouverte automatique echoue :
 
@@ -61,7 +77,7 @@ Si la decouverte automatique echoue :
 3. Entrez l'adresse IP du Roon Core
 4. Cliquez "Connecter a ce Core"
 
-## 5. Roon Bridge (sortie audio)
+## 6. Roon Bridge (sortie audio)
 
 Pour utiliser un DAC connecte au Mac comme sortie audio Roon (zone endpoint), installez **Roon Bridge**. C'est une app gratuite qui tourne en arriere-plan et expose les peripheriques audio du Mac au Roon Core, independamment de Roon.app.
 

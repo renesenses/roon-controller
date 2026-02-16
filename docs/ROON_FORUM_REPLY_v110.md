@@ -13,7 +13,7 @@ Quick update — **v1.1.0 is out**, with a few quality-of-life improvements.
 **[RoonController.dmg — v1.1.0](https://github.com/renesenses/roon-controller/releases/tag/v1.1.0)**
 
 Universal binary (arm64 + x86_64) — macOS 12 (Monterey) and newer.
-Unsigned: right-click > Open on first launch.
+Unsigned: run `xattr -cr "/Applications/Roon Controller.app"` in Terminal before first launch, or go to **System Settings > Privacy & Security > Open Anyway** after macOS blocks it.
 
 Or via Homebrew:
 ```
