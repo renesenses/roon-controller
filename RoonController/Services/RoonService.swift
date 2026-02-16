@@ -826,6 +826,61 @@ class RoonService: ObservableObject {
         browse(popAll: true)
     }
 
+    /// Navigate from root into Library → category (e.g. "Artistes", "Albums").
+    func browseToLibraryCategory(title: String) {
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+
+        pendingBrowseKey = nil
+        browseStack.removeAll()
+        browseCategory = nil
+        streamingAlbumDepth = 0
+        streamingSections = []
+        browseLoading = true
+
+        currentBrowseTask?.cancel()
+        currentBrowseTask = Task {
+            do {
+                let decoder = JSONDecoder()
+                func decodeItems(_ dicts: [[String: Any]]) -> [BrowseItem] {
+                    dicts.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+                }
+
+                // Reset to root
+                let rootResponse = try await browseService.browse(zoneId: zoneId, popAll: true)
+                guard !Task.isCancelled else { return }
+                let rootItems = decodeItems(rootResponse.items)
+
+                // Find Library
+                guard let libItem = rootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
+                      let libKey = libItem.item_key else {
+                    browseLoading = false
+                    return
+                }
+
+                let libResponse = try await browseService.browse(zoneId: zoneId, itemKey: libKey)
+                guard !Task.isCancelled else { return }
+                let libItems = decodeItems(libResponse.items)
+
+                // Find target category
+                guard let catItem = libItems.first(where: { $0.title == title }),
+                      let catKey = catItem.item_key else {
+                    browseLoading = false
+                    return
+                }
+
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: catKey)
+                guard !Task.isCancelled else { return }
+                handleBrowseResponse(response, isPageLoad: false)
+            } catch {
+                browseLoading = false
+            }
+        }
+    }
+
     /// Navigate into a streaming carousel item.
     /// Waits for the fetch to finish (session at tab content level),
     /// then re-navigates by matching titles to get fresh item keys.

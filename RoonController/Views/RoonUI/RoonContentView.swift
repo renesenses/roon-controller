@@ -151,42 +151,64 @@ struct RoonContentView: View {
 
     // MARK: - Library Stats Row
 
+    // Mapping from countKey to possible Roon category titles (FR/EN)
+    private static let categoryTitlesForKey: [String: [String]] = [
+        "artists": ["Artistes", "Artists"],
+        "albums": ["Albums"],
+        "tracks": ["Morceaux", "Tracks"],
+        "composers": ["Compositeurs", "Composers"]
+    ]
+
+    private func browseCategoryTitle(forKey key: String) -> String? {
+        guard let candidates = Self.categoryTitlesForKey[key] else { return nil }
+        let sidebarTitles = roonService.sidebarCategories.compactMap(\.title)
+        return candidates.first { sidebarTitles.contains($0) } ?? candidates.first
+    }
+
     private var libraryStatsRow: some View {
         HStack(spacing: 16) {
-            statCard(icon: "person.2", count: roonService.libraryCounts["artists"] ?? 0, label: "ARTISTES")
-            statCard(icon: "opticaldisc", count: roonService.libraryCounts["albums"] ?? 0, label: "ALBUMS")
-            statCard(icon: "music.note", count: roonService.libraryCounts["tracks"] ?? 0, label: "MORCEAUX")
-            statCard(icon: "music.quarternote.3", count: roonService.libraryCounts["composers"] ?? 0, label: "COMPOSITEURS")
+            statCard(icon: "person.2", count: roonService.libraryCounts["artists"] ?? 0, label: "ARTISTES", countKey: "artists")
+            statCard(icon: "opticaldisc", count: roonService.libraryCounts["albums"] ?? 0, label: "ALBUMS", countKey: "albums")
+            statCard(icon: "music.note", count: roonService.libraryCounts["tracks"] ?? 0, label: "MORCEAUX", countKey: "tracks")
+            statCard(icon: "music.quarternote.3", count: roonService.libraryCounts["composers"] ?? 0, label: "COMPOSITEURS", countKey: "composers")
         }
         .padding(.horizontal, pagePadding)
     }
 
-    private func statCard(icon: String, count: Int, label: LocalizedStringKey) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.system(size: 26))
-                .foregroundStyle(Color.roonAccent)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(formatCount(count))
-                    .font(.latoBold(30))
-                    .foregroundStyle(Color.roonText)
-                Text(label)
-                    .font(.lato(11))
-                    .trackingCompat(1)
-                    .foregroundStyle(Color.roonSecondary)
+    private func statCard(icon: String, count: Int, label: LocalizedStringKey, countKey: String) -> some View {
+        Button {
+            if let title = browseCategoryTitle(forKey: countKey) {
+                selectedSection = .browse
+                roonService.browseToLibraryCategory(title: title)
             }
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 26))
+                    .foregroundStyle(Color.roonAccent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(formatCount(count))
+                        .font(.latoBold(30))
+                        .foregroundStyle(Color.roonText)
+                    Text(label)
+                        .font(.lato(11))
+                        .trackingCompat(1)
+                        .foregroundStyle(Color.roonSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.roonPanel)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(Color.roonSeparator, lineWidth: 0.5)
+                    )
+            )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.roonPanel)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color.roonSeparator, lineWidth: 0.5)
-                )
-        )
+        .buttonStyle(.plain)
         .hoverScale()
     }
 
