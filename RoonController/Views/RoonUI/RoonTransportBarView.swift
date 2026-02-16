@@ -46,7 +46,7 @@ struct RoonTransportBarView: View {
                 Spacer()
                 Image(systemName: "music.note")
                     .foregroundStyle(Color.roonTertiary)
-                Text("Rien en lecture")
+                Text("Nothing playing")
                     .font(.lato(14))
                     .foregroundStyle(Color.roonSecondary)
                 Spacer()
@@ -57,7 +57,7 @@ struct RoonTransportBarView: View {
                 .padding(.trailing, 18)
             } else {
                 Spacer()
-                Text("Aucune zone selectionnee")
+                Text("No zone selected")
                     .font(.lato(14))
                     .foregroundStyle(Color.roonSecondary)
                 Spacer()
@@ -181,7 +181,7 @@ struct RoonTransportBarView: View {
                         .frame(width: 22, height: 22)
                 }
                 .buttonStyle(.plain)
-                .help("Lecture aleatoire")
+                .help("Shuffle")
             }
 
             if let loop = zone.settings?.loop, loop != "disabled" {
@@ -195,7 +195,7 @@ struct RoonTransportBarView: View {
                         .frame(width: 22, height: 22)
                 }
                 .buttonStyle(.plain)
-                .help("Repetition")
+                .help("Repeat")
             }
 
             if zone.settings?.auto_radio ?? false {
@@ -206,7 +206,7 @@ struct RoonTransportBarView: View {
                         .frame(width: 22, height: 22)
                 }
                 .buttonStyle(.plain)
-                .help("Radio automatique")
+                .help("Auto radio")
             }
         }
     }

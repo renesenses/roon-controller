@@ -11,21 +11,21 @@ struct HistoryView: View {
                     Image(systemName: "clock")
                         .font(.title2)
                         .foregroundStyle(Color.roonTertiary)
-                    Text("Aucun historique")
+                    Text("No history")
                         .font(.caption)
                         .foregroundStyle(Color.roonSecondary)
                     Spacer()
                 }
             } else {
                 HStack {
-                    Text("\(roonService.playbackHistory.count) morceaux")
+                    Text("\(roonService.playbackHistory.count) tracks")
                         .font(.caption)
                         .foregroundStyle(Color.roonSecondary)
                     Spacer()
                     Button {
                         roonService.clearHistory()
                     } label: {
-                        Text("Effacer")
+                        Text("Clear")
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
@@ -113,9 +113,9 @@ struct HistoryView: View {
 
     private func timeAgo(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 60 { return String(localized: "maintenant") }
-        if interval < 3600 { return String(localized: "il y a \(Int(interval / 60)) min") }
-        if interval < 86400 { return String(localized: "il y a \(Int(interval / 3600))h") }
+        if interval < 60 { return String(localized: "now") }
+        if interval < 3600 { return String(localized: "\(Int(interval / 60)) min ago") }
+        if interval < 86400 { return String(localized: "\(Int(interval / 3600))h ago") }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short

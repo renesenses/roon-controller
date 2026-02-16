@@ -113,7 +113,7 @@ struct RoonContentView: View {
             let fullName = NSFullUserName()
             name = fullName.components(separatedBy: " ").first ?? fullName
         }
-        return Text("Bonjour, \(name)")
+        return Text("Hello, \(name)")
             .font(.grifoM(48))
             .foregroundStyle(Color.roonText)
             .padding(.horizontal, pagePadding)
@@ -126,7 +126,7 @@ struct RoonContentView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 16))
                 .foregroundStyle(Color.roonSecondary)
-            TextField("Rechercher...", text: $homeSearchText)
+            TextField("Search...", text: $homeSearchText)
                 .textFieldStyle(.plain)
                 .font(.lato(15))
                 .foregroundStyle(Color.roonText)
@@ -169,10 +169,10 @@ struct RoonContentView: View {
 
     private var libraryStatsRow: some View {
         HStack(spacing: 16) {
-            statCard(icon: "person.2", count: roonService.libraryCounts["artists"] ?? 0, label: "ARTISTES", countKey: "artists")
+            statCard(icon: "person.2", count: roonService.libraryCounts["artists"] ?? 0, label: "ARTISTS", countKey: "artists")
             statCard(icon: "opticaldisc", count: roonService.libraryCounts["albums"] ?? 0, label: "ALBUMS", countKey: "albums")
-            statCard(icon: "music.note", count: roonService.libraryCounts["tracks"] ?? 0, label: "MORCEAUX", countKey: "tracks")
-            statCard(icon: "music.quarternote.3", count: roonService.libraryCounts["composers"] ?? 0, label: "COMPOSITEURS", countKey: "composers")
+            statCard(icon: "music.note", count: roonService.libraryCounts["tracks"] ?? 0, label: "TRACKS", countKey: "tracks")
+            statCard(icon: "music.quarternote.3", count: roonService.libraryCounts["composers"] ?? 0, label: "COMPOSERS", countKey: "composers")
         }
         .padding(.horizontal, pagePadding)
     }
@@ -227,7 +227,7 @@ struct RoonContentView: View {
         VStack(alignment: .leading, spacing: 20) {
             // Header row
             HStack(spacing: 16) {
-                Text("Dernierement")
+                Text("Recently")
                     .font(.inter(28))
                     .foregroundStyle(.white)
 
@@ -235,12 +235,12 @@ struct RoonContentView: View {
 
                 // Tabs
                 HStack(spacing: 0) {
-                    dernierementTabButton("LUS", isSelected: dernierementTab == .lus) {
+                    dernierementTabButton("PLAYED", isSelected: dernierementTab == .lus) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             dernierementTab = .lus
                         }
                     }
-                    dernierementTabButton("AJOUTÉS", isSelected: dernierementTab == .ajoute) {
+                    dernierementTabButton("ADDED", isSelected: dernierementTab == .ajoute) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             dernierementTab = .ajoute
                         }
@@ -276,7 +276,7 @@ struct RoonContentView: View {
                 Button {
                     selectedSection = .history
                 } label: {
-                    Text("PLUS")
+                    Text("MORE")
                         .font(.latoBold(11))
                         .trackingCompat(1)
                         .foregroundStyle(.white.opacity(0.9))

@@ -34,7 +34,7 @@ struct PlayerView: View {
                     Image(systemName: "sidebar.leading")
                         .foregroundStyle(Color.roonSecondary)
                 }
-                .help("Afficher/masquer la barre laterale (⌘\\)")
+                .help("Show/hide sidebar (⌘\\)")
                 .keyboardShortcut("\\", modifiers: .command)
             }
         }
@@ -168,7 +168,7 @@ struct PlayerView: View {
 
     @ViewBuilder
     private func trackInfo(nowPlaying: NowPlaying) -> some View {
-        let title = nowPlaying.three_line?.line1 ?? "Titre inconnu"
+        let title = nowPlaying.three_line?.line1 ?? "Unknown title"
         let artist = nowPlaying.three_line?.line2 ?? ""
         let album = nowPlaying.three_line?.line3 ?? ""
 
@@ -327,7 +327,7 @@ struct PlayerView: View {
                         .foregroundStyle(roonService.isCurrentTrackFavorite() ? .red : Color.roonTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("Sauvegarder dans les favoris radio")
+                .help("Save to radio favorites")
             }
         }
     }
@@ -340,7 +340,7 @@ struct PlayerView: View {
             Image(systemName: "music.note")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.roonTertiary)
-            Text("Rien en lecture")
+            Text("Nothing playing")
                 .font(.title3)
                 .foregroundStyle(Color.roonSecondary)
             Text(zone.display_name)
@@ -354,7 +354,7 @@ struct PlayerView: View {
             Image(systemName: "hifispeaker")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.roonTertiary)
-            Text("Selectionnez une zone")
+            Text("Select a zone")
                 .font(.title3)
                 .foregroundStyle(Color.roonSecondary)
         }

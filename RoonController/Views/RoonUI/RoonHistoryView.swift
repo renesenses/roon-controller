@@ -20,12 +20,12 @@ struct RoonHistoryView: View {
 
     private var header: some View {
         HStack(alignment: .lastTextBaseline, spacing: 10) {
-            Text("Historique")
+            Text("History")
                 .font(.inter(28))
                 .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
 
-            Text("\(roonService.playbackHistory.count) morceaux")
+            Text("\(roonService.playbackHistory.count) tracks")
                 .font(.lato(12))
                 .foregroundStyle(Color.roonSecondary)
 
@@ -34,7 +34,7 @@ struct RoonHistoryView: View {
             Button {
                 roonService.clearHistory()
             } label: {
-                Text("Effacer")
+                Text("Clear")
                     .font(.latoBold(12))
                     .foregroundStyle(Color.roonRed)
                     .padding(.horizontal, 12)
@@ -156,10 +156,10 @@ struct RoonHistoryView: View {
             Image(systemName: "clock")
                 .font(.system(size: 40))
                 .foregroundStyle(Color.roonTertiary)
-            Text("Aucun historique")
+            Text("No history")
                 .font(.inter(24))
                 .foregroundStyle(Color.roonSecondary)
-            Text("Les morceaux ecoutes apparaitront ici")
+            Text("Played tracks will appear here")
                 .font(.lato(13))
                 .foregroundStyle(Color.roonTertiary)
             Spacer()
@@ -177,9 +177,9 @@ struct RoonHistoryView: View {
 
     private func timeAgo(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 60 { return String(localized: "maintenant") }
-        if interval < 3600 { return String(localized: "il y a \(Int(interval / 60)) min") }
-        if interval < 86400 { return String(localized: "il y a \(Int(interval / 3600))h") }
+        if interval < 60 { return String(localized: "now") }
+        if interval < 3600 { return String(localized: "\(Int(interval / 60)) min ago") }
+        if interval < 86400 { return String(localized: "\(Int(interval / 3600))h ago") }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short

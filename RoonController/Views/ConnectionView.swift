@@ -21,7 +21,7 @@ struct ConnectionView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(Color.roonText)
 
-                Text("Recherche du Roon Core sur le reseau local via SOOD...")
+                Text("Searching for Roon Core on the local network via SOOD...")
                     .foregroundStyle(Color.roonSecondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 400)
@@ -34,31 +34,31 @@ struct ConnectionView: View {
                             ProgressView()
                                 .controlSize(.small)
                                 .accentColor(Color.roonSecondary)
-                            Text("Connexion au Roon Core...")
+                            Text("Connecting to Roon Core...")
                                 .foregroundStyle(Color.roonSecondary)
                         }
                     case .waitingForApproval:
                         VStack(spacing: 8) {
-                            Label("Core Roon trouve", systemImage: "checkmark.circle")
+                            Label("Roon Core found", systemImage: "checkmark.circle")
                                 .foregroundStyle(.green)
                             HStack(spacing: 8) {
                                 ProgressView()
                                     .controlSize(.small)
                                     .accentColor(Color.roonAccent)
-                                Text("En attente d'approbation...")
+                                Text("Waiting for approval...")
                                     .fontWeight(.medium)
                                     .foregroundStyle(Color.roonAccent)
                             }
-                            Text("Ouvrez Roon, allez dans Parametres > Extensions\net autorisez « Roon Controller ».")
+                            Text("Open Roon, go to Settings > Extensions\nand authorize \"Roon Controller\".")
                                 .foregroundStyle(Color.roonSecondary)
                                 .multilineTextAlignment(.center)
                                 .font(.caption)
                         }
                     case .disconnected:
-                        Label("Deconnecte du Roon Core", systemImage: "xmark.circle")
+                        Label("Disconnected from Roon Core", systemImage: "xmark.circle")
                             .foregroundStyle(.red)
                     case .connected:
-                        Label("Connecte — en attente des zones...", systemImage: "checkmark.circle")
+                        Label("Connected — waiting for zones...", systemImage: "checkmark.circle")
                             .foregroundStyle(.green)
                     }
                 }
@@ -68,12 +68,12 @@ struct ConnectionView: View {
                     .frame(maxWidth: 300)
 
                 VStack(spacing: 12) {
-                    Text("Connexion manuelle au Core Roon (optionnel)")
+                    Text("Manual connection to Roon Core (optional)")
                         .font(.headline)
                         .foregroundStyle(Color.roonText)
 
                     HStack {
-                        TextField("Adresse IP du Core", text: $coreIP)
+                        TextField("Core IP address", text: $coreIP)
                             .textFieldStyle(.plain)
                             .padding(8)
                             .background(
@@ -86,7 +86,7 @@ struct ConnectionView: View {
                             )
                             .frame(width: 200)
 
-                        Button("Connecter") {
+                        Button("Connect") {
                             let ip = coreIP.trimmingCharacters(in: .whitespaces)
                             if !ip.isEmpty {
                                 roonService.connectCore(ip: ip)
@@ -98,7 +98,7 @@ struct ConnectionView: View {
                     }
                 }
 
-                Button("Reconnecter") {
+                Button("Reconnect") {
                     roonService.disconnect()
                     let ip = coreIP.trimmingCharacters(in: .whitespaces)
                     if !ip.isEmpty {
