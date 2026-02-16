@@ -48,11 +48,37 @@ timeline
                 : Clickable stat boxes
                 : New Qobuz & TIDAL icons
                 : +8 tests (286)
+    2026-02-16 : v1.1.0
+                : Volume in Player view
+                : +/- repeat-on-hold buttons
+                : Default Home screen
+                : 293 tests
 ```
 
 ## [Unreleased]
 
-### Planned — v1.1.0
+## [1.1.0] - 2026-02-16
+
+### Added
+
+- Volume control in Player view: mute toggle, custom slider, +/− buttons with repeat-on-hold, dB display (`3e7ef78`)
+- `adjustVolume(outputId:delta:)`: relative volume API for step buttons (`3e7ef78`)
+- `VolumeRepeatButton`: button component that fires on tap and repeats every 200ms while held (`3e7ef78`)
+
+### Changed
+
+- App always starts on the Home screen (Roon UI mode, Home section) regardless of last state (`060cdb4`)
+
+### Fixed
+
+- `changeVolume`: use `Int(value.rounded())` instead of `Int(value)` to avoid truncation errors (`3e7ef78`)
+
+### Technical
+
+- Full multilingual UI (English source + fr/es/de/it translations) (`c7407a8`)
+- Sidebar toggle button + Cmd+\ shortcut in Player mode (`00f20ed`)
+- Album tile click opens detail instead of playing (`4dd34cc`)
+- Track recently added albums locally via Browse API full scan (`b07eb29`)
 
 ## [1.0.7] - 2026-02-16
 
@@ -249,7 +275,8 @@ timeline
 - CI/CD with GitHub Actions and Claude Code integration
 - Bilingual technical documentation
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/renesenses/roon-controller/compare/v1.0.7...v1.1.0
 [1.0.7]: https://github.com/renesenses/roon-controller/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/renesenses/roon-controller/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/renesenses/roon-controller/compare/v1.0.4...v1.0.5
