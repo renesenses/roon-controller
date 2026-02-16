@@ -96,18 +96,21 @@ jobs:
           fi
 
           echo "Version changes detected:"
-          printf "$CHANGES"
+          echo -e "$CHANGES"
 
           # Check for existing open issue to avoid duplicates
           EXISTING=$(gh issue list --label "version-watch" --state open --limit 1 --json number -q '.[0].number' 2>/dev/null || echo "")
+          BODY_CHANGES="$(echo -e "$CHANGES")"
           if [ -n "$EXISTING" ]; then
             echo "Open issue #$EXISTING already exists, adding comment."
-            gh issue comment "$EXISTING" --body "$(printf "## New version check — $(date -u +%%Y-%%m-%%d)\n\n${CHANGES}")"
+            COMMENT_BODY="$(printf '## New version check — %s\n\n%s' "$(date -u +%Y-%m-%d)" "$BODY_CHANGES")"
+            gh issue comment "$EXISTING" --body "$COMMENT_BODY"
           else
+            ISSUE_BODY="$(printf '## Version changes detected\n\nThe following versions have changed since last review:\n\n%s\n\n### Action required\n\n- [ ] Run CI build and verify all tests pass\n- [ ] Check for new deprecation warnings or Swift concurrency errors\n- [ ] Test SOOD discovery and MOO/1 registration manually\n- [ ] If Roon updated: verify protocol compatibility\n- [ ] Update `.github/versions.json` after review\n\n---\n*Detected by [version-watch](../actions/workflows/version-watch.yml) workflow*' "$BODY_CHANGES")"
             gh issue create \
               --title "Version update detected" \
               --label "version-watch" \
-              --body "$(printf "## Version changes detected\n\nThe following versions have changed since last review:\n\n${CHANGES}\n\n### Action required\n\n- [ ] Run CI build and verify all 36 tests pass\n- [ ] Check for new deprecation warnings or Swift concurrency errors\n- [ ] Test SOOD discovery and MOO/1 registration manually\n- [ ] If Roon updated: verify protocol compatibility\n- [ ] Update \`.github/versions.json\` after review\n\n---\n*Detected by [version-watch](../actions/workflows/version-watch.yml) workflow*")"
+              --body "$ISSUE_BODY"
           fi
 
       - name: Update versions.json

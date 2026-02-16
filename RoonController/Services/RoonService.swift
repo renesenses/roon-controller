@@ -890,6 +890,100 @@ class RoonService: ObservableObject {
         }
     }
 
+    /// Navigate from root into Library → Albums → find album by title/artist → show tracks.
+    /// Uses the main browse session so the result displays in RoonBrowseContentView.
+    func browseToAlbum(title: String, artist: String?) {
+        guard let browseService = browseService else { return }
+        let zoneId = currentZone?.zone_id
+
+        pendingBrowseKey = nil
+        browseStack.removeAll()
+        browseCategory = nil
+        streamingAlbumDepth = 0
+        streamingSections = []
+        browseLoading = true
+
+        currentBrowseTask?.cancel()
+        currentBrowseTask = Task {
+            do {
+                let decoder = JSONDecoder()
+                func decodeItems(_ dicts: [[String: Any]]) -> [BrowseItem] {
+                    dicts.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+                }
+
+                // Root
+                let rootResponse = try await browseService.browse(zoneId: zoneId, popAll: true)
+                guard !Task.isCancelled else { return }
+                let rootItems = decodeItems(rootResponse.items)
+
+                // Library
+                guard let libItem = rootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
+                      let libKey = libItem.item_key else {
+                    browseLoading = false
+                    return
+                }
+                let libResponse = try await browseService.browse(zoneId: zoneId, itemKey: libKey)
+                guard !Task.isCancelled else { return }
+                let libItems = decodeItems(libResponse.items)
+
+                // Albums
+                guard let albumsItem = libItems.first(where: { Self.albumsTitles.contains($0.title ?? "") }),
+                      let albumsKey = albumsItem.item_key else {
+                    browseLoading = false
+                    return
+                }
+                let albumsResponse = try await browseService.browse(zoneId: zoneId, itemKey: albumsKey)
+                guard !Task.isCancelled else { return }
+
+                // Scan pages to find the album by title + artist
+                let totalCount = (albumsResponse.list?["count"] as? Int) ?? 0
+                var allAlbums = decodeItems(albumsResponse.items)
+                let targetAlbum = findAlbum(title: title, artist: artist, in: allAlbums)
+
+                if targetAlbum == nil {
+                    // Page through to find it
+                    while allAlbums.count < totalCount {
+                        guard !Task.isCancelled else { return }
+                        let more = try await browseService.load(offset: allAlbums.count, count: 100)
+                        let moreItems = decodeItems(more.items)
+                        if moreItems.isEmpty { break }
+                        allAlbums.append(contentsOf: moreItems)
+                        if findAlbum(title: title, artist: artist, in: moreItems) != nil {
+                            break
+                        }
+                    }
+                }
+
+                guard !Task.isCancelled else { return }
+                guard let album = findAlbum(title: title, artist: artist, in: allAlbums),
+                      let albumKey = album.item_key else {
+                    browseLoading = false
+                    return
+                }
+
+                let response = try await browseService.browse(zoneId: zoneId, itemKey: albumKey)
+                guard !Task.isCancelled else { return }
+                browseCategory = "Albums"
+                handleBrowseResponse(response, isPageLoad: false)
+            } catch {
+                browseLoading = false
+            }
+        }
+    }
+
+    private func findAlbum(title: String, artist: String?, in items: [BrowseItem]) -> BrowseItem? {
+        items.first { item in
+            guard item.title == title else { return false }
+            if let artist = artist, !artist.isEmpty {
+                return item.subtitle == artist
+            }
+            return true
+        }
+    }
+
     /// Navigate into a streaming carousel item.
     /// Waits for the fetch to finish (session at tab content level),
     /// then re-navigates by matching titles to get fresh item keys.
