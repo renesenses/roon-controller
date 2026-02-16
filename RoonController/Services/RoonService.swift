@@ -35,6 +35,7 @@ class RoonService: ObservableObject {
     @Published var libraryCounts: [String: Int] = [:]
     var recentlyAdded: [BrowseItem] = []
     @Published var profileName: String?
+    @Published var availableProfiles: [BrowseItem] = []
     @Published var streamingCacheVersion: Int = 0
     @Published var myLiveRadioStations: [BrowseItem] = []
 
@@ -160,6 +161,7 @@ class RoonService: ObservableObject {
         zones = []
         currentZone = nil
         zonesById = [:]
+        availableProfiles = []
         connectionState = .disconnected // @Published triggers single objectWillChange
     }
 
@@ -1138,6 +1140,95 @@ class RoonService: ObservableObject {
                 }
             } catch {
                 // Profile fetch failed silently — greeting will fall back to macOS username
+            }
+        }
+    }
+
+    /// Fetch the list of available Roon profiles via the browse "settings" hierarchy.
+    func fetchAvailableProfiles() {
+        Task {
+            do {
+                let decoder = JSONDecoder()
+                let session = RoonBrowseService(connection: connection, sessionKey: "profile_list")
+                let zoneId = currentZone?.zone_id
+
+                // Browse root to find Settings
+                let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
+                let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                guard let settingsItem = rootItems.first(where: { Self.settingsTitles.contains($0.title ?? "") }),
+                      let settingsKey = settingsItem.item_key else { return }
+
+                // Navigate into Settings
+                let settingsResponse = try await session.browse(zoneId: zoneId, itemKey: settingsKey)
+                let settingsItems: [BrowseItem] = settingsResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                guard let profileItem = settingsItems.first(where: { Self.profileTitles.contains($0.title ?? "") }),
+                      let profileKey = profileItem.item_key else { return }
+
+                // Update profileName from subtitle
+                if let name = profileItem.subtitle, !name.isEmpty {
+                    self.profileName = name
+                }
+
+                // Navigate into Profile to list available profiles
+                let profileResponse = try await session.browse(zoneId: zoneId, itemKey: profileKey)
+                let profiles: [BrowseItem] = profileResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                self.availableProfiles = profiles
+            } catch {
+                // Profile list fetch failed silently
+            }
+        }
+    }
+
+    /// Switch to a different Roon profile by item_key.
+    func switchProfile(itemKey: String) {
+        Task {
+            do {
+                let session = RoonBrowseService(connection: connection, sessionKey: "profile_switch")
+                let zoneId = currentZone?.zone_id
+
+                // Browse root to find Settings
+                let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
+                let decoder = JSONDecoder()
+                let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                guard let settingsItem = rootItems.first(where: { Self.settingsTitles.contains($0.title ?? "") }),
+                      let settingsKey = settingsItem.item_key else { return }
+
+                // Navigate into Settings
+                let settingsResponse = try await session.browse(zoneId: zoneId, itemKey: settingsKey)
+                let settingsItems: [BrowseItem] = settingsResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
+
+                guard let profileItem = settingsItems.first(where: { Self.profileTitles.contains($0.title ?? "") }),
+                      let profileKey = profileItem.item_key else { return }
+
+                // Navigate into Profile
+                _ = try await session.browse(zoneId: zoneId, itemKey: profileKey)
+
+                // Select the target profile
+                _ = try await session.browse(zoneId: zoneId, itemKey: itemKey)
+
+                // Refresh profile list and name
+                fetchAvailableProfiles()
+            } catch {
+                // Profile switch failed silently
             }
         }
     }

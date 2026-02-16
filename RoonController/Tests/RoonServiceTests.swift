@@ -1506,11 +1506,39 @@ final class RoonServiceTests: XCTestCase {
         XCTAssertNil(service.connectionDetail)
     }
 
+    // MARK: - Profiles
+
+    func testAvailableProfilesInitiallyEmpty() {
+        XCTAssertTrue(service.availableProfiles.isEmpty)
+    }
+
+    func testProfileNameInitiallyNil() {
+        XCTAssertNil(service.profileName)
+    }
+
+    func testAvailableProfilesCanBeSet() {
+        let profile1 = makeBrowseItem(title: "Salon", hint: "action", itemKey: "profile_1", subtitle: "Active")
+        let profile2 = makeBrowseItem(title: "Bureau", hint: "action", itemKey: "profile_2")
+        service.availableProfiles = [profile1, profile2]
+        XCTAssertEqual(service.availableProfiles.count, 2)
+        XCTAssertEqual(service.availableProfiles[0].title, "Salon")
+        XCTAssertEqual(service.availableProfiles[1].title, "Bureau")
+    }
+
+    func testDisconnectClearsAvailableProfiles() {
+        let profile = makeBrowseItem(title: "Salon", hint: "action", itemKey: "profile_1")
+        service.availableProfiles = [profile]
+        XCTAssertEqual(service.availableProfiles.count, 1)
+        service.disconnect()
+        XCTAssertTrue(service.availableProfiles.isEmpty)
+    }
+
     // MARK: - Helpers
 
-    private func makeBrowseItem(title: String, hint: String, itemKey: String? = nil) -> BrowseItem {
+    private func makeBrowseItem(title: String, hint: String, itemKey: String? = nil, subtitle: String? = nil) -> BrowseItem {
         var fields = ["\"title\": \"\(title)\"", "\"hint\": \"\(hint)\""]
         if let key = itemKey { fields.append("\"item_key\": \"\(key)\"") }
+        if let sub = subtitle { fields.append("\"subtitle\": \"\(sub)\"") }
         let json = "{\(fields.joined(separator: ", "))}"
         return try! JSONDecoder().decode(BrowseItem.self, from: Data(json.utf8))
     }

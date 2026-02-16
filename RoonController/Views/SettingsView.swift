@@ -54,6 +54,41 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if roonService.connectionState == .connected {
+                Section("Profil Roon") {
+                    if roonService.availableProfiles.isEmpty {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Chargement des profils...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Picker("Profil actif", selection: Binding<String>(
+                            get: { roonService.profileName ?? "" },
+                            set: { newName in
+                                if let profile = roonService.availableProfiles.first(where: { $0.title == newName }),
+                                   let key = profile.item_key {
+                                    roonService.switchProfile(itemKey: key)
+                                }
+                            }
+                        )) {
+                            ForEach(roonService.availableProfiles) { profile in
+                                Text(profile.title ?? "?").tag(profile.title ?? "")
+                            }
+                        }
+                    }
+
+                    Text("Le profil détermine les préférences de lecture (historique, favoris, suggestions).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .onAppear {
+                    roonService.fetchAvailableProfiles()
+                }
+            }
+
             Section("Connexion Roon Core") {
                 HStack {
                     if roonService.connectionState == .connected {
