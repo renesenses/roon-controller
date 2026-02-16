@@ -19,7 +19,12 @@ struct RoonControllerApp: App {
                 .task {
                     roonService.connect()
                 }
-                .onAppear { RoonFonts.registerAll(); applyAppearance() }
+                .onAppear {
+                    RoonFonts.registerAll()
+                    applyAppearance()
+                    UserDefaults.standard.set("roon", forKey: "uiMode")
+                    UserDefaults.standard.set("home", forKey: "roonSelectedSection")
+                }
                 .onChangeCompat(of: appTheme) { applyAppearance() }
         }
 
