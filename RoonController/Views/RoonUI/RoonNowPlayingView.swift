@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RoonNowPlayingView: View {
     @EnvironmentObject var roonService: RoonService
+    var onDismiss: (() -> Void)?
 
     /// Resolve album art key via service (now_playing + queue cache fallback)
     private func artImageKey(for np: NowPlaying) -> String? {
@@ -31,6 +32,26 @@ struct RoonNowPlayingView: View {
         .animation(.easeInOut(duration: 0.3), value: roonService.playbackTransitioning)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.roonBackground, ignoresSafeAreaEdges: [])
+        .overlay(alignment: .topTrailing) {
+            if onDismiss != nil {
+                Button {
+                    onDismiss?()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color.roonSecondary.opacity(0.7))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 12)
+                .padding(.trailing, 16)
+                .help("Fermer")
+            }
+        }
+        .onExitCommand {
+            onDismiss?()
+        }
     }
 
     // MARK: - Wide Layout (art left, info right)

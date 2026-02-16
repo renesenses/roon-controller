@@ -660,7 +660,7 @@ struct RoonBrowseContentView: View {
         .padding(.bottom, 8)
     }
 
-    private var trackTableHeader: some View {
+    private func trackTableHeader(showAlbumColumn: Bool = true) -> some View {
         HStack(spacing: 0) {
             Text("#")
                 .frame(width: 36, alignment: .trailing)
@@ -672,8 +672,10 @@ struct RoonBrowseContentView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text("Artiste")
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Album")
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if showAlbumColumn {
+                Text("Album")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .font(.latoBold(11))
         .foregroundStyle(Color.roonTertiary)
@@ -682,7 +684,7 @@ struct RoonBrowseContentView: View {
         .padding(.vertical, 6)
     }
 
-    private func playlistTrackRow(_ item: BrowseItem, index: Int) -> some View {
+    private func playlistTrackRow(_ item: BrowseItem, index: Int, showAlbumColumn: Bool = true) -> some View {
         let parsed = parseSubtitle(item.subtitle)
         return HStack(spacing: 0) {
             Text("\(index + 1)")
@@ -733,11 +735,13 @@ struct RoonBrowseContentView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             // Album
-            Text(parsed.album)
-                .font(.lato(13))
-                .foregroundStyle(Color.roonSecondary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if showAlbumColumn {
+                Text(parsed.album)
+                    .font(.lato(13))
+                    .foregroundStyle(Color.roonSecondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 6)
@@ -754,23 +758,27 @@ struct RoonBrowseContentView: View {
     }
 
     private func playlistContent(items: [BrowseItem]) -> some View {
-        ScrollView {
+        let tracks = items.filter { $0.hint == "action_list" && $0.subtitle != nil && !$0.subtitle!.isEmpty }
+        // Hide album column when all tracks share the same album (album detail view)
+        let albums = Set(tracks.map { parseSubtitle($0.subtitle).album })
+        let showAlbum = albums.count > 1 || albums.first?.isEmpty == true
+
+        return ScrollView {
             playlistHeader(items: items)
 
             Divider()
                 .overlay(Color.roonSeparator.opacity(0.3))
                 .padding(.horizontal, 28)
 
-            trackTableHeader
+            trackTableHeader(showAlbumColumn: showAlbum)
 
             Divider()
                 .overlay(Color.roonSeparator.opacity(0.3))
                 .padding(.horizontal, 28)
 
-            let tracks = items.filter { $0.hint == "action_list" && $0.subtitle != nil && !$0.subtitle!.isEmpty }
             LazyVStack(spacing: 0) {
                 ForEach(Array(tracks.enumerated()), id: \.element.id) { index, item in
-                    playlistTrackRow(item, index: index)
+                    playlistTrackRow(item, index: index, showAlbumColumn: showAlbum)
                 }
             }
         }
@@ -1369,7 +1377,7 @@ struct RoonBrowseContentView: View {
             .padding(.top, 12)
             .padding(.bottom, 4)
 
-            trackTableHeader
+            trackTableHeader()
 
             Divider()
                 .overlay(Color.roonSeparator.opacity(0.3))
@@ -1377,7 +1385,7 @@ struct RoonBrowseContentView: View {
 
             LazyVStack(spacing: 0) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    playlistTrackRow(item, index: index)
+                    playlistTrackRow(item, index: index, showAlbumColumn: true)
                         .onAppear { prefetchCovers(items: items, from: index, ahead: 100) }
                 }
             }

@@ -96,6 +96,21 @@ struct SidebarView: View {
                 Spacer()
 
                 Button {
+                    openSettings()
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.roonSecondary)
+                        .padding(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.roonGrey2.opacity(0.5))
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Reglages")
+
+                Button {
                     uiMode = "roon"
                 } label: {
                     Image(systemName: "rectangle.2.swap")
@@ -636,6 +651,17 @@ struct SidebarView: View {
         roonService.sidebarCategories.compactMap(\.title).filter {
             Self.streamingServiceTitles.contains($0)
         }
+    }
+
+    // MARK: - Open Settings
+
+    private func openSettings() {
+        if #available(macOS 14, *) {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     // MARK: - Icon bar button
