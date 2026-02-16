@@ -41,11 +41,41 @@ timeline
                 : Compatibilite macOS 12 (Monterey)
                 : Extensions #available
                 : +5 tests (278)
+    2026-02-16 : v1.0.7
+                : Reglages dans la sidebar (roue)
+                : Selecteur de profil
+                : Correction sync seek
+                : Stat boxes cliquables
+                : Icones Qobuz & TIDAL
+                : +8 tests (286)
 ```
 
 ## [Unreleased]
 
 ### Planned — v1.1.0
+
+## [1.0.7] - 2026-02-16
+
+### Ajouts
+
+- Icone roue dentee dans la sidebar (modes Player et Roon) (`37de864`)
+- Selecteur de profil dans les Reglages : lister et changer de profil Roon (`450f05d`)
+- Stat boxes cliquables sur la page d'accueil : navigation vers Artistes, Albums, Pistes (`2b39e57`)
+- Bouton fermer et touche Echap pour quitter la vue Now Playing plein ecran (`40f8264`)
+- Limite de taille du cache disque (200 Mo par defaut) avec eviction LRU, visible dans les Reglages (`c285d73`)
+- Icones TIDAL et Qobuz dans la sidebar (`267a9b0`, `cf4da9a`)
+- 8 nouveaux tests unitaires (286 au total)
+
+### Modifications
+
+- Icone Qobuz : design vinyle/Q personnalise remplacant le logo de marque (pas de souci copyright) (`cf4da9a`)
+- Rendu de l'icone Qobuz passe de template a original (`cf4da9a`)
+- Colonne album masquee lors de la consultation des pistes d'un album (`620a548`)
+
+### Corrections
+
+- Debordement du timer seek quand la position depasse la duree du morceau (`00348dd`)
+- Synchronisation du seek depuis des controleurs externes : le timer local cede la priorite aux evenements `zones_seek_changed` du serveur (`00348dd`)
 
 ## [1.0.6] - 2026-02-15
 
@@ -219,7 +249,8 @@ timeline
 - CI/CD GitHub Actions avec integration Claude Code
 - Documentation technique bilingue
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/renesenses/roon-controller/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/renesenses/roon-controller/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/renesenses/roon-controller/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/renesenses/roon-controller/compare/v1.0.3...v1.0.4
