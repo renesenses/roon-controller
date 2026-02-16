@@ -876,7 +876,7 @@ final class RoonServiceTests: XCTestCase {
         XCTAssertEqual(service.seekPosition, 3, "When server sends new track playing at seek 3, seekPosition must update")
     }
 
-    func testZonesSeekChangedAloneDoesNotResetUI() {
+    func testZonesSeekChangedSyncsFromExternalSeek() {
         // Setup: zone playing at seek 100
         let zone = RoonZone(
             zone_id: "z1", display_name: "Zone", state: "playing",
@@ -892,18 +892,17 @@ final class RoonServiceTests: XCTestCase {
         service.selectZone(zone)
         service.seekPosition = 105 // simulating local interpolation ahead of server
 
-        // Server sends zones_seek_changed only (no zones_changed)
-        // This is the frequent seek update; it should NOT alter the UI seekPosition
+        // Server sends zones_seek_changed (e.g. another controller seeked to 50)
         let seekJSON: [String: Any] = [
             "zones_seek_changed": [
-                ["zone_id": "z1", "seek_position": 102]
+                ["zone_id": "z1", "seek_position": 50]
             ]
         ]
         let data = try! JSONSerialization.data(withJSONObject: seekJSON)
         service.handleZonesData(data)
 
-        // seekPosition stays at the local interpolated value (105), not overwritten to 102
-        XCTAssertEqual(service.seekPosition, 105, "zones_seek_changed alone must not overwrite local interpolation")
+        // seekPosition must sync to server value for external seek support
+        XCTAssertEqual(service.seekPosition, 50, "zones_seek_changed must sync seekPosition from server")
     }
 
     func testSeekPositionAfterNextThenServerUpdate() {

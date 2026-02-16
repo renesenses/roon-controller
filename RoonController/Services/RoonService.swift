@@ -271,9 +271,18 @@ class RoonService: ObservableObject {
                     }
                 }
             }
-            // seekPosition is driven by the interpolation timer (while playing)
-            // and synced from full zone updates — no update needed here
-            if isSeekOnly { return }
+            // Sync seekPosition immediately from external seek events
+            if isSeekOnly {
+                if let zoneId = currentZone?.zone_id {
+                    for seekInfo in seekChanged {
+                        if seekInfo["zone_id"] as? String == zoneId,
+                           let serverSeek = seekInfo["seek_position"] as? Int {
+                            seekPosition = serverSeek
+                        }
+                    }
+                }
+                return
+            }
         }
 
         // Sort zones consistently (Dictionary.values has no guaranteed order)
@@ -2528,8 +2537,11 @@ class RoonService: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 if self.currentZone?.state == "playing" {
-                    self.objectWillChange.send()
-                    self.seekPosition += 1
+                    let length = self.currentZone?.now_playing?.length ?? Int.max
+                    if self.seekPosition < length {
+                        self.objectWillChange.send()
+                        self.seekPosition += 1
+                    }
                 }
             }
         }
