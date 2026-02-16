@@ -245,10 +245,19 @@ struct RoonSidebarView: View {
             }
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: iconForTitle(item.title ?? ""))
-                    .font(.system(size: 15))
-                    .frame(width: 22)
-                    .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
+                if let custom = customIconForTitle(item.title ?? "") {
+                    Image(custom)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 15, height: 15)
+                        .frame(width: 22)
+                        .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
+                } else {
+                    Image(systemName: iconForTitle(item.title ?? ""))
+                        .font(.system(size: 15))
+                        .frame(width: 22)
+                        .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
+                }
 
                 Text(item.title ?? "")
                     .font(.lato(13))
@@ -346,7 +355,7 @@ struct RoonSidebarView: View {
         switch title {
         case "Genres": return "guitars"
         case "TIDAL": return "waveform"
-        case "Qobuz": return "headphones"
+        case "Qobuz": return "waveform" // overridden by customIconForTitle
         case "KKBOX", "nugs.net": return "waveform"
         case "Live Radio": return "antenna.radiowaves.left.and.right"
         case "Écouter plus tard": return "bookmark"
@@ -360,6 +369,15 @@ struct RoonSidebarView: View {
         case "Mes Live Radios", "My Live Radio": return "radio"
         case "Répertoires", "Folders": return "folder"
         default: return "music.note.list"
+        }
+    }
+
+    /// Asset image name for services with a custom icon (nil = use SF Symbol)
+    private func customIconForTitle(_ title: String) -> String? {
+        switch title {
+        case "Qobuz": return "QobuzIcon"
+        case "TIDAL": return "TidalIcon"
+        default: return nil
         }
     }
 

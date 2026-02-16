@@ -1730,7 +1730,9 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertEqual(SidebarView.SidebarSection.zones.icon, "hifispeaker.2")
         XCTAssertEqual(SidebarView.SidebarSection.browse.icon, "square.grid.2x2")
         XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "TIDAL").icon, "waveform")
-        XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "Qobuz").icon, "headphones")
+        XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "Qobuz").icon, "waveform")
+        XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "Qobuz").customIcon, "QobuzIcon")
+        XCTAssertEqual(SidebarView.SidebarSection.streaming(serviceName: "TIDAL").customIcon, "TidalIcon")
     }
 
     // MARK: - My Live Radios section

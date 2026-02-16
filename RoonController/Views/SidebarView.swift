@@ -66,11 +66,16 @@ struct SidebarView: View {
             case .history: "clock"
             case .favorites: "heart"
             case .myLiveRadios: "dot.radiowaves.left.and.right"
-            case .streaming(let name):
-                switch name {
-                case "Qobuz": "headphones"
-                default: "waveform"
-                }
+            case .streaming: "waveform"
+            }
+        }
+
+        /// Asset image name for services that have a custom icon (nil = use SF Symbol)
+        var customIcon: String? {
+            switch self {
+            case .streaming(let name) where name == "Qobuz": "QobuzIcon"
+            case .streaming(let name) where name == "TIDAL": "TidalIcon"
+            default: nil
             }
         }
     }
@@ -670,14 +675,23 @@ struct SidebarView: View {
         Button {
             selectedSection = section
         } label: {
-            Image(systemName: section.icon)
-                .font(.system(size: 13))
-                .foregroundStyle(selectedSection == section ? Color.roonAccent : Color.roonSecondary)
-                .frame(width: 28, height: 28)
-                .background(
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(selectedSection == section ? Color.roonAccent.opacity(0.15) : Color.clear)
-                )
+            Group {
+                if let custom = section.customIcon {
+                    Image(custom)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 13, height: 13)
+                } else {
+                    Image(systemName: section.icon)
+                        .font(.system(size: 13))
+                }
+            }
+            .foregroundStyle(selectedSection == section ? Color.roonAccent : Color.roonSecondary)
+            .frame(width: 28, height: 28)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(selectedSection == section ? Color.roonAccent.opacity(0.15) : Color.clear)
+            )
         }
         .buttonStyle(.plain)
         .help(section.label)
