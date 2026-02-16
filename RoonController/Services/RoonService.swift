@@ -1412,9 +1412,17 @@ class RoonService: ObservableObject {
         }
     }
 
-    // MARK: - Recently Added (Browse: Library → Albums)
+    // MARK: - Recently Added (local tracking via Browse: Library → Albums)
 
     private static let albumsTitles = Set(["Albums"])
+    private static let knownAlbumsFile = "known_albums.json"
+    private var knownAlbumDates: [String: TimeInterval] = [:]
+    private var lastKnownAlbumCount: Int = 0
+
+    /// Stable identifier for an album (title + artist), independent of session-bound item_key.
+    static func albumStableKey(_ item: BrowseItem) -> String {
+        "\(item.title ?? "")\t\(item.subtitle ?? "")"
+    }
 
     func fetchRecentlyAdded() {
         let zoneId = currentZone?.zone_id
@@ -1424,14 +1432,12 @@ class RoonService: ObservableObject {
                 let decoder = JSONDecoder()
                 let session = RoonBrowseService(connection: connection, sessionKey: "recently_added")
 
-                // Navigate to root
+                // Navigate: Root → Library → Albums
                 let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
                 let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
                     guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
                     return try? decoder.decode(BrowseItem.self, from: data)
                 }
-
-                // Navigate into Library
                 guard let libItem = rootItems.first(where: { Self.libraryTitles.contains($0.title ?? "") }),
                       let libKey = libItem.item_key else { return }
                 let libResponse = try await session.browse(zoneId: zoneId, itemKey: libKey)
@@ -1439,38 +1445,94 @@ class RoonService: ObservableObject {
                     guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
                     return try? decoder.decode(BrowseItem.self, from: data)
                 }
-
-                // Navigate into Albums
                 guard let albumsItem = libItems.first(where: { Self.albumsTitles.contains($0.title ?? "") }),
                       let albumsKey = albumsItem.item_key else { return }
                 let albumsResponse = try await session.browse(zoneId: zoneId, itemKey: albumsKey)
+                let totalCount = (albumsResponse.list?["count"] as? Int) ?? 0
 
-                // Load first 20 items (sorted by date added by default)
-                let items: [BrowseItem] = albumsResponse.items.compactMap { dict in
+                // Quick path: count unchanged and we already have results
+                if totalCount == lastKnownAlbumCount && !recentlyAdded.isEmpty {
+                    return
+                }
+
+                // Full scan: load all albums (paginated)
+                var allAlbums: [BrowseItem] = albumsResponse.items.compactMap { dict in
                     guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
                     return try? decoder.decode(BrowseItem.self, from: data)
                 }
-
-                // If browse returned fewer than 20, try load for more
-                var allItems = items
-                if allItems.count < 20 {
-                    let loadResult = try await session.load(offset: 0, count: 20)
-                    let loadItems: [BrowseItem] = loadResult.items.compactMap { dict in
+                while allAlbums.count < totalCount {
+                    let more = try await session.load(offset: allAlbums.count, count: 100)
+                    let moreItems: [BrowseItem] = more.items.compactMap { dict in
                         guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
                         return try? decoder.decode(BrowseItem.self, from: data)
                     }
-                    if loadItems.count > allItems.count {
-                        allItems = loadItems
+                    if moreItems.isEmpty { break }
+                    allAlbums.append(contentsOf: moreItems)
+                }
+
+                // Load known album dates from disk (once)
+                if knownAlbumDates.isEmpty {
+                    loadKnownAlbumDates()
+                }
+
+                let isFirstRun = knownAlbumDates.isEmpty
+                let now = Date().timeIntervalSince1970
+
+                // Update known dates: new albums get current timestamp, first run gets epoch 0
+                for album in allAlbums {
+                    let key = Self.albumStableKey(album)
+                    if knownAlbumDates[key] == nil {
+                        knownAlbumDates[key] = isFirstRun ? 0 : now
+                    }
+                }
+
+                // Remove albums no longer in library
+                let currentKeys = Set(allAlbums.map { Self.albumStableKey($0) })
+                knownAlbumDates = knownAlbumDates.filter { currentKeys.contains($0.key) }
+
+                lastKnownAlbumCount = totalCount
+                saveKnownAlbumDates()
+
+                // Build recently added list: albums with timestamp > 0, sorted newest first
+                let recentKeys = knownAlbumDates
+                    .filter { $0.value > 0 }
+                    .sorted { $0.value > $1.value }
+                    .prefix(20)
+                    .map(\.key)
+
+                let recentAlbums: [BrowseItem]
+                if recentKeys.isEmpty {
+                    // No new albums detected yet (first run) — show first 20 alphabetically
+                    recentAlbums = Array(allAlbums.prefix(20))
+                } else {
+                    recentAlbums = recentKeys.compactMap { key in
+                        allAlbums.first { Self.albumStableKey($0) == key }
                     }
                 }
 
                 await MainActor.run {
                     objectWillChange.send()
-                    self.recentlyAdded = Array(allItems.prefix(20))
+                    self.recentlyAdded = recentAlbums
                 }
             } catch {
                 // Recently added fetch failed silently
             }
+        }
+    }
+
+    private func loadKnownAlbumDates() {
+        guard let dir = storageDir else { return }
+        let path = dir.appendingPathComponent(Self.knownAlbumsFile)
+        guard let data = try? Data(contentsOf: path),
+              let dict = try? JSONDecoder().decode([String: TimeInterval].self, from: data) else { return }
+        knownAlbumDates = dict
+    }
+
+    private func saveKnownAlbumDates() {
+        guard let dir = storageDir else { return }
+        let path = dir.appendingPathComponent(Self.knownAlbumsFile)
+        if let data = try? JSONEncoder().encode(knownAlbumDates) {
+            try? data.write(to: path)
         }
     }
 
@@ -2611,7 +2673,7 @@ class RoonService: ObservableObject {
 
     private func startRefreshTimer() {
         guard refreshTimer == nil else { return }
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self, self.connectionState == .connected else { return }
                 self.fetchRecentlyAdded()

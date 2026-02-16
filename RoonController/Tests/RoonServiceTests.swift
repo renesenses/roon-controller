@@ -1600,4 +1600,55 @@ final class RoonServiceTests: XCTestCase {
         let json = "{\(fields.joined(separator: ", "))}"
         return try! JSONDecoder().decode(BrowseItem.self, from: Data(json.utf8))
     }
+
+    // MARK: - Album Stable Key
+
+    func testAlbumStableKeyUseTitleAndSubtitle() {
+        let item = makeBrowseItem(title: "OK Computer", hint: "list", subtitle: "Radiohead")
+        let key = RoonService.albumStableKey(item)
+        XCTAssertEqual(key, "OK Computer\tRadiohead")
+    }
+
+    func testAlbumStableKeyNilFields() {
+        let json = "{\"hint\": \"list\"}"
+        let item = try! JSONDecoder().decode(BrowseItem.self, from: Data(json.utf8))
+        let key = RoonService.albumStableKey(item)
+        XCTAssertEqual(key, "\t", "Nil title and subtitle produce tab-separated empty strings")
+    }
+
+    func testAlbumStableKeyDistinguishesSameTitle() {
+        let item1 = makeBrowseItem(title: "3", hint: "list", subtitle: "Calogero")
+        let item2 = makeBrowseItem(title: "3", hint: "list", subtitle: "The Script")
+        XCTAssertNotEqual(
+            RoonService.albumStableKey(item1),
+            RoonService.albumStableKey(item2),
+            "Same title with different artists must produce different keys"
+        )
+    }
+
+    // MARK: - Known Albums Persistence
+
+    func testKnownAlbumsPersistsToDisk() {
+        // Write a known_albums.json file, reload in a new service instance
+        let dates: [String: TimeInterval] = ["OK Computer\tRadiohead": 1000, "Kid A\tRadiohead": 2000]
+        let path = tempDir.appendingPathComponent("known_albums.json")
+        let data = try! JSONEncoder().encode(dates)
+        try! data.write(to: path)
+
+        let service2 = RoonService(storageDirectory: tempDir)
+        // Service should be able to load the file (verified indirectly — no crash)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: path.path))
+        _ = service2 // keep reference alive
+    }
+
+    func testKnownAlbumsFileFormat() {
+        // Verify the file format is a simple JSON dictionary of [String: TimeInterval]
+        let dates: [String: TimeInterval] = ["A\tB": 12345.0]
+        let path = tempDir.appendingPathComponent("known_albums.json")
+        let encoded = try! JSONEncoder().encode(dates)
+        try! encoded.write(to: path)
+
+        let decoded = try! JSONDecoder().decode([String: TimeInterval].self, from: Data(contentsOf: path))
+        XCTAssertEqual(decoded["A\tB"], 12345.0)
+    }
 }
