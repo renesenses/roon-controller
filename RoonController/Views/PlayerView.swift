@@ -122,7 +122,7 @@ struct PlayerView: View {
 
     @ViewBuilder
     private func trackInfo(nowPlaying: NowPlaying) -> some View {
-        let title = nowPlaying.three_line?.line1 ?? "Unknown Title"
+        let title = nowPlaying.three_line?.line1 ?? "Titre inconnu"
         let artist = nowPlaying.three_line?.line2 ?? ""
         let album = nowPlaying.three_line?.line3 ?? ""
 

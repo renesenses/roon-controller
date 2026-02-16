@@ -649,7 +649,7 @@ class RoonService: ObservableObject {
                 }
                 DispatchQueue.main.async { [weak self] in
                     self?.browseLoading = false
-                    self?.lastError = "Browse error: \(error.localizedDescription)"
+                    self?.lastError = "Erreur de navigation : \(error.localizedDescription)"
                 }
             }
         }
@@ -1019,7 +1019,7 @@ class RoonService: ObservableObject {
             } catch {
                 await MainActor.run {
                     browseLoading = false
-                    lastError = "Search error: \(error.localizedDescription)"
+                    lastError = "Erreur de recherche : \(error.localizedDescription)"
                 }
             }
         }
