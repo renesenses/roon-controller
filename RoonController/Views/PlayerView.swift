@@ -118,6 +118,9 @@ struct PlayerView: View {
             // Shuffle / Repeat / Radio
             settingsControls(zone: zone)
 
+            // Volume
+            volumeControl(zone: zone)
+
             Spacer(minLength: 20)
         }
         .padding(.horizontal, 40)
@@ -332,6 +335,87 @@ struct PlayerView: View {
         }
     }
 
+    // MARK: - Volume Control
+
+    @ViewBuilder
+    private func volumeControl(zone: RoonZone) -> some View {
+        if let output = zone.outputs?.first,
+           let volume = output.volume,
+           let value = volume.value,
+           let min = volume.min,
+           let max = volume.max {
+            let step = Int(volume.step?.rounded(.up) ?? 1)
+            let outputId = output.output_id
+            let intValue = Int(value.rounded())
+            HStack(spacing: 12) {
+                Button {
+                    roonService.toggleMute(outputId: outputId)
+                } label: {
+                    Image(systemName: volumeIcon(value: value, isMuted: volume.is_muted ?? false, max: max))
+                        .font(.system(size: 16))
+                        .foregroundStyle((volume.is_muted ?? false) ? Color.roonRed : Color.roonSecondary)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                VolumeRepeatButton(
+                    systemName: "minus.circle.fill",
+                    color: Color.roonSecondary
+                ) {
+                    roonService.adjustVolume(outputId: outputId, delta: Double(-step))
+                }
+
+                GeometryReader { geo in
+                    let fraction = (value - min) / (max - min)
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.roonTertiary.opacity(0.3))
+                            .frame(height: 4)
+                        Capsule()
+                            .fill(Color.roonAccent)
+                            .frame(width: geo.size.width * Swift.min(Swift.max(fraction, 0), 1), height: 4)
+                    }
+                    .frame(height: 4)
+                    .frame(maxHeight: .infinity, alignment: .center)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { drag in
+                                let ratio = Swift.max(0, Swift.min(1, drag.location.x / geo.size.width))
+                                let snapped = (ratio * (max - min) / Double(step)).rounded() * Double(step) + min
+                                roonService.setVolume(outputId: outputId, value: Swift.max(min, Swift.min(max, snapped)))
+                            }
+                    )
+                }
+                .frame(maxWidth: 180, maxHeight: 28)
+
+                VolumeRepeatButton(
+                    systemName: "plus.circle.fill",
+                    color: Color.roonSecondary
+                ) {
+                    roonService.adjustVolume(outputId: outputId, delta: Double(step))
+                }
+
+                Text("\(intValue) dB")
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.roonSecondary)
+                    .frame(width: 46, alignment: .trailing)
+            }
+            .frame(maxWidth: 380)
+        }
+    }
+
+    private func volumeIcon(value: Double, isMuted: Bool, max: Double) -> String {
+        if isMuted { return "speaker.slash.fill" }
+        let ratio = value / max
+        if ratio > 0.66 { return "speaker.wave.3.fill" }
+        if ratio > 0.33 { return "speaker.wave.2.fill" }
+        if ratio > 0 { return "speaker.wave.1.fill" }
+        return "speaker.fill"
+    }
+
     // MARK: - Empty States
 
     @ViewBuilder
@@ -366,5 +450,42 @@ struct PlayerView: View {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+// MARK: - Volume Repeat Button
+
+/// A button that fires once on tap and repeats while held down.
+private struct VolumeRepeatButton: View {
+    let systemName: String
+    let color: Color
+    let action: () -> Void
+
+    @State private var timer: Timer?
+    @State private var pressing = false
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 22))
+            .foregroundStyle(color)
+            .opacity(pressing ? 0.5 : 1.0)
+            .frame(width: 36, height: 36)
+            .contentShape(Circle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard !pressing else { return }
+                        pressing = true
+                        action()
+                        timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
+                            action()
+                        }
+                    }
+                    .onEnded { _ in
+                        pressing = false
+                        timer?.invalidate()
+                        timer = nil
+                    }
+            )
     }
 }

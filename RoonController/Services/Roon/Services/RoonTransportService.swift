@@ -34,7 +34,7 @@ struct RoonTransportService: Sendable {
 
     func changeVolume(outputId: String, how: String, value: Double) async throws {
         let serviceName = await connection.transportService()
-        let body: [String: Any] = ["output_id": outputId, "how": how, "value": Int(value)]
+        let body: [String: Any] = ["output_id": outputId, "how": how, "value": Int(value.rounded())]
         let bodyData = try JSONSerialization.data(withJSONObject: body)
         _ = try await connection.sendRequestData(name: "\(serviceName)/change_volume", bodyData: bodyData)
     }
