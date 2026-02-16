@@ -447,6 +447,10 @@ class RoonService: ObservableObject {
         Task { try? await transportService?.changeVolume(outputId: outputId, how: "absolute", value: value) }
     }
 
+    func adjustVolume(outputId: String, delta: Double) {
+        Task { try? await transportService?.changeVolume(outputId: outputId, how: "relative", value: delta) }
+    }
+
     func mute(outputId: String) {
         Task { try? await transportService?.mute(outputId: outputId, how: "mute") }
     }
