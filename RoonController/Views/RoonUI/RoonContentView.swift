@@ -25,7 +25,9 @@ struct RoonContentView: View {
             case .favorites:
                 RoonFavoritesView()
             case .nowPlaying:
-                RoonNowPlayingView()
+                RoonNowPlayingView(onDismiss: {
+                    selectedSection = .home
+                })
             }
         }
         .animation(.easeInOut(duration: 0.2), value: selectedSection)
