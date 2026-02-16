@@ -56,6 +56,22 @@ struct RoonSidebarView: View {
                     HStack {
                         sectionHeader("EXPLORER")
                         Spacer()
+
+                        Button {
+                            openSettings()
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.roonSecondary)
+                                .padding(5)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.roonGrey2.opacity(0.5))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .help("Reglages")
+
                         Button {
                             uiMode = "player"
                         } label: {
@@ -345,6 +361,17 @@ struct RoonSidebarView: View {
         case "Répertoires", "Folders": return "folder"
         default: return "music.note.list"
         }
+    }
+
+    // MARK: - Open Settings
+
+    private func openSettings() {
+        if #available(macOS 14, *) {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     // MARK: - Helpers
