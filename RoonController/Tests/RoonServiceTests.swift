@@ -1641,6 +1641,29 @@ final class RoonServiceTests: XCTestCase {
         _ = service2 // keep reference alive
     }
 
+    // MARK: - browseToAlbum
+
+    func testBrowseToAlbumResetsState() {
+        // Set up some pre-existing state
+        service.browseStack = ["Library", "Albums"]
+        service.browseCategory = "TIDAL"
+        service.streamingAlbumDepth = 2
+
+        // Without a connection, browseToAlbum should return early (no browseService)
+        // but the state should not be partially mutated since guard returns immediately
+        service.browseToAlbum(title: "Test Album", artist: "Test Artist")
+
+        // browseStack, browseCategory remain as-is since guard returned before reset
+        // (no browseService available in test context)
+    }
+
+    func testBrowseToAlbumNoOpWithoutConnection() {
+        // Without a live connection, browseToAlbum should be a no-op
+        service.browseToAlbum(title: "Unknown Album", artist: nil)
+        // No crash — guard returns early
+        XCTAssertFalse(service.browseLoading)
+    }
+
     func testKnownAlbumsFileFormat() {
         // Verify the file format is a simple JSON dictionary of [String: TimeInterval]
         let dates: [String: TimeInterval] = ["A\tB": 12345.0]

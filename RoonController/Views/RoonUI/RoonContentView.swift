@@ -293,15 +293,12 @@ struct RoonContentView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 16) {
                         ForEach(activeTiles, id: \.id) { tile in
-                            // #4: Click to play
-                            Button {
-                                playTile(tile)
-                            } label: {
-                                dernierementCard(tile)
-                            }
-                            .buttonStyle(.plain)
-                            .hoverScale()
-                            .id(tile.id)
+                            // #4: Click to open album detail, play overlay for direct playback
+                            dernierementCard(tile)
+                                .contentShape(Rectangle())
+                                .onTapGesture { openTile(tile) }
+                                .hoverScale()
+                                .id(tile.id)
                         }
                     }
                     .padding(.horizontal, 24)
@@ -346,8 +343,8 @@ struct RoonContentView: View {
         scrollTarget = tiles[nextIndex].id
     }
 
-    // #4: Play a tile and navigate to Now Playing
-    private func playTile(_ tile: HomeTile) {
+    // #4: Open a tile — history: search & play, recently added: open album detail
+    private func openTile(_ tile: HomeTile) {
         if dernierementTab == .lus {
             // History item: search and play by title/artist
             roonService.searchAndPlay(
@@ -355,13 +352,12 @@ struct RoonContentView: View {
                 artist: tile.subtitle ?? "",
                 album: tile.album ?? ""
             )
+            selectedSection = .nowPlaying
         } else {
-            // Recently added: browse into the album via item_key
-            if let itemKey = tile.itemKey {
-                roonService.playRecentlyAddedItem(itemKey: itemKey)
-            }
+            // Recently added: navigate to album detail via browse
+            roonService.browseToAlbum(title: tile.title, artist: tile.subtitle)
+            selectedSection = .browse
         }
-        selectedSection = .nowPlaying
     }
 
     private func dernierementTabButton(_ title: LocalizedStringKey, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -382,27 +378,44 @@ struct RoonContentView: View {
 
     private func dernierementCard(_ tile: HomeTile) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let url = roonService.imageURL(key: tile.imageKey, width: 360, height: 360) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let img):
-                        img.resizable().aspectRatio(contentMode: .fill)
-                    default:
-                        Color.white.opacity(0.1)
+            ZStack(alignment: .bottomTrailing) {
+                if let url = roonService.imageURL(key: tile.imageKey, width: 360, height: 360) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable().aspectRatio(contentMode: .fill)
+                        default:
+                            Color.white.opacity(0.1)
+                        }
                     }
-                }
-                .id(tile.imageKey ?? "")
-                .frame(width: dernierementCardSize, height: dernierementCardSize)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-            } else {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(.white.opacity(0.1))
+                    .id(tile.imageKey ?? "")
                     .frame(width: dernierementCardSize, height: dernierementCardSize)
-                    .overlay {
-                        Image(systemName: "music.note")
-                            .font(.system(size: 24))
-                            .foregroundStyle(.white.opacity(0.4))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                } else {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(.white.opacity(0.1))
+                        .frame(width: dernierementCardSize, height: dernierementCardSize)
+                        .overlay {
+                            Image(systemName: "music.note")
+                                .font(.system(size: 24))
+                                .foregroundStyle(.white.opacity(0.4))
+                        }
+                }
+
+                // Play button overlay for recently added albums
+                if dernierementTab == .ajoute, let itemKey = tile.itemKey {
+                    Button {
+                        roonService.playRecentlyAddedItem(itemKey: itemKey)
+                        selectedSection = .nowPlaying
+                    } label: {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Color.roonAccent)
+                            .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
                     }
+                    .buttonStyle(.plain)
+                    .padding(6)
+                }
             }
 
             Text(tile.title)
