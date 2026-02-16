@@ -35,12 +35,12 @@ struct RoonFavoritesView: View {
 
     private var header: some View {
         HStack(alignment: .lastTextBaseline, spacing: 10) {
-            Text("Favoris")
+            Text("Favorites")
                 .font(.inter(28))
                 .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
 
-            Text("\(roonService.radioFavorites.count) morceaux")
+            Text("\(roonService.radioFavorites.count) tracks")
                 .font(.lato(12))
                 .foregroundStyle(Color.roonSecondary)
 
@@ -52,7 +52,7 @@ struct RoonFavoritesView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 11))
-                    Text("Exporter")
+                    Text("Export")
                         .font(.latoBold(12))
                 }
                 .foregroundStyle(Color.roonAccent)
@@ -68,7 +68,7 @@ struct RoonFavoritesView: View {
             Button {
                 roonService.clearRadioFavorites()
             } label: {
-                Text("Effacer")
+                Text("Clear")
                     .font(.latoBold(12))
                     .foregroundStyle(Color.roonRed)
                     .padding(.horizontal, 12)
@@ -188,10 +188,10 @@ struct RoonFavoritesView: View {
             Image(systemName: "heart")
                 .font(.system(size: 40))
                 .foregroundStyle(Color.roonTertiary)
-            Text("Aucun favori")
+            Text("No favorites")
                 .font(.inter(24))
                 .foregroundStyle(Color.roonSecondary)
-            Text("Ecoutez une radio et cliquez sur le coeur")
+            Text("Listen to a radio station and click the heart")
                 .font(.lato(13))
                 .foregroundStyle(Color.roonTertiary)
             Spacer()

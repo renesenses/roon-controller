@@ -10,7 +10,7 @@ struct QueueView: View {
                 Image(systemName: "music.note.list")
                     .font(.title2)
                     .foregroundStyle(Color.roonTertiary)
-                Text("File d'attente vide")
+                Text("Queue is empty")
                     .font(.caption)
                     .foregroundStyle(Color.roonSecondary)
                 Spacer()

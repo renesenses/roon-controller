@@ -8,9 +8,9 @@ enum AppTheme: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .dark: String(localized: "Sombre")
-        case .light: String(localized: "Clair")
-        case .system: String(localized: "Systeme")
+        case .dark: String(localized: "Dark")
+        case .light: String(localized: "Light")
+        case .system: String(localized: "System")
         }
     }
 

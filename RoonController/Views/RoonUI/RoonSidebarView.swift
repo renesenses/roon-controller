@@ -54,7 +54,7 @@ struct RoonSidebarView: View {
 
                     // MARK: - EXPLORER
                     HStack {
-                        sectionHeader("EXPLORER")
+                        sectionHeader("BROWSE")
                         Spacer()
 
                         Button {
@@ -70,7 +70,7 @@ struct RoonSidebarView: View {
                                 )
                         }
                         .buttonStyle(.plain)
-                        .help("Reglages")
+                        .help("Settings")
 
                         Button {
                             uiMode = "player"
@@ -98,7 +98,7 @@ struct RoonSidebarView: View {
                     }
 
                     // MARK: - MA BIBLIOTHEQUE MUSICALE
-                    sectionHeader("MA BIBLIOTHEQUE MUSICALE")
+                    sectionHeader("MY MUSIC LIBRARY")
 
                     // Dynamic library items
                     ForEach(libraryItems) { item in
@@ -111,7 +111,7 @@ struct RoonSidebarView: View {
 
                     // MARK: - LISTES DE LECTURE
                     if !roonService.sidebarPlaylists.isEmpty {
-                        sectionHeader("LISTES DE LECTURE")
+                        sectionHeader("PLAYLISTS")
 
                         sidebarSearchField
 
@@ -166,7 +166,7 @@ struct RoonSidebarView: View {
                     .foregroundStyle(Color.roonAccent)
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(roonService.currentZone?.display_name ?? String(localized: "Aucune zone"))
+                    Text(roonService.currentZone?.display_name ?? String(localized: "No zone"))
                         .font(.latoBold(13))
                         .foregroundStyle(Color.roonText)
                         .lineLimit(1)
@@ -330,7 +330,7 @@ struct RoonSidebarView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 12))
                 .foregroundStyle(Color.roonSecondary)
-            TextField("Filtrer...", text: $searchText)
+            TextField("Filter...", text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.lato(13))
                 .foregroundStyle(Color.roonText)
@@ -396,10 +396,10 @@ struct RoonSidebarView: View {
 
     private func stateLabel(_ state: String) -> String {
         switch state {
-        case "playing": String(localized: "Lecture en cours")
-        case "paused": String(localized: "En pause")
-        case "loading": String(localized: "Chargement...")
-        default: String(localized: "Arrete")
+        case "playing": String(localized: "Playing")
+        case "paused": String(localized: "Paused")
+        case "loading": String(localized: "Loading...")
+        default: String(localized: "Stopped")
         }
     }
 

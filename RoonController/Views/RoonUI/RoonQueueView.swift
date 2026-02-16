@@ -20,12 +20,12 @@ struct RoonQueueView: View {
 
     private var header: some View {
         HStack(alignment: .lastTextBaseline, spacing: 10) {
-            Text("File d'attente")
+            Text("Queue")
                 .font(.inter(28))
                 .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
 
-            Text("\(roonService.queueItems.count) morceaux")
+            Text("\(roonService.queueItems.count) tracks")
                 .font(.lato(12))
                 .foregroundStyle(Color.roonSecondary)
 
@@ -137,10 +137,10 @@ struct RoonQueueView: View {
             Image(systemName: "music.note.list")
                 .font(.system(size: 40))
                 .foregroundStyle(Color.roonTertiary)
-            Text("File d'attente vide")
+            Text("Queue is empty")
                 .font(.inter(24))
                 .foregroundStyle(Color.roonSecondary)
-            Text("Lancez un morceau pour remplir la file")
+            Text("Play a track to fill the queue")
                 .font(.lato(13))
                 .foregroundStyle(Color.roonTertiary)
             Spacer()

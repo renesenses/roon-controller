@@ -49,10 +49,10 @@ struct SidebarView: View {
         var label: LocalizedStringKey {
             switch self {
             case .zones: "Zones"
-            case .browse: "Bibliotheque"
-            case .queue: "File d'attente"
-            case .history: "Historique"
-            case .favorites: "Favoris"
+            case .browse: "Library"
+            case .queue: "Queue"
+            case .history: "History"
+            case .favorites: "Favorites"
             case .myLiveRadios: "My Live Radio"
             case .streaming(let name): LocalizedStringKey(name)
             }
@@ -113,7 +113,7 @@ struct SidebarView: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .help("Reglages")
+                .help("Settings")
 
                 Button {
                     uiMode = "roon"
@@ -161,10 +161,10 @@ struct SidebarView: View {
         }
         .frame(minWidth: 250)
         .background(Color.roonSidebar)
-        .alert("Recherche", isPresented: $showSearchPrompt) {
-            TextField("Rechercher...", text: $roonSearchText)
-            Button("Rechercher") { submitSearch() }
-            Button("Annuler", role: .cancel) {
+        .alert("Search", isPresented: $showSearchPrompt) {
+            TextField("Search...", text: $roonSearchText)
+            Button("Search") { submitSearch() }
+            Button("Cancel", role: .cancel) {
                 roonSearchText = ""
                 searchItemKey = nil
             }
@@ -333,7 +333,7 @@ struct SidebarView: View {
                 }
 
                 if roonService.browseStack.isEmpty {
-                    Text("Bibliotheque")
+                    Text("Library")
                         .font(.headline)
                         .foregroundStyle(Color.roonText)
                 } else {
@@ -371,7 +371,7 @@ struct SidebarView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(Color.roonTertiary)
-                    TextField("Rechercher...", text: $searchText)
+                    TextField("Search...", text: $searchText)
                         .textFieldStyle(.plain)
                         .foregroundStyle(Color.roonText)
                     if !searchText.isEmpty {
@@ -410,7 +410,7 @@ struct SidebarView: View {
                         Image(systemName: "magnifyingglass")
                             .font(.title2)
                             .foregroundStyle(Color.roonTertiary)
-                        Text("Aucun resultat pour \"\(searchText)\"")
+                        Text("No results for \"\(searchText)\"")
                             .font(.caption)
                             .foregroundStyle(Color.roonSecondary)
                         Spacer()
@@ -482,7 +482,7 @@ struct SidebarView: View {
             } else {
                 VStack(spacing: 12) {
                     Spacer()
-                    Button("Parcourir la bibliotheque") {
+                    Button("Browse library") {
                         roonService.browse()
                     }
                     .buttonStyle(.bordered)
@@ -524,7 +524,7 @@ struct SidebarView: View {
                         .foregroundStyle(Color.roonSecondary)
                 }
                 .buttonStyle(.plain)
-                .help("Recharger")
+                .help("Reload")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -538,10 +538,10 @@ struct SidebarView: View {
                     Image(systemName: "dot.radiowaves.left.and.right")
                         .font(.title2)
                         .foregroundStyle(Color.roonTertiary)
-                    Text("Aucune station")
+                    Text("No stations")
                         .font(.caption)
                         .foregroundStyle(Color.roonSecondary)
-                    Button("Charger les radios") {
+                    Button("Load radios") {
                         roonService.fetchMyLiveRadioStations()
                     }
                     .buttonStyle(.bordered)
@@ -707,7 +707,7 @@ struct SidebarView: View {
                     Spacer()
                     ProgressView()
                         .controlSize(.small)
-                    Text("Chargement de \(serviceName)...")
+                    Text("Loading \(serviceName)...")
                         .font(.caption)
                         .foregroundStyle(Color.roonSecondary)
                     Spacer()

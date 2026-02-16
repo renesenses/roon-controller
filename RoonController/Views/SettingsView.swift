@@ -13,13 +13,13 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Interface") {
-                Picker("Mode d'affichage par défaut", selection: $uiMode) {
+                Picker("Default display mode", selection: $uiMode) {
                     Text("Player").tag("player")
                     Text("Roon").tag("roon")
                 }
                 .pickerStyle(.segmented)
 
-                Text("Player : vue compacte avec pochette centrale. Roon : layout avec barre de transport en bas.")
+                Text("Player: compact view with centered artwork. Roon: layout with transport bar at the bottom.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -31,43 +31,43 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
             }
 
-            Section("Zone de lecture") {
-                Picker("Zone par défaut", selection: $defaultZoneName) {
-                    Text("Automatique (première zone)").tag("")
+            Section("Playback zone") {
+                Picker("Default zone", selection: $defaultZoneName) {
+                    Text("Automatic (first zone)").tag("")
                     ForEach(roonService.zones) { zone in
                         Text(zone.display_name).tag(zone.display_name)
                     }
                 }
 
-                Text("La zone sélectionnée sera utilisée automatiquement au démarrage.")
+                Text("The selected zone will be used automatically at startup.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Picker("Playlists dans la sidebar", selection: $sidebarPlaylistCount) {
+                Picker("Playlists in sidebar", selection: $sidebarPlaylistCount) {
                     Text("5").tag(5)
                     Text("10").tag(10)
                     Text("20").tag(20)
                     Text("50").tag(50)
-                    Text("Toutes").tag(0)
+                    Text("All").tag(0)
                 }
 
-                Text("Nombre de playlists affichées dans la sidebar. La recherche porte toujours sur la totalité.")
+                Text("Number of playlists shown in the sidebar. Search always covers all playlists.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             if roonService.connectionState == .connected {
-                Section("Profil Roon") {
+                Section("Roon Profile") {
                     if roonService.availableProfiles.isEmpty {
                         HStack(spacing: 6) {
                             ProgressView()
                                 .controlSize(.small)
-                            Text("Chargement des profils...")
+                            Text("Loading profiles...")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     } else {
-                        Picker("Profil actif", selection: Binding<String>(
+                        Picker("Active profile", selection: Binding<String>(
                             get: { roonService.profileName ?? "" },
                             set: { newName in
                                 if let profile = roonService.availableProfiles.first(where: { $0.title == newName }),
@@ -82,7 +82,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    Text("Le profil détermine les préférences de lecture (historique, favoris, suggestions).")
+                    Text("The profile determines playback preferences (history, favorites, suggestions).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -91,23 +91,23 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Cache images") {
+            Section("Image cache") {
                 HStack {
-                    Text("Taille actuelle")
+                    Text("Current size")
                     Spacer()
                     Text(formatCacheSize(cacheSizeMB))
                         .foregroundStyle(.secondary)
                 }
 
-                Picker("Taille maximale", selection: $cacheMaxSizeMB) {
-                    Text("100 Mo").tag(100)
-                    Text("250 Mo").tag(250)
-                    Text("500 Mo").tag(500)
-                    Text("1 Go").tag(1000)
-                    Text("Illimité").tag(0)
+                Picker("Maximum size", selection: $cacheMaxSizeMB) {
+                    Text("100 MB").tag(100)
+                    Text("250 MB").tag(250)
+                    Text("500 MB").tag(500)
+                    Text("1 GB").tag(1000)
+                    Text("Unlimited").tag(0)
                 }
 
-                Button("Vider le cache") {
+                Button("Clear cache") {
                     Task {
                         await RoonImageCache.shared.clearAll()
                         let bytes = await RoonImageCache.shared.diskCacheSize()
@@ -115,7 +115,7 @@ struct SettingsView: View {
                     }
                 }
 
-                Text("Les images des pochettes sont mises en cache sur le disque pour un accès plus rapide.")
+                Text("Album artwork is cached on disk for faster access.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -126,17 +126,17 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Connexion Roon Core") {
+            Section("Roon Core Connection") {
                 HStack {
                     if roonService.connectionState == .connected {
-                        Label("Connecte au Roon Core", systemImage: "checkmark.circle.fill")
+                        Label("Connected to Roon Core", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                             .font(.caption)
                     } else if roonService.connectionState == .connecting {
                         HStack(spacing: 6) {
                             ProgressView()
                                 .controlSize(.small)
-                            Text(roonService.connectionDetail ?? "Connexion en cours...")
+                            Text(roonService.connectionDetail ?? "Connecting...")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -144,19 +144,19 @@ struct SettingsView: View {
                         HStack(spacing: 6) {
                             ProgressView()
                                 .controlSize(.small)
-                            Text("En attente d'approbation dans Roon...")
+                            Text("Waiting for approval in Roon...")
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                         }
                     } else {
-                        Label("Deconnecte", systemImage: "xmark.circle")
+                        Label("Disconnected", systemImage: "xmark.circle")
                             .foregroundStyle(.red)
                             .font(.caption)
                     }
 
                     Spacer()
 
-                    Button("Reconnecter") {
+                    Button("Reconnect") {
                         roonService.disconnect()
                         let ip = coreIP.trimmingCharacters(in: .whitespaces)
                         if !ip.isEmpty {
@@ -174,14 +174,14 @@ struct SettingsView: View {
                         .textSelection(.enabled)
                 }
 
-                Text("L'application decouvre automatiquement le Roon Core via le protocole SOOD sur le reseau local.")
+                Text("The app automatically discovers the Roon Core via the SOOD protocol on the local network.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Core Roon (connexion manuelle)") {
-                TextField("Adresse IP du Core", text: $coreIP)
-                Button("Connecter a ce Core") {
+            Section("Roon Core (manual connection)") {
+                TextField("Core IP address", text: $coreIP)
+                Button("Connect to this Core") {
                     let ip = coreIP.trimmingCharacters(in: .whitespaces)
                     if !ip.isEmpty {
                         roonService.connectCore(ip: ip)
@@ -189,7 +189,7 @@ struct SettingsView: View {
                 }
                 .disabled(coreIP.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                Button("Réinitialiser l'autorisation", role: .destructive) {
+                Button("Reset authorization", role: .destructive) {
                     RoonRegistration.clearToken()
                     roonService.disconnect()
                     let ip = coreIP.trimmingCharacters(in: .whitespaces)
@@ -201,7 +201,7 @@ struct SettingsView: View {
                 }
                 .font(.caption)
 
-                Text("Efface le token d'autorisation et force un nouvel enregistrement auprès du Core.")
+                Text("Clears the authorization token and forces a new registration with the Core.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -213,9 +213,9 @@ struct SettingsView: View {
 
     private func formatCacheSize(_ mb: Double) -> String {
         if mb >= 1000 {
-            return String(format: "%.1f Go", mb / 1000)
+            return String(format: "%.1f GB", mb / 1000)
         } else {
-            return "\(Int(mb)) Mo"
+            return "\(Int(mb)) MB"
         }
     }
 }

@@ -196,10 +196,10 @@ struct RoonBrowseContentView: View {
                 roonService.browse()
             }
         }
-        .alert("Recherche", isPresented: $showSearchPrompt) {
-            TextField("Rechercher...", text: $roonSearchText)
-            Button("Rechercher") { submitSearch() }
-            Button("Annuler", role: .cancel) {
+        .alert("Search", isPresented: $showSearchPrompt) {
+            TextField("Search...", text: $roonSearchText)
+            Button("Search") { submitSearch() }
+            Button("Cancel", role: .cancel) {
                 roonSearchText = ""
                 searchItemKey = nil
             }
@@ -235,7 +235,7 @@ struct RoonBrowseContentView: View {
             }
 
             Text(roonService.browseStack.isEmpty
-                 ? (startWithRadio ? String(localized: "Radio") : String(localized: "Bibliotheque"))
+                 ? (startWithRadio ? String(localized: "Radio") : String(localized: "Library"))
                  : (roonService.browseStack.last ?? ""))
                 .font(.inter(28))
                 .trackingCompat(-0.8)
@@ -280,7 +280,7 @@ struct RoonBrowseContentView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 13))
                 .foregroundStyle(Color.roonTertiary)
-            TextField("Rechercher...", text: $searchText)
+            TextField("Search...", text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.lato(13))
                 .foregroundStyle(Color.roonText)
@@ -536,7 +536,7 @@ struct RoonBrowseContentView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 24))
                 .foregroundStyle(Color.roonTertiary)
-            Text("Aucun resultat pour \"\(searchText)\"")
+            Text("No results for \"\(searchText)\"")
                 .font(.lato(13))
                 .foregroundStyle(Color.roonSecondary)
             Spacer()
@@ -549,7 +549,7 @@ struct RoonBrowseContentView: View {
             Image(systemName: startWithRadio ? "dot.radiowaves.left.and.right" : "square.grid.2x2")
                 .font(.system(size: 40))
                 .foregroundStyle(Color.roonTertiary)
-            Button(startWithRadio ? String(localized: "Parcourir les radios") : String(localized: "Parcourir la bibliotheque")) {
+            Button(startWithRadio ? String(localized: "Browse radios") : String(localized: "Browse library")) {
                 if startWithRadio {
                     roonService.browse(hierarchy: "internet_radio")
                 } else {
@@ -626,17 +626,17 @@ struct RoonBrowseContentView: View {
 
                 // Track count
                 if let count = list?.count {
-                    Text("\(count) morceaux")
+                    Text("\(count) tracks")
                         .font(.lato(14))
                         .foregroundStyle(Color.roonSecondary)
                 }
 
-                // "Lire maintenant" button
+                // "Play now" button
                 if let firstItem = items.first, let itemKey = firstItem.item_key {
                     Button {
                         roonService.playInCurrentSession(itemKey: itemKey)
                     } label: {
-                        Text("Lire maintenant")
+                        Text("Play now")
                             .font(.latoBold(13))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 20)
@@ -668,9 +668,9 @@ struct RoonBrowseContentView: View {
             // thumbnail placeholder
             Spacer().frame(width: 40)
             Spacer().frame(width: 12)
-            Text("Morceau")
+            Text("Track")
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Artiste")
+            Text("Artist")
                 .frame(maxWidth: .infinity, alignment: .leading)
             if showAlbumColumn {
                 Text("Album")
@@ -815,7 +815,7 @@ struct RoonBrowseContentView: View {
 
                 // Element count
                 if let count = list?.count {
-                    Text("\(count) elements")
+                    Text("\(count) items")
                         .font(.lato(14))
                         .foregroundStyle(Color.roonSecondary)
                 }
@@ -866,7 +866,7 @@ struct RoonBrowseContentView: View {
 
             // Discography section
             VStack(alignment: .leading, spacing: 16) {
-                Text("Discographie")
+                Text("Discography")
                     .font(.inter(20))
                     .trackingCompat(-0.5)
                     .foregroundStyle(Color.roonText)
@@ -1148,7 +1148,7 @@ struct RoonBrowseContentView: View {
                     Spacer().frame(height: 40)
                     ProgressView()
                         .controlSize(.regular)
-                    Text("Chargement des sections...")
+                    Text("Loading sections...")
                         .font(.lato(13))
                         .foregroundStyle(Color.roonSecondary)
                     Spacer()
@@ -1367,7 +1367,7 @@ struct RoonBrowseContentView: View {
                     .font(.system(size: 16))
                     .foregroundStyle(Color.roonAccent)
                 if let count = roonService.browseResult?.list?.count {
-                    Text("\(count) morceaux")
+                    Text("\(count) tracks")
                         .font(.lato(14))
                         .foregroundStyle(Color.roonSecondary)
                 }
@@ -1420,7 +1420,7 @@ struct RoonBrowseContentView: View {
                     .font(.system(size: 16))
                     .foregroundStyle(Color.roonAccent)
                 if let count = list?.count {
-                    Text("\(count) compositeurs")
+                    Text("\(count) composers")
                         .font(.lato(14))
                         .foregroundStyle(Color.roonSecondary)
                 }

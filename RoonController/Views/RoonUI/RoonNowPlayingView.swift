@@ -46,7 +46,7 @@ struct RoonNowPlayingView: View {
                 .buttonStyle(.plain)
                 .padding(.top, 12)
                 .padding(.trailing, 16)
-                .help("Fermer")
+                .help("Close")
             }
         }
         .onExitCommand {
@@ -315,7 +315,7 @@ struct RoonNowPlayingView: View {
     private var upNextSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !roonService.queueItems.isEmpty {
-                Text("A SUIVRE")
+                Text("UP NEXT")
                     .font(.latoBold(11))
                     .trackingCompat(1.5)
                     .foregroundStyle(Color.roonTertiary)
@@ -388,7 +388,7 @@ struct RoonNowPlayingView: View {
             Image(systemName: "music.note")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.roonTertiary)
-            Text("Rien en lecture")
+            Text("Nothing playing")
                 .font(.inter(24))
                 .foregroundStyle(Color.roonSecondary)
         }
