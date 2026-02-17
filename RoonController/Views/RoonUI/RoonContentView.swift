@@ -11,23 +11,27 @@ struct RoonContentView: View {
 
     var body: some View {
         Group {
-            switch selectedSection {
-            case .home:
-                homeContent
-            case .browse:
-                RoonBrowseContentView()
-            case .queue:
-                RoonQueueView()
-            case .radio:
-                RoonBrowseContentView(startWithRadio: true)
-            case .history:
-                RoonHistoryView()
-            case .radioFavorites:
-                RoonFavoritesView()
-            case .nowPlaying:
-                RoonNowPlayingView(onDismiss: {
-                    selectedSection = .home
-                })
+            if roonService.zones.isEmpty && roonService.connectionState != .connected {
+                extensionNotAuthorizedView
+            } else {
+                switch selectedSection {
+                case .home:
+                    homeContent
+                case .browse:
+                    RoonBrowseContentView()
+                case .queue:
+                    RoonQueueView()
+                case .radio:
+                    RoonBrowseContentView(startWithRadio: true)
+                case .history:
+                    RoonHistoryView()
+                case .radioFavorites:
+                    RoonFavoritesView()
+                case .nowPlaying:
+                    RoonNowPlayingView(onDismiss: {
+                        selectedSection = .home
+                    })
+                }
             }
         }
         .animation(.easeInOut(duration: 0.2), value: selectedSection)
@@ -46,6 +50,27 @@ struct RoonContentView: View {
             .keyboardShortcut("\\", modifiers: .command)
         }
         .background(Color.roonBackground, ignoresSafeAreaEdges: [])
+    }
+
+    // MARK: - Extension Not Authorized
+
+    private var extensionNotAuthorizedView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 48))
+                .foregroundStyle(Color.roonAccent)
+            Text("Extension non autorisee")
+                .font(.inter(28))
+                .trackingCompat(-0.8)
+                .foregroundStyle(Color.roonText)
+            Text("Ouvrez Roon > Reglages > Extensions\npuis activez \"Roon Controller\".")
+                .font(.lato(15))
+                .foregroundStyle(Color.roonSecondary)
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Home Constants (matching Roon native)

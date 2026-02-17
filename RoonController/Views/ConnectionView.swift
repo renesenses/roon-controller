@@ -38,7 +38,7 @@ struct ConnectionView: View {
                                 .foregroundStyle(Color.roonSecondary)
                         }
                     case .waitingForApproval:
-                        VStack(spacing: 8) {
+                        VStack(spacing: 12) {
                             Label("Roon Core found", systemImage: "checkmark.circle")
                                 .foregroundStyle(.green)
                             HStack(spacing: 8) {
@@ -49,10 +49,24 @@ struct ConnectionView: View {
                                     .fontWeight(.medium)
                                     .foregroundStyle(Color.roonAccent)
                             }
-                            Text("Open Roon, go to Settings > Extensions\nand authorize \"Roon Controller\".")
-                                .foregroundStyle(Color.roonSecondary)
-                                .multilineTextAlignment(.center)
-                                .font(.caption)
+                            VStack(spacing: 6) {
+                                Text("The extension must be authorized in Roon Core.")
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(Color.roonText)
+                                Text("Open Roon > Settings > Extensions,\nthen enable \"Roon Controller\".")
+                                    .foregroundStyle(Color.roonSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .font(.caption)
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.roonAccent.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .strokeBorder(Color.roonAccent.opacity(0.3), lineWidth: 0.5)
+                                    )
+                            )
                         }
                     case .disconnected:
                         Label("Disconnected from Roon Core", systemImage: "xmark.circle")
