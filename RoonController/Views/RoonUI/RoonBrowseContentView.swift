@@ -100,6 +100,15 @@ struct RoonBrowseContentView: View {
         return roonService.browseStack.count <= 1
     }
 
+    /// Nav bar title: full breadcrumb path for genres, last element otherwise
+    private var navBarTitle: String {
+        let stack = roonService.browseStack
+        if let cat = roonService.browseCategory, Self.genreTitles.contains(cat), stack.count >= 2 {
+            return stack.joined(separator: "  >  ")
+        }
+        return stack.last ?? ""
+    }
+
     /// Detect artist detail view: first item(s) have no image, followed by navigable items with images
     private var isArtistDetailView: Bool {
         let items = filteredBrowseItems
@@ -244,7 +253,7 @@ struct RoonBrowseContentView: View {
 
             Text(roonService.browseStack.isEmpty
                  ? (startWithRadio ? String(localized: "Radio") : String(localized: "Library"))
-                 : (roonService.browseStack.last ?? ""))
+                 : navBarTitle)
                 .font(.inter(28))
                 .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
