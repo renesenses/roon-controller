@@ -35,7 +35,7 @@ struct RoonFavoritesView: View {
 
     private var header: some View {
         HStack(alignment: .lastTextBaseline, spacing: 10) {
-            Text("Favorites")
+            Text("Radio Favorites")
                 .font(.inter(28))
                 .trackingCompat(-0.8)
                 .foregroundStyle(Color.roonText)
@@ -188,10 +188,10 @@ struct RoonFavoritesView: View {
             Image(systemName: "heart")
                 .font(.system(size: 40))
                 .foregroundStyle(Color.roonTertiary)
-            Text("No favorites")
+            Text("No radio favorites")
                 .font(.inter(24))
                 .foregroundStyle(Color.roonSecondary)
-            Text("Listen to a radio station and click the heart")
+            Text("Listen to a radio station and tap the heart to save tracks")
                 .font(.lato(13))
                 .foregroundStyle(Color.roonTertiary)
             Spacer()

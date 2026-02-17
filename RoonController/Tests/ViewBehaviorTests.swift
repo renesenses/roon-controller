@@ -1698,7 +1698,7 @@ final class ViewBehaviorTests: XCTestCase {
     // MARK: - SidebarSection RawRepresentable
 
     func testSidebarSectionFixedRoundTrip() {
-        let fixed: [SidebarView.SidebarSection] = [.zones, .browse, .queue, .history, .favorites, .myLiveRadios]
+        let fixed: [SidebarView.SidebarSection] = [.zones, .browse, .queue, .history, .radioFavorites, .myLiveRadios]
         for section in fixed {
             let raw = section.rawValue
             let decoded = SidebarView.SidebarSection(rawValue: raw)
@@ -1727,7 +1727,7 @@ final class ViewBehaviorTests: XCTestCase {
         let fixed = SidebarView.SidebarSection.fixedSections
         XCTAssertEqual(fixed.count, 6)
         XCTAssertEqual(fixed[0], .zones)
-        XCTAssertEqual(fixed[4], .favorites)
+        XCTAssertEqual(fixed[4], .radioFavorites)
         XCTAssertEqual(fixed[5], .myLiveRadios)
     }
 

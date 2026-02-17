@@ -112,7 +112,7 @@ struct RoonSidebarView: View {
 
                     // Fixed items
                     sidebarItem(.queue)
-                    sidebarItem(.favorites)
+                    sidebarItem(.radioFavorites)
 
                     // MARK: - LISTES DE LECTURE
                     if !roonService.sidebarPlaylists.isEmpty {

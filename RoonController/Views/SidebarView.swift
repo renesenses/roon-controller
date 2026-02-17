@@ -11,10 +11,10 @@ struct SidebarView: View {
     @State private var searchItemKey: String?
 
     enum SidebarSection: Hashable, RawRepresentable {
-        case zones, browse, queue, history, favorites, myLiveRadios
+        case zones, browse, queue, history, radioFavorites, myLiveRadios
         case streaming(serviceName: String)
 
-        static let fixedSections: [SidebarSection] = [.zones, .browse, .queue, .history, .favorites, .myLiveRadios]
+        static let fixedSections: [SidebarSection] = [.zones, .browse, .queue, .history, .radioFavorites, .myLiveRadios]
 
         init?(rawValue: String) {
             switch rawValue {
@@ -22,7 +22,7 @@ struct SidebarView: View {
             case "browse": self = .browse
             case "queue": self = .queue
             case "history": self = .history
-            case "favorites": self = .favorites
+            case "favorites": self = .radioFavorites
             case "myLiveRadios": self = .myLiveRadios
             default:
                 if rawValue.hasPrefix("streaming:") {
@@ -40,7 +40,7 @@ struct SidebarView: View {
             case .browse: "browse"
             case .queue: "queue"
             case .history: "history"
-            case .favorites: "favorites"
+            case .radioFavorites: "favorites"
             case .myLiveRadios: "myLiveRadios"
             case .streaming(let name): "streaming:\(name)"
             }
@@ -52,7 +52,7 @@ struct SidebarView: View {
             case .browse: "Library"
             case .queue: "Queue"
             case .history: "History"
-            case .favorites: "Favorites"
+            case .radioFavorites: "Radio Favorites"
             case .myLiveRadios: "My Live Radio"
             case .streaming(let name): LocalizedStringKey(name)
             }
@@ -64,7 +64,7 @@ struct SidebarView: View {
             case .browse: "square.grid.2x2"
             case .queue: "list.number"
             case .history: "clock"
-            case .favorites: "heart"
+            case .radioFavorites: "heart.circle"
             case .myLiveRadios: "dot.radiowaves.left.and.right"
             case .streaming: "waveform"
             }
@@ -148,7 +148,7 @@ struct SidebarView: View {
                 case .history:
                     HistoryView()
                         .environmentObject(roonService)
-                case .favorites:
+                case .radioFavorites:
                     FavoritesView()
                         .environmentObject(roonService)
                 case .myLiveRadios:
