@@ -120,36 +120,40 @@ struct PlayerView: View {
 
     @ViewBuilder
     private func playerContent(zone: RoonZone, nowPlaying: NowPlaying) -> some View {
-        VStack(spacing: 24) {
-            Spacer(minLength: 20)
+        GeometryReader { geo in
+            let artSize = min(400, max(120, geo.size.height - 340))
+            VStack(spacing: 24) {
+                Spacer(minLength: 10)
 
-            // Album Art
-            albumArt(imageKey: roonService.resolvedImageKey(for: nowPlaying))
+                // Album Art
+                albumArt(imageKey: roonService.resolvedImageKey(for: nowPlaying), size: artSize)
 
-            // Track Info
-            trackInfo(nowPlaying: nowPlaying)
+                // Track Info
+                trackInfo(nowPlaying: nowPlaying)
 
-            // Seek Bar
-            seekBar(zone: zone, nowPlaying: nowPlaying)
+                // Seek Bar
+                seekBar(zone: zone, nowPlaying: nowPlaying)
 
-            // Transport Controls
-            transportControls(zone: zone)
+                // Transport Controls
+                transportControls(zone: zone)
 
-            // Shuffle / Repeat / Radio
-            settingsControls(zone: zone)
+                // Shuffle / Repeat / Radio
+                settingsControls(zone: zone)
 
-            // Volume
-            volumeControl(zone: zone)
+                // Volume
+                volumeControl(zone: zone)
 
-            Spacer(minLength: 20)
+                Spacer(minLength: 10)
+            }
+            .padding(.horizontal, 40)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 40)
     }
 
     // MARK: - Album Art
 
     @ViewBuilder
-    private func albumArt(imageKey: String?) -> some View {
+    private func albumArt(imageKey: String?, size: CGFloat = 400) -> some View {
         if let url = roonService.imageURL(key: imageKey, width: 800, height: 800) {
             AsyncImage(url: url) { phase in
                 switch phase {
@@ -158,31 +162,31 @@ struct PlayerView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                 case .failure:
-                    artPlaceholder
+                    artPlaceholder(size: size)
                 case .empty:
                     ProgressView()
                         .accentColor(.roonSecondary)
-                        .frame(width: 400, height: 400)
+                        .frame(width: size, height: size)
                 @unknown default:
-                    artPlaceholder
+                    artPlaceholder(size: size)
                 }
             }
             .id(imageKey)
-            .frame(maxWidth: 400, maxHeight: 400)
+            .frame(maxWidth: size, maxHeight: size)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.6), radius: 24, x: 0, y: 8)
         } else {
-            artPlaceholder
+            artPlaceholder(size: size)
         }
     }
 
-    private var artPlaceholder: some View {
+    private func artPlaceholder(size: CGFloat = 400) -> some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(Color.roonSurface)
-            .frame(width: 400, height: 400)
+            .frame(width: size, height: size)
             .overlay {
                 Image(systemName: "music.note")
-                    .font(.system(size: 64))
+                    .font(.system(size: max(24, size * 0.16)))
                     .foregroundStyle(Color.roonTertiary)
             }
     }

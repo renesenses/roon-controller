@@ -6,42 +6,45 @@ struct RoonTransportBarView: View {
     var onNowPlayingTap: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 0) {
-            if let zone = roonService.currentZone, let np = zone.now_playing {
-                // Left: album art + track info (clickable → Now Playing)
-                Button {
-                    onNowPlayingTap?()
-                } label: {
-                    HStack(spacing: 14) {
-                        albumArt(imageKey: roonService.resolvedImageKey(for: np))
-                        trackInfo(nowPlaying: np)
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                if let zone = roonService.currentZone, let np = zone.now_playing {
+                    // Left: album art + track info (clickable → Now Playing)
+                    Button {
+                        onNowPlayingTap?()
+                    } label: {
+                        HStack(spacing: 14) {
+                            albumArt(imageKey: roonService.resolvedImageKey(for: np))
+                            trackInfo(nowPlaying: np)
+                        }
+                        .frame(minWidth: 180, maxWidth: 280, alignment: .leading)
+                        .opacity(roonService.playbackTransitioning ? 0.4 : 1.0)
+                        .animation(.easeInOut(duration: 0.3), value: roonService.playbackTransitioning)
                     }
-                    .frame(width: 280, alignment: .leading)
-                    .opacity(roonService.playbackTransitioning ? 0.4 : 1.0)
-                    .animation(.easeInOut(duration: 0.3), value: roonService.playbackTransitioning)
-                }
-                .buttonStyle(.plain)
-                .padding(.leading, 18)
+                    .buttonStyle(.plain)
+                    .padding(.leading, 18)
 
-                Spacer()
+                    Spacer(minLength: 8)
 
-                // Center: transport controls + seek bar
-                VStack(spacing: 6) {
-                    transportControls(zone: zone)
-                    seekBar(zone: zone, nowPlaying: np)
-                }
-                .frame(maxWidth: 520)
+                    // Center: transport controls + seek bar
+                    VStack(spacing: 6) {
+                        transportControls(zone: zone)
+                        seekBar(zone: zone, nowPlaying: np)
+                    }
+                    .frame(maxWidth: 520)
 
-                Spacer()
+                    Spacer(minLength: 8)
 
-                // Right: zone selector + volume + mode toggle
-                HStack(spacing: 14) {
-                    zoneButton
-                    volumeControl(zone: zone)
-                    modeToggleButton
-                }
-                .frame(width: 290, alignment: .trailing)
-                .padding(.trailing, 18)
+                    // Right: zone selector + volume + mode toggle
+                    HStack(spacing: 14) {
+                        zoneButton
+                        if geo.size.width >= 950 {
+                            volumeControl(zone: zone)
+                        }
+                        modeToggleButton
+                    }
+                    .frame(minWidth: 80, maxWidth: 290, alignment: .trailing)
+                    .padding(.trailing, 18)
             } else if roonService.currentZone != nil {
                 Spacer()
                 Image(systemName: "music.note")
@@ -66,6 +69,7 @@ struct RoonTransportBarView: View {
                     modeToggleButton
                 }
                 .padding(.trailing, 18)
+            }
             }
         }
         .frame(height: 90)
