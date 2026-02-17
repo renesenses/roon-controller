@@ -15,10 +15,18 @@ struct RoonBrowseContentView: View {
 
     private let gridCardSize: CGFloat = 200
 
-    private static let genreTitles: Set<String> = ["Genres"]
+    private static let genreTitles: Set<String> = [
+        "Genres", "Generi", "Géneros", "ジャンル", "장르"
+    ]
     private static let streamingTitles: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
-    private static let tracksTitles: Set<String> = ["Morceaux", "Tracks"]
-    private static let composerTitles: Set<String> = ["Compositeurs", "Composers"]
+    private static let tracksTitles: Set<String> = [
+        "Tracks", "Morceaux", "Titel", "Brani", "Canciones", "Faixas",
+        "Spår", "Nummers", "トラック", "트랙"
+    ]
+    private static let composerTitles: Set<String> = [
+        "Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores",
+        "Kompositörer", "Componisten", "作曲家", "작곡가"
+    ]
     private static let radioTitles: Set<String> = ["My Live Radio", "Mes Live Radios"]
 
     private var filteredBrowseItems: [BrowseItem] {
@@ -567,10 +575,13 @@ struct RoonBrowseContentView: View {
     /// Splits "Artist - Album" subtitle into (artist, album). Falls back gracefully.
     private func parseSubtitle(_ subtitle: String?) -> (artist: String, album: String) {
         guard let subtitle = subtitle, !subtitle.isEmpty else { return ("", "") }
-        if let range = subtitle.range(of: " - ") {
-            let artist = String(subtitle[subtitle.startIndex..<range.lowerBound])
-            let album = String(subtitle[range.upperBound...])
-            return (artist, album)
+        // Roon uses " / " or " - " as artist/album separator depending on context
+        for separator in [" / ", " - "] {
+            if let range = subtitle.range(of: separator) {
+                let artist = String(subtitle[subtitle.startIndex..<range.lowerBound])
+                let album = String(subtitle[range.upperBound...])
+                return (artist, album)
+            }
         }
         return (subtitle, "")
     }

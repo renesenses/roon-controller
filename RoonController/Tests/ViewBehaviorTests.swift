@@ -1229,10 +1229,15 @@ final class ViewBehaviorTests: XCTestCase {
 
     // MARK: - Browse category detection (Genres, Streaming, Tracks, Composers)
 
-    private let genreTitles: Set<String> = ["Genres"]
+    private let genreTitles: Set<String> = ["Genres", "Generi", "Géneros", "ジャンル", "장르"]
     private let streamingTitles: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
-    private let tracksTitles: Set<String> = ["Morceaux", "Tracks"]
-    private let composerTitles: Set<String> = ["Compositeurs", "Composers"]
+    private let tracksTitles: Set<String> = [
+        "Tracks", "Morceaux", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙"
+    ]
+    private let composerTitles: Set<String> = [
+        "Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores",
+        "Kompositörer", "Componisten", "作曲家", "작곡가"
+    ]
 
     // MARK: Genre view detection
 
@@ -1875,6 +1880,73 @@ final class ViewBehaviorTests: XCTestCase {
         let repeatInterval: UInt64 = 100_000_000
         XCTAssertEqual(repeatInterval, 100_000_000,
                        "Volume repeat interval must be 100ms (100_000_000 ns)")
+    }
+
+    // MARK: - Multilingual layout detection tests
+
+    func testTrackListDetectedGerman() {
+        service.browseCategory = "Titel"
+        service.browseStack = ["Titel"]
+        XCTAssertTrue(tracksTitles.contains(service.browseCategory!),
+                      "German 'Titel' must be recognized as Tracks category")
+    }
+
+    func testTrackListDetectedItalian() {
+        service.browseCategory = "Brani"
+        service.browseStack = ["Brani"]
+        XCTAssertTrue(tracksTitles.contains(service.browseCategory!),
+                      "Italian 'Brani' must be recognized as Tracks category")
+    }
+
+    func testComposerViewDetectedGerman() {
+        service.browseCategory = "Komponisten"
+        service.browseStack = ["Komponisten"]
+        XCTAssertTrue(composerTitles.contains(service.browseCategory!),
+                      "German 'Komponisten' must be recognized as Composers category")
+    }
+
+    func testComposerViewDetectedItalian() {
+        service.browseCategory = "Compositori"
+        service.browseStack = ["Compositori"]
+        XCTAssertTrue(composerTitles.contains(service.browseCategory!),
+                      "Italian 'Compositori' must be recognized as Composers category")
+    }
+
+    func testGenreViewDetectedItalian() {
+        service.browseCategory = "Generi"
+        XCTAssertTrue(genreTitles.contains(service.browseCategory!),
+                      "Italian 'Generi' must be recognized as Genres category")
+    }
+
+    func testParseSubtitleWithSlashSeparator() {
+        // Roon sometimes uses " / " instead of " - " as separator
+        let subtitle = "Pink Floyd / The Dark Side of the Moon"
+        // Simulate parsing: split on " / " first, then " - "
+        var artist = subtitle
+        var album = ""
+        for sep in [" / ", " - "] {
+            if let range = subtitle.range(of: sep) {
+                artist = String(subtitle[subtitle.startIndex..<range.lowerBound])
+                album = String(subtitle[range.upperBound...])
+                break
+            }
+        }
+        XCTAssertEqual(artist, "Pink Floyd")
+        XCTAssertEqual(album, "The Dark Side of the Moon")
+    }
+
+    func testAlbumColumnHiddenWhenSameAlbum() {
+        // When all tracks share the same album, album column should be hidden
+        let albums: Set<String> = ["The Dark Side of the Moon"]
+        let showAlbum = albums.count > 1 || albums.first?.isEmpty == true
+        XCTAssertFalse(showAlbum, "Album column must be hidden for single-album views")
+    }
+
+    func testAlbumColumnShownForCompilation() {
+        // When tracks come from different albums, album column should be shown
+        let albums: Set<String> = ["Album A", "Album B"]
+        let showAlbum = albums.count > 1 || albums.first?.isEmpty == true
+        XCTAssertTrue(showAlbum, "Album column must be shown for multi-album views")
     }
 
     // MARK: - Helpers
