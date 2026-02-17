@@ -59,9 +59,22 @@ struct RoonBrowseContentView: View {
     }
 
     /// Genre view: root grid OR genre detail (sub-genres + actions)
+    /// At depth 3+, excludes Artists/Albums sub-views which should use normal dispatch
+    private static let genreExitTitles: Set<String> = [
+        "Artists", "Artistes", "Albums", "Tracks", "Morceaux",
+        "Composers", "Compositeurs"
+    ]
+
     private var isGenreView: Bool {
         guard let cat = roonService.browseCategory, Self.genreTitles.contains(cat) else { return false }
-        return roonService.browseStack.count <= 2
+        // If any stack entry is Artists/Albums/etc., we've left genre navigation
+        if roonService.browseStack.contains(where: { Self.genreExitTitles.contains($0) }) { return false }
+        if roonService.browseStack.count <= 2 { return true }
+        let items = filteredBrowseItems
+        guard items.count >= 2 else { return false }
+        let sample = items.prefix(20)
+        let actionCount = sample.filter { $0.hint == "action" || $0.hint == "action_list" }.count
+        return actionCount <= sample.count / 2
     }
 
     /// Streaming service root (sections list, auto-navigates into first section)
@@ -220,6 +233,75 @@ struct RoonBrowseContentView: View {
         }
     }
 
+    // MARK: - Navigation Breadcrumb
+
+    /// For genre views with depth >= 2, show breadcrumb like "Jazz / Jazz Instrument"
+    /// with ancestor segments clickable to go back. Otherwise show plain title.
+    @ViewBuilder
+    private var genreNavBreadcrumb: some View {
+        let stack = roonService.browseStack
+        if let cat = roonService.browseCategory, Self.genreTitles.contains(cat), stack.count >= 2 {
+            // Show genre breadcrumb: Bibliothèque / Jazz / Jazz Instrument
+            let segments = Array(stack.dropFirst()) // e.g. ["Jazz", "Jazz Instrument"]
+            HStack(spacing: 0) {
+                // "Bibliothèque" prefix — clickable, goes to browse home
+                Button {
+                    searchText = ""
+                    streamingSections = []
+                    browseListId = UUID()
+                    roonService.browseHome()
+                } label: {
+                    Text("Bibliothèque")
+                        .font(.inter(28))
+                        .trackingCompat(-0.8)
+                        .foregroundStyle(Color.roonSecondary)
+                }
+                .buttonStyle(.plain)
+
+                ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                    Text("  /  ")
+                        .font(.inter(28))
+                        .trackingCompat(-0.8)
+                        .foregroundStyle(Color.roonSecondary)
+
+                    if index < segments.count - 1 {
+                        // Clickable ancestor: pop back (segments.count - 1 - index) levels
+                        Button {
+                            let levelsToGoBack = segments.count - 1 - index
+                            searchText = ""
+                            browseListId = UUID()
+                            for _ in 0..<levelsToGoBack {
+                                roonService.browseBack()
+                            }
+                        } label: {
+                            Text(segment)
+                                .font(.inter(28))
+                                .trackingCompat(-0.8)
+                                .foregroundStyle(Color.roonSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        // Current level (not clickable)
+                        Text(segment)
+                            .font(.inter(28))
+                            .trackingCompat(-0.8)
+                            .foregroundStyle(Color.roonText)
+                    }
+                }
+            }
+        } else if stack.isEmpty {
+            Text(startWithRadio ? String(localized: "Radio") : String(localized: "Library"))
+                .font(.inter(28))
+                .trackingCompat(-0.8)
+                .foregroundStyle(Color.roonText)
+        } else {
+            Text(stack.last ?? "")
+                .font(.inter(28))
+                .trackingCompat(-0.8)
+                .foregroundStyle(Color.roonText)
+        }
+    }
+
     // MARK: - Navigation Bar
 
     private var navBar: some View {
@@ -242,12 +324,7 @@ struct RoonBrowseContentView: View {
                 .buttonStyle(.plain)
             }
 
-            Text(roonService.browseStack.isEmpty
-                 ? (startWithRadio ? String(localized: "Radio") : String(localized: "Library"))
-                 : (roonService.browseStack.last ?? ""))
-                .font(.inter(28))
-                .trackingCompat(-0.8)
-                .foregroundStyle(Color.roonText)
+            genreNavBreadcrumb
                 .lineLimit(1)
 
             if roonService.browseLoading {
@@ -919,19 +996,31 @@ struct RoonBrowseContentView: View {
         return Self.genreGradients[hash % Self.genreGradients.count]
     }
 
+    /// Leaf genre: only action buttons (Play Genre, Artists, Albums), no sub-genre cards
+    private func isLeafGenre(items: [BrowseItem]) -> Bool {
+        guard roonService.browseStack.count >= 3, items.count <= 5, !items.isEmpty else { return false }
+        return !items.contains { item in
+            item.hint != "action" && item.hint != "action_list"
+            && !Self.genreExitTitles.contains(item.title ?? "")
+        }
+    }
+
     private func genreContent(items: [BrowseItem]) -> some View {
-        let isDetail = roonService.browseStack.count == 2
+        let isDetail = roonService.browseStack.count >= 2
+        let isLeaf = isDetail && isLeafGenre(items: items)
         // In detail view, separate top actions (Play Genre, Artists, Albums) from sub-genres
         let topActions = isDetail ? items.filter { $0.subtitle == nil || $0.subtitle!.isEmpty } : []
         let subGenres = isDetail ? items.filter { $0.subtitle != nil && !$0.subtitle!.isEmpty } : items
+        // For leaf genres: separate play actions from navigation items (Artists, Albums)
+        let playActions = topActions.filter { $0.hint == "action" || $0.hint == "action_list" }
+        let navItems = topActions.filter { !($0.hint == "action" || $0.hint == "action_list") }
 
         return ScrollView {
             // Genre detail: header with action buttons
-            if isDetail && !topActions.isEmpty {
+            if isDetail && !topActions.isEmpty && !isLeaf {
                 HStack(spacing: 10) {
                     ForEach(topActions) { item in
                         if item.hint == "action" || item.hint == "action_list", let itemKey = item.item_key {
-                            // Play Genre button
                             Button {
                                 roonService.playInCurrentSession(itemKey: itemKey)
                             } label: {
@@ -948,7 +1037,6 @@ struct RoonBrowseContentView: View {
                             }
                             .buttonStyle(.plain)
                         } else {
-                            // Navigation items (Artists, Albums)
                             Button {
                                 searchText = ""
                                 handleBrowseItemTap(item)
@@ -977,19 +1065,87 @@ struct RoonBrowseContentView: View {
                 .padding(.bottom, 4)
             }
 
+            // Leaf genre: Play button + large cards for Artists/Albums
+            if isLeaf {
+                HStack(spacing: 10) {
+                    ForEach(playActions) { item in
+                        if let itemKey = item.item_key {
+                            Button {
+                                roonService.playInCurrentSession(itemKey: itemKey)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 11))
+                                    Text(item.title ?? "")
+                                        .font(.latoBold(13))
+                                }
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Capsule().fill(Color.roonAccent))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+            }
+
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 180, maximum: 240), spacing: 16)],
                 spacing: 16
             ) {
-                ForEach(subGenres) { item in
-                    genreCard(item)
-                        .hoverScale()
-                        .onAppear { loadMoreIfNeeded(item: item) }
+                if isLeaf {
+                    // Show Artists/Albums as large cards
+                    ForEach(navItems) { item in
+                        leafGenreNavCard(item)
+                            .hoverScale()
+                    }
+                } else {
+                    ForEach(subGenres) { item in
+                        genreCard(item)
+                            .hoverScale()
+                            .onAppear { loadMoreIfNeeded(item: item) }
+                    }
                 }
             }
             .padding(24)
         }
         .id(browseListId)
+    }
+
+    private static let leafGenreIcons: [String: String] = [
+        "Artists": "person.2", "Artistes": "person.2",
+        "Albums": "opticaldisc",
+        "Tracks": "music.note", "Morceaux": "music.note",
+        "Composers": "music.quarternote.3", "Compositeurs": "music.quarternote.3"
+    ]
+
+    private func leafGenreNavCard(_ item: BrowseItem) -> some View {
+        let title = item.title ?? ""
+        let icon = Self.leafGenreIcons[title] ?? "folder"
+        return ZStack(alignment: .bottomLeading) {
+            genreGradient(for: title)
+                .frame(height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                Text(title)
+                    .font(.grifoM(18))
+            }
+            .foregroundStyle(.white)
+            .padding(12)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            searchText = ""
+            handleBrowseItemTap(item)
+        }
     }
 
     private func genreCard(_ item: BrowseItem) -> some View {
