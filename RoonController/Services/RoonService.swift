@@ -1270,8 +1270,13 @@ class RoonService: ObservableObject {
 
     // MARK: - Profile Name
 
-    private static let settingsTitles = Set(["Settings", "Paramètres"])
-    private static let profileTitles = Set(["Profile", "Profil"])
+    private static let settingsTitles = Set([
+        "Settings", "Paramètres", "Einstellungen", "Impostazioni", "Configuración",
+        "Inställningar", "Instellingen", "設定", "설정"
+    ])
+    private static let profileTitles = Set([
+        "Profile", "Profil", "Profilo", "Perfil", "プロファイル", "프로필"
+    ])
 
     /// Fetch the active Roon profile name via the browse "settings" hierarchy.
     func fetchProfileName() {
@@ -1358,16 +1363,25 @@ class RoonService: ObservableObject {
         }
     }
 
-    /// Switch to a different Roon profile by item_key.
+    /// Switch to a different Roon profile by name (title matching).
+    /// Browse keys are session-bound (L-005), so we navigate fresh each time.
     func switchProfile(itemKey: String) {
+        // Extract the profile name from availableProfiles to use for title matching
+        let targetName = availableProfiles.first(where: { $0.item_key == itemKey })?.title
+        guard let targetName = targetName else { return }
+        switchProfileByName(targetName)
+    }
+
+    /// Switch to a different Roon profile by name.
+    func switchProfileByName(_ name: String) {
         Task {
             do {
                 let session = RoonBrowseService(connection: connection, sessionKey: "profile_switch")
                 let zoneId = currentZone?.zone_id
+                let decoder = JSONDecoder()
 
                 // Browse root to find Settings
                 let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
-                let decoder = JSONDecoder()
                 let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
                     guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
                     return try? decoder.decode(BrowseItem.self, from: data)
@@ -1386,11 +1400,19 @@ class RoonService: ObservableObject {
                 guard let profileItem = settingsItems.first(where: { Self.profileTitles.contains($0.title ?? "") }),
                       let profileKey = profileItem.item_key else { return }
 
-                // Navigate into Profile
-                _ = try await session.browse(zoneId: zoneId, itemKey: profileKey)
+                // Navigate into Profile to get fresh item_keys
+                let profileResponse = try await session.browse(zoneId: zoneId, itemKey: profileKey)
+                let profiles: [BrowseItem] = profileResponse.items.compactMap { dict in
+                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                    return try? decoder.decode(BrowseItem.self, from: data)
+                }
 
-                // Select the target profile
-                _ = try await session.browse(zoneId: zoneId, itemKey: itemKey)
+                // Find target profile by title and use its fresh session key
+                guard let target = profiles.first(where: { $0.title == name }),
+                      let targetKey = target.item_key else { return }
+
+                // Select the target profile using the fresh key from this session
+                _ = try await session.browse(zoneId: zoneId, itemKey: targetKey)
 
                 // Refresh profile list and name
                 fetchAvailableProfiles()
