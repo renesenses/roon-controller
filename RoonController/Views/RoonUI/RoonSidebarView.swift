@@ -264,7 +264,7 @@ struct RoonSidebarView: View {
                         .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
                 }
 
-                Text(item.title ?? "")
+                Text(displayTitle(item.title ?? ""))
                     .font(.lato(13))
                     .foregroundStyle(isSelected ? Color.roonText : Color.roonSecondary)
 
@@ -380,6 +380,14 @@ struct RoonSidebarView: View {
         if title.contains("Radio") { return "radio" }
         if folderTitles.contains(title) { return "folder" }
         return "music.note.list"
+    }
+
+    /// Display name override for API titles that need translation
+    private func displayTitle(_ title: String) -> String {
+        switch title {
+        case "My Live Radio": return "Mes radios live"
+        default: return title
+        }
     }
 
     /// Asset image name for services with a custom icon (nil = use SF Symbol)
