@@ -1921,7 +1921,6 @@ final class ViewBehaviorTests: XCTestCase {
     func testParseSubtitleWithSlashSeparator() {
         // Roon sometimes uses " / " instead of " - " as separator
         let subtitle = "Pink Floyd / The Dark Side of the Moon"
-        // Simulate parsing: split on " / " first, then " - "
         var artist = subtitle
         var album = ""
         for sep in [" / ", " - "] {
@@ -1936,17 +1935,44 @@ final class ViewBehaviorTests: XCTestCase {
     }
 
     func testAlbumColumnHiddenWhenSameAlbum() {
-        // When all tracks share the same album, album column should be hidden
         let albums: Set<String> = ["The Dark Side of the Moon"]
         let showAlbum = albums.count > 1 || albums.first?.isEmpty == true
         XCTAssertFalse(showAlbum, "Album column must be hidden for single-album views")
     }
 
     func testAlbumColumnShownForCompilation() {
-        // When tracks come from different albums, album column should be shown
         let albums: Set<String> = ["Album A", "Album B"]
         let showAlbum = albums.count > 1 || albums.first?.isEmpty == true
         XCTAssertTrue(showAlbum, "Album column must be shown for multi-album views")
+    }
+
+    // MARK: - Volume and startup settings tests
+
+    func testVolumePercentMapping() {
+        let min = -80.0, max = 0.0, value = -40.0
+        let range = max - min
+        let pct = Int(((value - min) / range * 100).rounded())
+        XCTAssertEqual(pct, 50, "Midpoint of -80..0 dB range must map to 50%")
+    }
+
+    func testVolumePercentMappingFull() {
+        let min = -80.0, max = 0.0, value = 0.0
+        let range = max - min
+        let pct = Int(((value - min) / range * 100).rounded())
+        XCTAssertEqual(pct, 100, "Maximum dB value must map to 100%")
+    }
+
+    func testVolumePercentMappingZero() {
+        let min = -80.0, max = 0.0, value = -80.0
+        let range = max - min
+        let pct = Int(((value - min) / range * 100).rounded())
+        XCTAssertEqual(pct, 0, "Minimum dB value must map to 0%")
+    }
+
+    func testStartupViewDefaultIsHome() {
+        let startupView = UserDefaults.standard.string(forKey: "startup_view") ?? "home"
+        XCTAssertEqual(startupView, "home",
+                       "Default startup view must be home")
     }
 
     // MARK: - Helpers

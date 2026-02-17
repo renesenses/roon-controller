@@ -5,6 +5,7 @@ import AppKit
 struct RoonControllerApp: App {
     @StateObject private var roonService = RoonService()
     @AppStorage("appTheme") private var appTheme = "light"
+    @AppStorage("startup_view") private var startupView = "home"
 
     private var colorScheme: ColorScheme? {
         AppTheme(rawValue: appTheme)?.colorScheme
@@ -23,8 +24,10 @@ struct RoonControllerApp: App {
                 .onAppear {
                     RoonFonts.registerAll()
                     applyAppearance()
-                    UserDefaults.standard.set("roon", forKey: "uiMode")
-                    UserDefaults.standard.set("home", forKey: "roonSelectedSection")
+                    if startupView == "home" {
+                        UserDefaults.standard.set("roon", forKey: "uiMode")
+                        UserDefaults.standard.set("home", forKey: "roonSelectedSection")
+                    }
                     installMouseBackButtonMonitor()
                 }
                 .onChangeCompat(of: appTheme) { applyAppearance() }

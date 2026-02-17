@@ -7,6 +7,8 @@ struct SettingsView: View {
     @AppStorage("default_zone_name") private var defaultZoneName = ""
     @AppStorage("sidebar_playlist_count") private var sidebarPlaylistCount = 10
     @AppStorage("cache_max_size_mb") private var cacheMaxSizeMB = 0
+    @AppStorage("volume_display") private var volumeDisplay = "dB"
+    @AppStorage("startup_view") private var startupView = "home"
     @State private var cacheSizeMB: Double = 0
     @State private var coreIP: String = RoonService.savedCoreIP ?? ""
 
@@ -29,6 +31,25 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
+                Picker("Startup view", selection: $startupView) {
+                    Text("Home").tag("home")
+                    Text("Remember last view").tag("last")
+                }
+
+                Text("Choose whether the app always opens on Home or remembers the last active view.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Picker("Volume display", selection: $volumeDisplay) {
+                    Text("dB").tag("dB")
+                    Text("0–100").tag("percent")
+                }
+                .pickerStyle(.segmented)
+
+                Text("Show volume as raw dB value or mapped to a 0–100 scale.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Playback zone") {
