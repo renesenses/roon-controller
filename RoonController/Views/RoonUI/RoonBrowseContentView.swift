@@ -509,12 +509,14 @@ struct RoonBrowseContentView: View {
 
             if (item.hint == "action_list" || item.hint == "action"),
                let itemKey = item.item_key {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Color.roonAccent)
-                    .onTapGesture {
-                        roonService.playItem(itemKey: itemKey)
-                    }
+                Button {
+                    roonService.playItem(itemKey: itemKey)
+                } label: {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color.roonAccent)
+                }
+                .buttonStyle(.plain)
             }
 
             if item.hint == "list" || item.hint == "action_list" {

@@ -659,6 +659,7 @@ class RoonService: ObservableObject {
                 }
                 DispatchQueue.main.async { [weak self] in
                     self?.handleBrowseResponse(response, isPageLoad: false)
+                    self?.pendingBrowseKey = nil
                 }
             } catch {
                 guard !Task.isCancelled else {
@@ -667,6 +668,7 @@ class RoonService: ObservableObject {
                 }
                 DispatchQueue.main.async { [weak self] in
                     self?.browseLoading = false
+                    self?.pendingBrowseKey = nil
                     self?.lastError = "Erreur de navigation : \(error.localizedDescription)"
                 }
             }
