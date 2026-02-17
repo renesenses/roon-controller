@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct RoonControllerApp: App {
@@ -24,6 +25,7 @@ struct RoonControllerApp: App {
                     applyAppearance()
                     UserDefaults.standard.set("roon", forKey: "uiMode")
                     UserDefaults.standard.set("home", forKey: "roonSelectedSection")
+                    installMouseBackButtonMonitor()
                 }
                 .onChangeCompat(of: appTheme) { applyAppearance() }
         }
@@ -32,6 +34,19 @@ struct RoonControllerApp: App {
             SettingsView()
                 .environmentObject(roonService)
                 .preferredColorScheme(colorScheme)
+        }
+    }
+
+    private func installMouseBackButtonMonitor() {
+        NSEvent.addLocalMonitorForEvents(matching: .otherMouseDown) { event in
+            // Mouse button 3 = back button on multi-button mice
+            if event.buttonNumber == 3 {
+                if !roonService.browseStack.isEmpty {
+                    roonService.browseBack()
+                }
+                return nil // consume the event
+            }
+            return event
         }
     }
 
