@@ -479,7 +479,7 @@ private struct VolumeRepeatButton: View {
                         action()
                         repeatTask = Task { @MainActor in
                             while !Task.isCancelled {
-                                try? await Task.sleep(nanoseconds: 200_000_000)
+                                try? await Task.sleep(nanoseconds: 100_000_000)
                                 guard !Task.isCancelled else { break }
                                 action()
                             }
