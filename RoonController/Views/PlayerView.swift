@@ -355,6 +355,13 @@ struct PlayerView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Save to radio favorites")
+            } else {
+                Button { roonService.toggleRoonFavorite() } label: {
+                    Image(systemName: roonService.isCurrentTrackInLibrary ? "heart.fill" : "heart")
+                        .foregroundStyle(roonService.isCurrentTrackInLibrary ? .red : Color.roonTertiary)
+                }
+                .buttonStyle(.plain)
+                .help(roonService.isCurrentTrackInLibrary ? "Remove from library" : "Add to library")
             }
         }
     }

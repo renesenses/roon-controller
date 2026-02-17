@@ -1816,4 +1816,48 @@ final class RoonServiceTests: XCTestCase {
         // Re-navigation to same key should work
         service.browse(itemKey: "202:0")
     }
+
+    // MARK: - Roon Library Favorite
+
+    func testLibraryFavoriteInitiallyFalse() {
+        XCTAssertFalse(service.isCurrentTrackInLibrary)
+    }
+
+    func testAddToLibraryTitlesMultilingual() {
+        // Ensure multilingual support for favorite action detection
+        let titles = [
+            "Add to Library", "Ajouter à la bibliothèque", "Zur Bibliothek hinzufügen",
+            "Aggiungi alla libreria", "Añadir a la biblioteca"
+        ]
+        for title in titles {
+            XCTAssertTrue(
+                RoonService.addToLibraryTitles.contains(title),
+                "'\(title)' should be recognized as Add to Library action"
+            )
+        }
+    }
+
+    func testRemoveFromLibraryTitlesMultilingual() {
+        let titles = [
+            "Remove from Library", "Retirer de la bibliothèque", "Aus Bibliothek entfernen",
+            "Rimuovi dalla libreria", "Eliminar de la biblioteca"
+        ]
+        for title in titles {
+            XCTAssertTrue(
+                RoonService.removeFromLibraryTitles.contains(title),
+                "'\(title)' should be recognized as Remove from Library action"
+            )
+        }
+    }
+
+    func testToggleRoonFavoriteNoOpWithoutZone() {
+        // No zone → should not crash
+        service.toggleRoonFavorite()
+    }
+
+    func testCheckLibraryStatusNoOpWithoutZone() {
+        // No zone → should set false and not crash
+        service.checkCurrentTrackLibraryStatus()
+        XCTAssertFalse(service.isCurrentTrackInLibrary)
+    }
 }

@@ -329,6 +329,7 @@ class RoonService: ObservableObject {
                 currentTrackIdentity = newIdentity
                 seekPosition = zone.seek_position ?? 0
                 playbackTransitioning = false
+                checkCurrentTrackLibraryStatus()
             } else if zone.state == "playing", let serverSeek = zone.seek_position {
                 // Same track, playing: sync from server (continuous correction)
                 seekPosition = serverSeek
@@ -2659,6 +2660,160 @@ class RoonService: ObservableObject {
         playbackHistory.removeAll()
         lastTrackPerZone.removeAll()
         saveHistory()
+    }
+
+    // MARK: - Roon Library Favorite (heart toggle via Browse API)
+
+    /// Titles for "Add to Library" action in various languages
+    static let addToLibraryTitles = Set([
+        "Add to Library", "Ajouter à la bibliothèque", "Zur Bibliothek hinzufügen",
+        "Aggiungi alla libreria", "Añadir a la biblioteca", "Adicionar à biblioteca",
+        "Lägg till i biblioteket", "Toevoegen aan bibliotheek", "ライブラリに追加", "라이브러리에 추가",
+        "Add to My Library"
+    ])
+
+    /// Titles for "Remove from Library" action in various languages
+    static let removeFromLibraryTitles = Set([
+        "Remove from Library", "Retirer de la bibliothèque", "Aus Bibliothek entfernen",
+        "Rimuovi dalla libreria", "Eliminar de la biblioteca", "Remover da biblioteca",
+        "Ta bort från biblioteket", "Verwijderen uit bibliotheek", "ライブラリから削除", "라이브러리에서 삭제",
+        "Remove from My Library"
+    ])
+
+    @Published var isCurrentTrackInLibrary: Bool = false
+    private var favoriteCheckTask: Task<Void, Never>?
+
+    /// Toggle favorite (add/remove from library) for the currently playing track's album
+    func toggleRoonFavorite() {
+        guard let np = currentZone?.now_playing,
+              let zoneId = currentZone?.zone_id else { return }
+
+        // For non-seekable tracks (radio), use local radio favorites
+        if currentZone?.is_seek_allowed == false {
+            saveRadioFavorite()
+            return
+        }
+
+        let albumTitle = np.three_line?.line1 ?? ""
+        guard !albumTitle.isEmpty else { return }
+
+        Task {
+            do {
+                let session = RoonBrowseService(connection: connection, sessionKey: "favorite_toggle")
+
+                // Search for the album
+                let searchRoot = try await session.browse(hierarchy: "search", zoneId: zoneId, popAll: true)
+                guard let searchPrompt = searchRoot.items.first,
+                      let searchKey = searchPrompt["item_key"] as? String else { return }
+
+                _ = try await session.browse(hierarchy: "search", zoneId: zoneId, itemKey: searchKey, input: albumTitle)
+
+                // Load search results
+                let loadResult = try await session.load(hierarchy: "search", offset: 0, count: 20)
+                let items = loadResult.items
+
+                // Find an action_list item matching the album
+                let target = items.first { item in
+                    let hint = item["hint"] as? String
+                    let title = item["title"] as? String ?? ""
+                    return (hint == "action_list" || hint == "list") && title.lowercased() == albumTitle.lowercased()
+                } ?? items.first { item in
+                    let hint = item["hint"] as? String
+                    return hint == "action_list" || hint == "list"
+                }
+
+                guard let targetItem = target,
+                      let targetKey = targetItem["item_key"] as? String else { return }
+
+                // Browse into the album to see its actions
+                let actionResult = try await session.browse(hierarchy: "search", zoneId: zoneId, itemKey: targetKey)
+                let actions = actionResult.items
+
+                // Look for "Add to Library" or "Remove from Library" action
+                let favoriteAction = actions.first { item in
+                    let hint = item["hint"] as? String
+                    let title = item["title"] as? String ?? ""
+                    return hint == "action" && (Self.addToLibraryTitles.contains(title) || Self.removeFromLibraryTitles.contains(title))
+                }
+
+                guard let favAction = favoriteAction,
+                      let favKey = favAction["item_key"] as? String else { return }
+
+                let wasInLibrary = Self.removeFromLibraryTitles.contains(favAction["title"] as? String ?? "")
+
+                // Execute the action
+                _ = try await session.browse(hierarchy: "search", zoneId: zoneId, itemKey: favKey)
+
+                await MainActor.run {
+                    self.isCurrentTrackInLibrary = !wasInLibrary
+                }
+            } catch {
+                // Favorite toggle failed silently
+            }
+        }
+    }
+
+    /// Check if the currently playing track's album is in the library
+    func checkCurrentTrackLibraryStatus() {
+        favoriteCheckTask?.cancel()
+
+        guard let np = currentZone?.now_playing,
+              let zoneId = currentZone?.zone_id,
+              currentZone?.is_seek_allowed != false else {
+            isCurrentTrackInLibrary = false
+            return
+        }
+
+        let albumTitle = np.three_line?.line1 ?? ""
+        guard !albumTitle.isEmpty else {
+            isCurrentTrackInLibrary = false
+            return
+        }
+
+        favoriteCheckTask = Task {
+            do {
+                let session = RoonBrowseService(connection: connection, sessionKey: "favorite_check")
+
+                let searchRoot = try await session.browse(hierarchy: "search", zoneId: zoneId, popAll: true)
+                guard !Task.isCancelled else { return }
+                guard let searchPrompt = searchRoot.items.first,
+                      let searchKey = searchPrompt["item_key"] as? String else { return }
+
+                _ = try await session.browse(hierarchy: "search", zoneId: zoneId, itemKey: searchKey, input: albumTitle)
+                guard !Task.isCancelled else { return }
+
+                let loadResult = try await session.load(hierarchy: "search", offset: 0, count: 20)
+                guard !Task.isCancelled else { return }
+
+                let target = loadResult.items.first { item in
+                    let hint = item["hint"] as? String
+                    let title = item["title"] as? String ?? ""
+                    return (hint == "action_list" || hint == "list") && title.lowercased() == albumTitle.lowercased()
+                } ?? loadResult.items.first { item in
+                    let hint = item["hint"] as? String
+                    return hint == "action_list" || hint == "list"
+                }
+
+                guard let targetItem = target,
+                      let targetKey = targetItem["item_key"] as? String else { return }
+
+                let actionResult = try await session.browse(hierarchy: "search", zoneId: zoneId, itemKey: targetKey)
+                guard !Task.isCancelled else { return }
+
+                // Check if "Remove from Library" is present (means it's already in library)
+                let hasRemove = actionResult.items.contains { item in
+                    let title = item["title"] as? String ?? ""
+                    return Self.removeFromLibraryTitles.contains(title)
+                }
+
+                await MainActor.run {
+                    guard !Task.isCancelled else { return }
+                    self.isCurrentTrackInLibrary = hasRemove
+                }
+            } catch {
+                // Check failed silently
+            }
+        }
     }
 
     // MARK: - Radio Favorites

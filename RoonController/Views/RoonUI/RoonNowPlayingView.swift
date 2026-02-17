@@ -292,6 +292,13 @@ struct RoonNowPlayingView: View {
                     activeColor: Color.roonRed,
                     action: { roonService.saveRadioFavorite() }
                 )
+            } else {
+                settingButton(
+                    icon: roonService.isCurrentTrackInLibrary ? "heart.fill" : "heart",
+                    isActive: roonService.isCurrentTrackInLibrary,
+                    activeColor: Color.roonRed,
+                    action: { roonService.toggleRoonFavorite() }
+                )
             }
         }
     }
