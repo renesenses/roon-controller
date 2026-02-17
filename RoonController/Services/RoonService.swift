@@ -100,6 +100,7 @@ class RoonService: ObservableObject {
     private var currentPlayTask: Task<Void, Never>?
     private var prefetchStreamingTask: Task<Void, Never>?
     private var seekTimer: Timer?
+    private var lastServerSeekTime: Date = .distantPast
     private var refreshTimer: Timer?
 
     // MARK: - Connection
@@ -278,6 +279,7 @@ class RoonService: ObservableObject {
                         if seekInfo["zone_id"] as? String == zoneId,
                            let serverSeek = seekInfo["seek_position"] as? Int {
                             seekPosition = serverSeek
+                            lastServerSeekTime = Date()
                         }
                     }
                 }
@@ -319,7 +321,7 @@ class RoonService: ObservableObject {
             }
         }
 
-        // Detect track change and reset seek position
+        // Detect track change and sync seek position from server
         if let zoneId = currentZone?.zone_id, let zone = zonesById[zoneId] {
             let newIdentity = trackIdentity(zone.now_playing)
             if zone.now_playing != nil && newIdentity != currentTrackIdentity {
@@ -328,9 +330,12 @@ class RoonService: ObservableObject {
                 seekPosition = zone.seek_position ?? 0
                 playbackTransitioning = false
             } else if zone.state == "playing", let serverSeek = zone.seek_position {
-                // Same track, playing: sync from server
+                // Same track, playing: sync from server (continuous correction)
                 seekPosition = serverSeek
+                lastServerSeekTime = Date()
             }
+            // Note: when paused, Roon may send seek_position: 0 which is incorrect.
+            // External seeks while paused are handled via zones_seek_changed (isSeekOnly path above).
         }
 
         // Manage seek interpolation timer based on playback state
@@ -2752,6 +2757,9 @@ class RoonService: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 if self.currentZone?.state == "playing" {
+                    // Skip interpolation if server updated seek recently (avoids jitter)
+                    let elapsed = Date().timeIntervalSince(self.lastServerSeekTime)
+                    guard elapsed > 0.5 else { return }
                     let length = self.currentZone?.now_playing?.length ?? Int.max
                     if self.seekPosition < length {
                         self.objectWillChange.send()
