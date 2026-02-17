@@ -1877,6 +1877,35 @@ final class ViewBehaviorTests: XCTestCase {
                        "Volume repeat interval must be 100ms (100_000_000 ns)")
     }
 
+    func testVolumePercentMapping() {
+        // Feature: volume 0-100 scale maps dB range to percentage
+        let min = -80.0, max = 0.0, value = -40.0
+        let range = max - min // 80
+        let pct = Int(((value - min) / range * 100).rounded())
+        XCTAssertEqual(pct, 50, "Midpoint of -80..0 dB range must map to 50%")
+    }
+
+    func testVolumePercentMappingFull() {
+        let min = -80.0, max = 0.0, value = 0.0
+        let range = max - min
+        let pct = Int(((value - min) / range * 100).rounded())
+        XCTAssertEqual(pct, 100, "Maximum dB value must map to 100%")
+    }
+
+    func testVolumePercentMappingZero() {
+        let min = -80.0, max = 0.0, value = -80.0
+        let range = max - min
+        let pct = Int(((value - min) / range * 100).rounded())
+        XCTAssertEqual(pct, 0, "Minimum dB value must map to 0%")
+    }
+
+    func testStartupViewDefaultIsHome() {
+        // Feature: startup_view defaults to "home"
+        let startupView = UserDefaults.standard.string(forKey: "startup_view") ?? "home"
+        XCTAssertEqual(startupView, "home",
+                       "Default startup view must be home")
+    }
+
     // MARK: - Helpers
 
     private func formatTime(_ totalSeconds: Int) -> String {

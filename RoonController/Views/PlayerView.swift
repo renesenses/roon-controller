@@ -3,6 +3,7 @@ import AppKit
 
 struct PlayerView: View {
     @EnvironmentObject var roonService: RoonService
+    @AppStorage("volume_display") private var volumeDisplay = "dB"
 
     var body: some View {
         ZStack {
@@ -416,7 +417,7 @@ struct PlayerView: View {
                     roonService.adjustVolume(outputId: outputId, delta: Double(step))
                 }
 
-                Text("\(intValue) dB")
+                Text(volumeLabel(value: value, min: min, max: max))
                     .font(.caption)
                     .monospacedDigit()
                     .foregroundStyle(Color.roonSecondary)
@@ -433,6 +434,15 @@ struct PlayerView: View {
         if ratio > 0.33 { return "speaker.wave.2.fill" }
         if ratio > 0 { return "speaker.wave.1.fill" }
         return "speaker.fill"
+    }
+
+    private func volumeLabel(value: Double, min: Double, max: Double) -> String {
+        if volumeDisplay == "percent" {
+            let range = max - min
+            let pct = range > 0 ? Int(((value - min) / range * 100).rounded()) : 0
+            return "\(pct)"
+        }
+        return "\(Int(value.rounded())) dB"
     }
 
     // MARK: - Empty States
