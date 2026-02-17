@@ -22,7 +22,7 @@ struct RoonContentView: View {
                 RoonBrowseContentView(startWithRadio: true)
             case .history:
                 RoonHistoryView()
-            case .favorites:
+            case .radioFavorites:
                 RoonFavoritesView()
             case .nowPlaying:
                 RoonNowPlayingView(onDismiss: {

@@ -12,7 +12,7 @@ enum UIMode: String, CaseIterable {
 }
 
 enum RoonSection: String, CaseIterable {
-    case home, browse, queue, radio, history, favorites, nowPlaying
+    case home, browse, queue, radio, history, radioFavorites, nowPlaying
 
     var label: String {
         switch self {
@@ -21,7 +21,7 @@ enum RoonSection: String, CaseIterable {
         case .queue: String(localized: "Queue")
         case .radio: String(localized: "Radio")
         case .history: String(localized: "History")
-        case .favorites: String(localized: "Favorites")
+        case .radioFavorites: String(localized: "Radio Favorites")
         case .nowPlaying: String(localized: "Now Playing")
         }
     }
@@ -33,7 +33,7 @@ enum RoonSection: String, CaseIterable {
         case .queue: "list.number"
         case .radio: "dot.radiowaves.left.and.right"
         case .history: "clock"
-        case .favorites: "heart"
+        case .radioFavorites: "heart.circle"
         case .nowPlaying: "music.note"
         }
     }
