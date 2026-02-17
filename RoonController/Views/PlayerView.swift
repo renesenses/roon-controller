@@ -37,6 +37,16 @@ struct PlayerView: View {
                 .help("Show/hide sidebar (⌘\\)")
                 .keyboardShortcut("\\", modifiers: .command)
             }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    openSettings()
+                } label: {
+                    Image(systemName: "gearshape")
+                        .foregroundStyle(Color.roonSecondary)
+                }
+                .help("Settings")
+                .keyboardShortcut(",", modifiers: .command)
+            }
         }
     }
 
@@ -71,6 +81,15 @@ struct PlayerView: View {
             if let found = findSplitViewController(from: child) { return found }
         }
         return nil
+    }
+
+    private func openSettings() {
+        if #available(macOS 14, *) {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     // MARK: - Blurred Background
