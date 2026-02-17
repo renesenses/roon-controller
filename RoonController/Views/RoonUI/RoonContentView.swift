@@ -343,21 +343,10 @@ struct RoonContentView: View {
         scrollTarget = tiles[nextIndex].id
     }
 
-    // #4: Open a tile — history: search & play, recently added: open album detail
+    // #4: Open a tile — both tabs navigate to album detail
     private func openTile(_ tile: HomeTile) {
-        if dernierementTab == .lus {
-            // History item: search and play by title/artist
-            roonService.searchAndPlay(
-                title: tile.title,
-                artist: tile.subtitle ?? "",
-                album: tile.album ?? ""
-            )
-            selectedSection = .nowPlaying
-        } else {
-            // Recently added: navigate to album detail via browse
-            roonService.browseToAlbum(title: tile.title, artist: tile.subtitle)
-            selectedSection = .browse
-        }
+        roonService.browseToAlbum(title: tile.title, artist: tile.subtitle)
+        selectedSection = .browse
     }
 
     private func dernierementTabButton(_ title: LocalizedStringKey, isSelected: Bool, action: @escaping () -> Void) -> some View {
