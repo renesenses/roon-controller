@@ -1282,7 +1282,7 @@ final class RoonServiceTests: XCTestCase {
     }
 
     func testRegistrationDisplayVersion() {
-        XCTAssertEqual(RoonRegistration.displayVersion, "1.0.3")
+        XCTAssertEqual(RoonRegistration.displayVersion, "1.1.0")
     }
 
     func testRegistrationExtensionId() {
@@ -1673,5 +1673,91 @@ final class RoonServiceTests: XCTestCase {
 
         let decoded = try! JSONDecoder().decode([String: TimeInterval].self, from: Data(contentsOf: path))
         XCTAssertEqual(decoded["A\tB"], 12345.0)
+    }
+
+    // MARK: - v1.1.1 Community feedback fixes
+
+    func testVersionNumberMatchesRelease() {
+        // Fix: version number was stuck at 1.0.3
+        XCTAssertEqual(RoonRegistration.displayVersion, "1.1.0",
+                       "displayVersion must match the current release")
+    }
+
+    func testSeekSyncFromExternalSeekEvent() {
+        // Fix: seek position from other controllers syncs only once
+        // Simulate a playing zone at seek 100
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 100, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 100,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+        XCTAssertEqual(service.seekPosition, 100)
+
+        // Simulate external seek via zones_seek_changed (seek-only event, no zones_changed)
+        let seekJSON: [String: Any] = [
+            "zones_seek_changed": [
+                ["zone_id": "z1", "seek_position": 42, "queue_time_remaining": 258]
+            ]
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: seekJSON)
+        service.handleZonesData(data)
+
+        XCTAssertEqual(service.seekPosition, 42,
+                       "Seek position must sync from external zones_seek_changed event")
+    }
+
+    func testSeekSyncPreservedOnPauseFromExternalSeek() {
+        // Fix: when paused, Roon sends seek_position:0 which should be ignored,
+        // but explicit zones_seek_changed events should be honored
+        let zone = RoonZone(
+            zone_id: "z1", display_name: "Zone", state: "playing",
+            now_playing: NowPlaying(
+                one_line: nil, two_line: nil,
+                three_line: NowPlaying.LineInfo(line1: "Song", line2: "Artist", line3: "Album"),
+                length: 300, seek_position: 120, image_key: nil
+            ),
+            outputs: nil, settings: nil, seek_position: 120,
+            is_play_allowed: true, is_pause_allowed: true, is_seek_allowed: true,
+            is_previous_allowed: true, is_next_allowed: true
+        )
+        service.selectZone(zone)
+
+        // Pause event with seek_position: 0 (Roon quirk) — should NOT reset
+        let pauseJSON: [String: Any] = [
+            "zones_changed": [
+                ["zone_id": "z1", "display_name": "Zone", "state": "paused",
+                 "seek_position": 0, "is_play_allowed": true]
+            ]
+        ]
+        let pauseData = try! JSONSerialization.data(withJSONObject: pauseJSON)
+        service.handleZonesData(pauseData)
+        XCTAssertEqual(service.seekPosition, 120,
+                       "Seek must NOT reset to 0 on pause (Roon sends bogus seek_position:0)")
+
+        // External seek while paused via zones_seek_changed — should update
+        let seekJSON: [String: Any] = [
+            "zones_seek_changed": [
+                ["zone_id": "z1", "seek_position": 75]
+            ]
+        ]
+        let seekData = try! JSONSerialization.data(withJSONObject: seekJSON)
+        service.handleZonesData(seekData)
+        XCTAssertEqual(service.seekPosition, 75,
+                       "External seek while paused must be honored via zones_seek_changed")
+    }
+
+    func testAdjustVolumeMethodExists() {
+        // Fix: volume repeat speed improvement relies on adjustVolume (relative mode)
+        // Verify adjustVolume doesn't crash when called without connection
+        service.adjustVolume(outputId: "out1", delta: -1.0)
+        service.adjustVolume(outputId: "out1", delta: 1.0)
+        // No crash = pass
     }
 }
