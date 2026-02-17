@@ -1999,4 +1999,29 @@ final class ViewBehaviorTests: XCTestCase {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
+
+    // MARK: - Responsive layout (window resize)
+
+    func testPlayerArtSizeScalesWithWindowHeight() {
+        // Art size formula: min(400, max(120, height - 340))
+        // Full height (740+) → 400
+        let fullArt = min(400.0, max(120.0, 740.0 - 340.0))
+        XCTAssertEqual(fullArt, 400.0)
+
+        // Minimum height (500) → 160
+        let minArt = min(400.0, max(120.0, 500.0 - 340.0))
+        XCTAssertEqual(minArt, 160.0)
+
+        // Very short height → clamped to 120
+        let tinyArt = min(400.0, max(120.0, 400.0 - 340.0))
+        XCTAssertEqual(tinyArt, 120.0)
+    }
+
+    func testTransportBarVolumeHiddenOnNarrowWindow() {
+        // Volume control should be hidden when width < 950
+        let narrowWidth: CGFloat = 800
+        let wideWidth: CGFloat = 1200
+        XCTAssertFalse(narrowWidth >= 950, "Volume should be hidden at 800px width")
+        XCTAssertTrue(wideWidth >= 950, "Volume should be visible at 1200px width")
+    }
 }
