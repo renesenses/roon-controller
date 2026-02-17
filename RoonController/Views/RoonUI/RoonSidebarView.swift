@@ -12,14 +12,19 @@ struct RoonSidebarView: View {
 
     // Classification des items par titre
     private static let explorerTitles = Set([
-        "Genres", "TIDAL", "Qobuz", "KKBOX", "nugs.net",
+        "Genres", "Generi", "Géneros", "ジャンル", "장르",
+        "TIDAL", "Qobuz", "KKBOX", "nugs.net",
         "Live Radio", "Écouter plus tard", "Étiquettes", "Tags",
-        "Historique", "History"
+        "Historique", "History", "Verlauf", "Cronologia", "Historial", "履歴", "기록"
     ])
     private static let libraryTitles = Set([
-        "Albums", "Artistes", "Artists", "Morceaux", "Tracks",
-        "Compositeurs", "Composers", "Compositions",
-        "Mes Live Radios", "My Live Radio", "Répertoires", "Folders"
+        "Albums", "Alben", "アルバム", "앨범",
+        "Artistes", "Artists", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트",
+        "Morceaux", "Tracks", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙",
+        "Compositeurs", "Composers", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가",
+        "Compositions", "Kompositionen", "Composizioni", "Composiciones",
+        "Mes Live Radios", "My Live Radio",
+        "Répertoires", "Folders", "Ordner", "Cartelle", "Carpetas", "フォルダ", "폴더"
     ])
 
     private var explorerItems: [BrowseItem] {
@@ -352,24 +357,29 @@ struct RoonSidebarView: View {
     // MARK: - Icon Mapping
 
     private func iconForTitle(_ title: String) -> String {
-        switch title {
-        case "Genres": return "guitars"
-        case "TIDAL": return "waveform"
-        case "Qobuz": return "waveform" // overridden by customIconForTitle
-        case "KKBOX", "nugs.net": return "waveform"
-        case "Live Radio": return "antenna.radiowaves.left.and.right"
-        case "Écouter plus tard": return "bookmark"
-        case "Étiquettes", "Tags": return "tag"
-        case "Historique", "History": return "clock"
-        case "Albums": return "opticaldisc"
-        case "Artistes", "Artists": return "music.mic"
-        case "Morceaux", "Tracks": return "music.note"
-        case "Compositeurs", "Composers": return "music.quarternote.3"
-        case "Compositions": return "music.note.list"
-        case "Mes Live Radios", "My Live Radio": return "radio"
-        case "Répertoires", "Folders": return "folder"
-        default: return "music.note.list"
+        if Self.explorerTitles.contains(title) {
+            if title.contains("Genres") || title.contains("Generi") || title.contains("Géneros") || title == "ジャンル" || title == "장르" { return "guitars" }
+            if title == "TIDAL" || title == "Qobuz" || title == "KKBOX" || title == "nugs.net" { return "waveform" }
+            if title.contains("Radio") { return "antenna.radiowaves.left.and.right" }
+            if title.contains("plus tard") { return "bookmark" }
+            if title.contains("tiquette") || title == "Tags" { return "tag" }
+            return "clock" // History variants
         }
+        // Library items — match by known sets
+        let tracksTitles: Set<String> = ["Tracks", "Morceaux", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙"]
+        let composerTitles: Set<String> = ["Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"]
+        let artistTitles: Set<String> = ["Artists", "Artistes", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트"]
+        let albumTitles: Set<String> = ["Albums", "Alben", "アルバム", "앨범"]
+        let folderTitles: Set<String> = ["Folders", "Répertoires", "Ordner", "Cartelle", "Carpetas", "フォルダ", "폴더"]
+
+        if albumTitles.contains(title) { return "opticaldisc" }
+        if artistTitles.contains(title) { return "music.mic" }
+        if tracksTitles.contains(title) { return "music.note" }
+        if composerTitles.contains(title) { return "music.quarternote.3" }
+        if title.contains("Composition") || title.contains("Komposition") || title.contains("Composizion") { return "music.note.list" }
+        if title.contains("Radio") { return "radio" }
+        if folderTitles.contains(title) { return "folder" }
+        return "music.note.list"
     }
 
     /// Asset image name for services with a custom icon (nil = use SF Symbol)
