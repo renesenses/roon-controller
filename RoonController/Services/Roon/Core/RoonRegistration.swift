@@ -13,7 +13,7 @@ struct RoonRegistration {
 
     static let extensionId = "com.bertrand.rooncontroller"
     static let displayName = "Roon Controller macOS"
-    static let displayVersion = "1.1.0"
+    static let displayVersion = "1.1.1"
     static let publisher = "Bertrand"
     static let email = ""
 
