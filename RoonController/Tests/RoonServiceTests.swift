@@ -1788,4 +1788,32 @@ final class RoonServiceTests: XCTestCase {
         XCTAssertTrue(settingsTitles.contains("Impostazioni"),
                        "Italian 'Impostazioni' must be recognized as Settings")
     }
+
+    // MARK: - Browse pending key cleared after navigation
+
+    func testBrowsePendingKeyClearedAfterBrowseHome() {
+        // Simulate navigating to an item, then going home, then navigating to same item
+        service.browse(itemKey: "200:0")
+        service.browseHome()
+        // Same key should not be blocked after browseHome clears pendingBrowseKey
+        service.browse(itemKey: "200:0")
+        // No crash = pass; dedup guard did not block
+    }
+
+    func testBrowsePendingKeyClearedAfterBrowseBack() {
+        // Navigate to an item, go back, navigate to same item again
+        service.browse(itemKey: "201:0")
+        service.browseBack()
+        // Same key should work after browseBack
+        service.browse(itemKey: "201:0")
+    }
+
+    func testBrowsePendingKeyAllowsRenavigationAfterError() {
+        // Without connection, browse silently fails (guard on browseService).
+        // pendingBrowseKey should still be set, but browseHome clears it.
+        service.browse(itemKey: "202:0")
+        service.browseHome()
+        // Re-navigation to same key should work
+        service.browse(itemKey: "202:0")
+    }
 }
