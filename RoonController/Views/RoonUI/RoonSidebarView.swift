@@ -12,18 +12,18 @@ struct RoonSidebarView: View {
 
     // Classification des items par titre
     private static let explorerTitles = Set([
-        "Genres", "Generi", "Géneros", "ジャンル", "장르",
         "TIDAL", "Qobuz", "KKBOX", "nugs.net",
-        "Live Radio", "Écouter plus tard", "Étiquettes", "Tags",
+        "Live Radio", "Mes Live Radios", "My Live Radio",
+        "Écouter plus tard", "Étiquettes", "Tags",
         "Historique", "History", "Verlauf", "Cronologia", "Historial", "履歴", "기록"
     ])
     private static let libraryTitles = Set([
+        "Genres", "Generi", "Géneros", "ジャンル", "장르",
         "Albums", "Alben", "アルバム", "앨범",
         "Artistes", "Artists", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트",
         "Morceaux", "Tracks", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙",
         "Compositeurs", "Composers", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가",
         "Compositions", "Kompositionen", "Composizioni", "Composiciones",
-        "Mes Live Radios", "My Live Radio",
         "Répertoires", "Folders", "Ordner", "Cartelle", "Carpetas", "フォルダ", "폴더"
     ])
 
@@ -356,29 +356,28 @@ struct RoonSidebarView: View {
 
     // MARK: - Icon Mapping
 
-    private func iconForTitle(_ title: String) -> String {
-        if Self.explorerTitles.contains(title) {
-            if title.contains("Genres") || title.contains("Generi") || title.contains("Géneros") || title == "ジャンル" || title == "장르" { return "guitars" }
-            if title == "TIDAL" || title == "Qobuz" || title == "KKBOX" || title == "nugs.net" { return "waveform" }
-            if title.contains("Radio") { return "antenna.radiowaves.left.and.right" }
-            if title.contains("plus tard") { return "bookmark" }
-            if title.contains("tiquette") || title == "Tags" { return "tag" }
-            return "clock" // History variants
-        }
-        // Library items — match by known sets
-        let tracksTitles: Set<String> = ["Tracks", "Morceaux", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙"]
-        let composerTitles: Set<String> = ["Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"]
-        let artistTitles: Set<String> = ["Artists", "Artistes", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트"]
-        let albumTitles: Set<String> = ["Albums", "Alben", "アルバム", "앨범"]
-        let folderTitles: Set<String> = ["Folders", "Répertoires", "Ordner", "Cartelle", "Carpetas", "フォルダ", "폴더"]
+    private static let genreNames: Set<String> = ["Genres", "Generi", "Géneros", "ジャンル", "장르"]
+    private static let streamingNames: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
+    private static let trackNames: Set<String> = ["Tracks", "Morceaux", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙"]
+    private static let composerNames: Set<String> = ["Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"]
+    private static let artistNames: Set<String> = ["Artists", "Artistes", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트"]
+    private static let albumNames: Set<String> = ["Albums", "Alben", "アルバム", "앨범"]
+    private static let folderNames: Set<String> = ["Folders", "Répertoires", "Ordner", "Cartelle", "Carpetas", "フォルダ", "폴더"]
+    private static let historyNames: Set<String> = ["Historique", "History", "Verlauf", "Cronologia", "Historial", "履歴", "기록"]
 
-        if albumTitles.contains(title) { return "opticaldisc" }
-        if artistTitles.contains(title) { return "music.mic" }
-        if tracksTitles.contains(title) { return "music.note" }
-        if composerTitles.contains(title) { return "music.quarternote.3" }
+    private func iconForTitle(_ title: String) -> String {
+        if Self.genreNames.contains(title) { return "guitars" }
+        if Self.streamingNames.contains(title) { return "waveform" }
+        if Self.albumNames.contains(title) { return "opticaldisc" }
+        if Self.artistNames.contains(title) { return "music.mic" }
+        if Self.trackNames.contains(title) { return "music.note" }
+        if Self.composerNames.contains(title) { return "music.quarternote.3" }
+        if Self.folderNames.contains(title) { return "folder" }
+        if Self.historyNames.contains(title) { return "clock" }
         if title.contains("Composition") || title.contains("Komposition") || title.contains("Composizion") { return "music.note.list" }
-        if title.contains("Radio") { return "radio" }
-        if folderTitles.contains(title) { return "folder" }
+        if title.contains("Radio") { return "antenna.radiowaves.left.and.right" }
+        if title.contains("plus tard") { return "bookmark" }
+        if title.contains("tiquette") || title == "Tags" { return "tag" }
         return "music.note.list"
     }
 
