@@ -1,14 +1,19 @@
 # Installation Guide
 
-## Requirements
+## Requirements to use the app
 
 | Component | Minimum version |
 |-----------|----------------|
 | macOS | 12.0 (Monterey) or later — compatible with macOS 26.x (Tahoe) |
-| Xcode | 16.0 |
 | Roon Core | 2.x |
 
 > No external backend is needed. The app connects directly to the Roon Core via native SOOD and MOO protocols.
+
+## Requirements to build from source
+
+| Component | Minimum version |
+|-----------|----------------|
+| Xcode | 16.0 |
 
 ## 1. Install from DMG
 

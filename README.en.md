@@ -51,10 +51,16 @@ graph LR
 
 ## Requirements
 
+### To use the app
+
 - **macOS 12.0** (Monterey) or later (tested on macOS 26 Tahoe)
-- **Xcode 26** or later
 - An active **Roon Core** on the local network
 - **Roon Bridge** (recommended) to expose the Mac's audio outputs (DAC) to the Core
+- **Xcode 26** or later (only needed to build from source, not required for the DMG)
+
+### To build from source
+
+- **Xcode 16** or later
 
 ## Quick Install
 
@@ -85,7 +91,7 @@ open RoonController.xcodeproj
 
 ## Usage
 
-1. Launch the macOS app from Xcode (Cmd+R)
+1. Launch **Roon Controller** from the Applications folder (or via Spotlight)
 2. The app automatically discovers the Roon Core via SOOD on the local network
 3. Authorize the "Roon Controller macOS" extension in **Roon > Settings > Extensions**
 4. Zones appear in the sidebar — select one to start

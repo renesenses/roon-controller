@@ -1,13 +1,13 @@
 cask "roon-controller" do
-  version "1.0.0"
-  sha256 "73ec2b952caff7896da92e81a7dd174be3e4e8e3f6d5eab4cdd7ed0b0f062489"
+  version "1.2.0"
+  sha256 "e7c245049305cda5985c1da46562ed667c34c62d061c37720ec500e55cfcb85b"
 
   url "https://github.com/renesenses/roon-controller/releases/download/v#{version}/RoonController.dmg"
   name "Roon Controller"
   desc "Native macOS remote control for Roon"
   homepage "https://github.com/renesenses/roon-controller"
 
-  depends_on macos: ">= :sequoia"
+  depends_on macos: ">= :monterey"
 
   app "Roon Controller.app"
 
@@ -18,7 +18,8 @@ cask "roon-controller" do
 
   caveats <<~EOS
     #{token} is not signed with an Apple Developer ID.
-    On first launch, right-click the app and choose "Open" to bypass Gatekeeper.
+    On first launch, run: xattr -cr "/Applications/Roon Controller.app"
+    Or go to System Settings > Privacy & Security > Open Anyway.
     Then authorize "Roon Controller macOS" in Roon > Settings > Extensions.
   EOS
 end

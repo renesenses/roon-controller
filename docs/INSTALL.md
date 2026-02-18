@@ -2,15 +2,20 @@
 
 # Guide d'installation
 
-## Prerequis
+## Prerequis pour utiliser l'app
 
 | Composant | Version minimale |
 |-----------|-----------------|
 | macOS | 12.0 (Monterey) ou superieur — compatible macOS 26.x (Tahoe) |
-| Xcode | 16.0 |
 | Roon Core | 2.x |
 
 > Aucun backend externe n'est necessaire. L'app se connecte directement au Roon Core via les protocoles natifs SOOD et MOO.
+
+## Prerequis pour compiler depuis les sources
+
+| Composant | Version minimale |
+|-----------|-----------------|
+| Xcode | 16.0 |
 
 ## 1. Installation depuis le DMG
 
