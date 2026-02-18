@@ -60,6 +60,7 @@ The DMG attached to all previous GitHub releases **contained a stale v1.0.2 bina
 **v1.2.1** — Release fixes:
 - Rebuilt DMG with correct binary
 - Homebrew Cask updated (version, sha256, macOS 12+ dependency)
+- About window now shows "Version 1.2.1" (no longer displays a redundant build number)
 - Documentation: prerequisites split into "To use the app" vs "To build from source" — Xcode is **not** needed to run the app
 
 ### Prerequisite clarification
