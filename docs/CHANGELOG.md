@@ -53,9 +53,76 @@ timeline
                 : Boutons +/- repeat-on-hold
                 : Ecran Accueil par defaut
                 : 293 tests
+    2026-02-17 : v1.1.1
+                : Retours communaute (Roland)
+                : Favoris Roon (coeur)
+                : Profil, seek sync, layout
+                : +27 tests (326)
+    2026-02-17 : v1.2.0
+                : Grille genres + breadcrumb
+                : Message autorisation extension
+                : Reorganisation sidebar
+    2026-02-18 : v1.2.1
+                : Fix release (DMG + Cask)
+                : Changelog v1.1.1 + v1.2.0
+                : Prerequis runtime/build
 ```
 
 ## [Unreleased]
+
+## [1.2.1] - 2026-02-18
+
+### Corrections
+
+- DMG de la release GitHub reconstruit avec le binaire v1.2.0 (l'ancien contenait v1.0.2)
+- Homebrew Cask mis a jour vers v1.2.0 : version, sha256, depends_on Monterey, caveats xattr (`654265b`)
+
+### Documentation
+
+- Prerequis separes en "Pour utiliser l'app" et "Pour compiler depuis les sources" dans les README et INSTALL (`654265b`)
+- Version Xcode corrigee : 16 (etait "26" dans les README) (`654265b`)
+- Section Utilisation : "Lancez depuis Applications" au lieu de "depuis Xcode (Cmd+R)" (`654265b`)
+- Changelog rattrape pour v1.1.1 et v1.2.0
+
+## [1.2.0] - 2026-02-17
+
+### Ajouts
+
+- Vue grille des genres avec breadcrumb de navigation et cartes pour les genres feuilles (`92110aa`)
+- Breadcrumb complet dans la barre de navigation des genres (`05f6182`)
+- Message explicite quand l'extension n'est pas autorisee dans le Roon Core (`d8aaedf`)
+
+### Modifications
+
+- Genres deplaces dans la section Bibliotheque de la sidebar (`77f1588`)
+- My Live Radio deplace dans la section Explorateur de la sidebar (`77f1588`)
+- Traduction de "My Live Radio" en francais dans la sidebar (`750b770`)
+
+## [1.1.1] - 2026-02-17
+
+### Ajouts
+
+- Toggle coeur pour les favoris de la bibliotheque Roon via Browse API (`a246c80`)
+- Support du bouton retour de la souris pour la navigation Browse (`607afd9`)
+- Icone roue des reglages dans la barre d'outils du mode Player (Cmd+,) (`ef3d3b3`)
+- Option echelle de volume 0-100 et choix de la vue de demarrage dans les reglages (`e74e12c`)
+- 27 nouveaux tests unitaires (326 au total) (`9d033e7`)
+
+### Modifications
+
+- Section Favoris renommee en "Favoris Radio" pour plus de clarte (`0586287`)
+- Repetition des boutons volume acceleree de 200ms a 100ms (`124d7a4`)
+- `displayVersion` de l'extension mis a jour a 1.1.0 (`c4073bd`)
+
+### Corrections
+
+- Changement de profil : utilise la correspondance par titre au lieu de cles de session perimees (`4af4a6b`)
+- Guard de deduplication Browse bloquait la re-navigation apres les reponses d'action (`f24da12`)
+- Barre de transport et vue lecteur rendues responsives au redimensionnement de la fenetre (`96e1f42`)
+- Synchronisation du seek : priorite aux mises a jour du serveur sur le timer local (`9d71c00`)
+- Albums recemment joues : navigation vers le detail de l'album au lieu de lancer la lecture (`594061c`)
+- Detection de layout pour Pistes/Compositeurs/colonne Album en multilingue (`3b8e87e`)
+- Instructions d'installation de l'app non signee corrigees dans toute la documentation (`c24ae37`)
 
 ## [1.1.0] - 2026-02-16
 
@@ -275,7 +342,10 @@ timeline
 - CI/CD GitHub Actions avec integration Claude Code
 - Documentation technique bilingue
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/renesenses/roon-controller/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/renesenses/roon-controller/compare/v1.1.0...v1.2.0
+[1.1.1]: https://github.com/renesenses/roon-controller/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/renesenses/roon-controller/compare/v1.0.7...v1.1.0
 [1.0.7]: https://github.com/renesenses/roon-controller/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/renesenses/roon-controller/compare/v1.0.5...v1.0.6
