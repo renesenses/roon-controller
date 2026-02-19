@@ -78,6 +78,18 @@ struct RoonBrowseContentView: View {
         "Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"
     ]
 
+    /// Currently in genre browsing (any depth)
+    private var isGenreBrowsing: Bool {
+        let stack = roonService.browseStack
+        return (roonService.browseCategory.map { Self.genreTitles.contains($0) } ?? false)
+            || (stack.first.map { Self.genreTitles.contains($0) } ?? false)
+    }
+
+    /// At genre root level (stack = ["Genres"]) — no back/home needed
+    private var isGenreRoot: Bool {
+        isGenreBrowsing && roonService.browseStack.count <= 1
+    }
+
     private var isGenreView: Bool {
         guard let cat = roonService.browseCategory, Self.genreTitles.contains(cat) else { return false }
         // If any stack entry is Artists/Albums/etc., we've left genre navigation
@@ -156,7 +168,7 @@ struct RoonBrowseContentView: View {
     /// Show grid when most items have artwork (albums, artists) but not playlist containers
     private var shouldShowGrid: Bool {
         let items = filteredBrowseItems
-        guard items.count >= 3 else { return false }
+        guard !items.isEmpty else { return false }
         // If most items are playable actions (tracks), show as list
         let actionCount = items.prefix(20).filter { $0.hint == "action" || $0.hint == "action_list" }.count
         if actionCount > items.prefix(20).count / 2 { return false }
@@ -260,14 +272,13 @@ struct RoonBrowseContentView: View {
             // Show genre breadcrumb: Bibliothèque / Jazz / Jazz Instrument
             let segments = Array(stack.dropFirst()) // e.g. ["Jazz", "Jazz Instrument"]
             HStack(spacing: 0) {
-                // "Bibliothèque" prefix — clickable, goes to browse home
+                // Genre root — clickable, pops back to genre grid
                 Button {
                     searchText = ""
-                    streamingSections = []
                     browseListId = UUID()
-                    roonService.browseHome()
+                    roonService.browsePopLevels(segments.count)
                 } label: {
-                    Text("Bibliothèque")
+                    Text(stack.first ?? "")
                         .font(.inter(28))
                         .trackingCompat(-0.8)
                         .foregroundStyle(Color.roonSecondary)
@@ -286,9 +297,7 @@ struct RoonBrowseContentView: View {
                             let levelsToGoBack = segments.count - 1 - index
                             searchText = ""
                             browseListId = UUID()
-                            for _ in 0..<levelsToGoBack {
-                                roonService.browseBack()
-                            }
+                            roonService.browsePopLevels(levelsToGoBack)
                         } label: {
                             Text(segment)
                                 .font(.inter(28))
@@ -322,7 +331,7 @@ struct RoonBrowseContentView: View {
 
     private var navBar: some View {
         HStack(spacing: 12) {
-            if !roonService.browseStack.isEmpty {
+            if !roonService.browseStack.isEmpty && !isGenreRoot {
                 Button {
                     searchText = ""
                     browseListId = UUID()
@@ -350,7 +359,7 @@ struct RoonBrowseContentView: View {
 
             Spacer()
 
-            if !roonService.browseStack.isEmpty {
+            if !roonService.browseStack.isEmpty && !isGenreBrowsing {
                 Button {
                     searchText = ""
                     streamingSections = []
@@ -468,7 +477,7 @@ struct RoonBrowseContentView: View {
             }
 
             // Title — Roon: font-lato text-2xl
-            Text(item.title ?? "")
+            Text(displayBrowseTitle(item.title ?? ""))
                 .font(.lato(15))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(2)
@@ -541,7 +550,7 @@ struct RoonBrowseContentView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.title ?? "")
+                Text(displayBrowseTitle(item.title ?? ""))
                     .font(.lato(15))
                     .foregroundStyle(Color.roonText)
                     .lineLimit(1)
@@ -586,7 +595,7 @@ struct RoonBrowseContentView: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.title ?? "")
+                Text(displayBrowseTitle(item.title ?? ""))
                     .font(.lato(15))
                     .foregroundStyle(Color.roonText)
                     .lineLimit(1)
@@ -827,7 +836,7 @@ struct RoonBrowseContentView: View {
             Spacer().frame(width: 12)
 
             // Title
-            Text(item.title ?? "")
+            Text(displayBrowseTitle(item.title ?? ""))
                 .font(.lato(14))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(1)
@@ -934,7 +943,7 @@ struct RoonBrowseContentView: View {
                                 roonService.playInCurrentSession(itemKey: itemKey)
                             }
                         } label: {
-                            Text(item.title ?? "")
+                            Text(displayBrowseTitle(item.title ?? ""))
                                 .font(.latoBold(13))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 20)
@@ -1187,7 +1196,7 @@ struct RoonBrowseContentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
-            Text(item.title ?? "")
+            Text(displayBrowseTitle(item.title ?? ""))
                 .font(.grifoM(18))
                 .foregroundStyle(.white)
                 .lineLimit(2)
@@ -1419,7 +1428,7 @@ struct RoonBrowseContentView: View {
                 }
             }
 
-            Text(item.title ?? "")
+            Text(displayBrowseTitle(item.title ?? ""))
                 .font(.lato(13))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(2)
@@ -1521,7 +1530,7 @@ struct RoonBrowseContentView: View {
                 }
             }
 
-            Text(item.title ?? "")
+            Text(displayBrowseTitle(item.title ?? ""))
                 .font(.lato(15))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(2)
@@ -1648,7 +1657,7 @@ struct RoonBrowseContentView: View {
                 composerInitialsCircle(name: item.title ?? "")
             }
 
-            Text(item.title ?? "")
+            Text(displayBrowseTitle(item.title ?? ""))
                 .font(.lato(14))
                 .foregroundStyle(Color.roonText)
                 .lineLimit(2)

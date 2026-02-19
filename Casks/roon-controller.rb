@@ -1,6 +1,6 @@
 cask "roon-controller" do
-  version "1.2.1"
-  sha256 "42244faea0455a7fdf92e5f5f0f14a845f6af8a7662a948eb44c367cf8539cc1"
+  version "1.2.3"
+  sha256 "ef1b8ec8ea4b6e0e3c962488afa8615bbcce5d9e9ef2487e6748ffcc7b0839b4"
 
   url "https://github.com/renesenses/roon-controller/releases/download/v#{version}/RoonController.dmg"
   name "Roon Controller"

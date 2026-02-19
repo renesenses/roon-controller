@@ -22,6 +22,10 @@
 - [x] #13 — Breadcrumb genre : condition alternative via stack.first + traductions
 - [x] #17 — Bouton MORE conditionnel selon l'onglet actif
 - [x] #19 — "My Live Radio" traduit via String(localized:) (DE/IT/ES/FR)
+- [x] Fil d'ariane genre : racine "Genres" au lieu de "Bibliotheque", navigation limitee aux genres
+- [x] Traduction de tous les titres d'actions browse (Play Artist, Play Album, Add to Library, etc.)
+- [x] Grille affichee des 1 item avec image (seuil abaisse de 3)
+- [x] Transport bar centree verticalement
 
 ## Limitations API Roon (points bloquants)
 
@@ -52,9 +56,8 @@
 
 ### UI
 
-- [ ] Augmenter la hauteur de la zone en bas (transport bar / now playing)
+- [x] ~~Augmenter la hauteur de la zone en bas (transport bar / now playing)~~ — contenu centre verticalement
 - [ ] Badge des sources (Tidal/Qobuz/Bibliotheque) dans la section Dernierement de l'accueil
-- [ ] Traduire "Tags" en francais ("Etiquettes" ou equivalent)
 
 ### Bugs remontes par Roland (v1.2.0 — post #38)
 

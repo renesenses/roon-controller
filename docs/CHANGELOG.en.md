@@ -69,6 +69,8 @@ timeline
     2026-02-19 : v1.2.3 beta
                 : 10 Roland bugs (post #38)
                 : Multilingual DE/IT/ES
+                : Genre breadcrumb + browse translations
+                : Centered transport bar
                 : +16 tests (371)
 ```
 
@@ -88,6 +90,14 @@ timeline
 - #13 — Genre breadcrumb: alternative condition via `stack.first` + DE/IT translations in `genreExitTitles` (`a70b5d6`)
 - #17 — MORE button: navigates to Albums (browse) when AJOUTES tab is active (`a70b5d6`)
 - #19 — "My Live Radio": uses `String(localized:)` with DE/IT/ES/FR translations in Localizable.xcstrings (`a70b5d6`)
+
+### Improved
+
+- Genre breadcrumb: root shows "Genres" and stays within genre hierarchy (no more back to library) (`d41dc72`)
+- `browsePopLevels()`: multi-level navigation in a single API call (fixes ancestor breadcrumb clicks) (`d41dc72`)
+- All browse action titles translated (Play Artist, Play Album, Add to Library, etc.) via `displayBrowseTitle()` (`d41dc72`)
+- Grid view shown for 1+ items with images (threshold lowered from 3 to 1) (`d41dc72`)
+- Transport bar: content vertically centered in 90px player bar (`d41dc72`)
 
 ### Technical
 

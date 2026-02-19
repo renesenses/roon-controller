@@ -71,6 +71,7 @@ struct RoonTransportBarView: View {
                 .padding(.trailing, 18)
             }
             }
+            .frame(maxHeight: .infinity)
         }
         .frame(height: 90)
         .background(Color.roonFooter)
