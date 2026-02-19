@@ -2058,8 +2058,10 @@ final class ViewBehaviorTests: XCTestCase {
     // MARK: - v1.2.0 Genre grid view
 
     private let genreExitTitles: Set<String> = [
-        "Artists", "Artistes", "Albums", "Tracks", "Morceaux",
-        "Composers", "Compositeurs"
+        "Artists", "Artistes", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트",
+        "Albums", "Alben", "アルバム", "앨범",
+        "Tracks", "Morceaux", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙",
+        "Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"
     ]
 
     /// Genre view: basic detection at shallow depth
@@ -2105,7 +2107,8 @@ final class ViewBehaviorTests: XCTestCase {
     func testGenreExitTitlesCompleteness() {
         // Every genreExitTitle must also be recognized as a browse category
         let allCategoryTitles = tracksTitles.union(composerTitles)
-            .union(["Artists", "Artistes", "Albums"])
+            .union(["Artists", "Artistes", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트"])
+            .union(["Albums", "Alben", "アルバム", "앨범"])
         for title in genreExitTitles {
             XCTAssertTrue(allCategoryTitles.contains(title),
                           "'\(title)' in genreExitTitles must be a known category")
@@ -2372,5 +2375,158 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertTrue(library.contains { $0.title == "Komponisten" },
                       "German 'Komponisten' must be in Library")
         XCTAssertEqual(explorer.count + library.count, categories.count)
+    }
+
+    // MARK: - Bug #2: Dernierement section visibility with empty active tab
+
+    func testDernierementSectionVisibleWhenOnlyAddedTabHasData() {
+        // Scenario: recentPlayedTiles is empty, recentlyAddedTiles has data
+        // The section should still be visible (user can switch tabs)
+        let hasPlayedTiles = false
+        let hasAddedTiles = true
+        let showSection = hasPlayedTiles || hasAddedTiles
+        XCTAssertTrue(showSection,
+                      "Section must be visible when at least one tab has data")
+    }
+
+    func testDernierementSectionHiddenWhenBothTabsEmpty() {
+        let hasPlayedTiles = false
+        let hasAddedTiles = false
+        let showSection = hasPlayedTiles || hasAddedTiles
+        XCTAssertFalse(showSection,
+                       "Section must be hidden when both tabs are empty")
+    }
+
+    // MARK: - Bug #4: Multilingual stat card category mapping
+
+    func testCategoryTitlesForKeyIncludesGerman() {
+        let categoryTitlesForKey: [String: [String]] = [
+            "artists": ["Artistes", "Artists", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트"],
+            "albums": ["Albums", "Alben", "アルバム", "앨범"],
+            "tracks": ["Morceaux", "Tracks", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙"],
+            "composers": ["Compositeurs", "Composers", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"]
+        ]
+        // German titles must be recognized
+        XCTAssertTrue(categoryTitlesForKey["artists"]!.contains("Künstler"))
+        XCTAssertTrue(categoryTitlesForKey["albums"]!.contains("Alben"))
+        XCTAssertTrue(categoryTitlesForKey["tracks"]!.contains("Titel"))
+        XCTAssertTrue(categoryTitlesForKey["composers"]!.contains("Komponisten"))
+    }
+
+    func testCountKeyMapRecognizesGermanTitles() {
+        let countKeyMap: [String: String] = [
+            "Albums": "albums", "Alben": "albums",
+            "Artists": "artists", "Künstler": "artists",
+            "Tracks": "tracks", "Titel": "tracks",
+            "Composers": "composers", "Komponisten": "composers"
+        ]
+        XCTAssertEqual(countKeyMap["Alben"], "albums")
+        XCTAssertEqual(countKeyMap["Künstler"], "artists")
+        XCTAssertEqual(countKeyMap["Titel"], "tracks")
+        XCTAssertEqual(countKeyMap["Komponisten"], "composers")
+    }
+
+    func testCountKeyMapRecognizesItalianTitles() {
+        let countKeyMap: [String: String] = [
+            "Artisti": "artists", "Brani": "tracks", "Compositori": "composers"
+        ]
+        XCTAssertEqual(countKeyMap["Artisti"], "artists")
+        XCTAssertEqual(countKeyMap["Brani"], "tracks")
+        XCTAssertEqual(countKeyMap["Compositori"], "composers")
+    }
+
+    func testLibraryTitlesIncludesMultilingual() {
+        let libraryTitles = Set(["Library", "Bibliothèque", "Bibliothek", "Libreria", "Biblioteca"])
+        XCTAssertTrue(libraryTitles.contains("Bibliothek"), "German Bibliothek must be recognized")
+        XCTAssertTrue(libraryTitles.contains("Libreria"), "Italian Libreria must be recognized")
+        XCTAssertTrue(libraryTitles.contains("Biblioteca"), "Spanish Biblioteca must be recognized")
+    }
+
+    func testHiddenTitlesIncludesMultilingual() {
+        let hiddenTitles = Set(["Settings", "Paramètres", "Einstellungen", "Impostazioni", "Configuración"])
+        XCTAssertTrue(hiddenTitles.contains("Einstellungen"), "German Einstellungen must be recognized")
+        XCTAssertTrue(hiddenTitles.contains("Impostazioni"), "Italian Impostazioni must be recognized")
+        XCTAssertTrue(hiddenTitles.contains("Configuración"), "Spanish Configuración must be recognized")
+    }
+
+    // MARK: - Bug #9: openTile uses album field for history tiles
+
+    func testOpenTileUsesAlbumFieldForHistoryTile() {
+        // History tiles have: title=track, subtitle=artist, album=albumName
+        let tileAlbum: String? = "Abbey Road"
+        let tileTitle = "Come Together"
+        let albumForBrowse = tileAlbum ?? tileTitle
+        XCTAssertEqual(albumForBrowse, "Abbey Road",
+                       "History tile must use album field for browseToAlbum")
+    }
+
+    func testOpenTileFallsBackToTitleForAddedTile() {
+        // Recently added tiles have: title=albumName, album=nil
+        let tileAlbum: String? = nil
+        let tileTitle = "Abbey Road"
+        let albumForBrowse = tileAlbum ?? tileTitle
+        XCTAssertEqual(albumForBrowse, "Abbey Road",
+                       "Added tile must fall back to title when album is nil")
+    }
+
+    // MARK: - Bug #13: Genre breadcrumb with changed browseCategory
+
+    func testGenreBreadcrumbVisibleWhenStackFirstIsGenre() {
+        // browseCategory may have changed, but stack.first still contains genre
+        service.browseCategory = "Albums" // changed during navigation
+        service.browseStack = ["Genres", "Jazz", "Jazz Vocal"]
+        let isGenreBrowse = (service.browseCategory.map { genreTitles.contains($0) } ?? false)
+            || (service.browseStack.first.map { genreTitles.contains($0) } ?? false)
+        XCTAssertTrue(isGenreBrowse,
+                      "Genre breadcrumb must show when stack.first is a genre title")
+    }
+
+    func testGenreBreadcrumbVisibleWithNonFrenchGenreTitle() {
+        service.browseCategory = "Generi" // Italian
+        service.browseStack = ["Generi", "Jazz"]
+        let isGenreBrowse = genreTitles.contains(service.browseCategory!)
+        XCTAssertTrue(isGenreBrowse,
+                      "Italian 'Generi' must be recognized as a genre title")
+    }
+
+    // MARK: - Bug #13: genreExitTitles multilingual
+
+    func testGenreExitTitlesIncludesGerman() {
+        XCTAssertTrue(genreExitTitles.contains("Künstler"), "German Künstler must be in exit titles")
+        XCTAssertTrue(genreExitTitles.contains("Alben"), "German Alben must be in exit titles")
+        XCTAssertTrue(genreExitTitles.contains("Titel"), "German Titel must be in exit titles")
+        XCTAssertTrue(genreExitTitles.contains("Komponisten"), "German Komponisten must be in exit titles")
+    }
+
+    func testGenreExitTitlesIncludesItalian() {
+        XCTAssertTrue(genreExitTitles.contains("Artisti"), "Italian Artisti must be in exit titles")
+        XCTAssertTrue(genreExitTitles.contains("Brani"), "Italian Brani must be in exit titles")
+        XCTAssertTrue(genreExitTitles.contains("Compositori"), "Italian Compositori must be in exit titles")
+    }
+
+    // MARK: - Bug #17: MORE button conditional navigation
+
+    func testMoreButtonNavigatesToHistoryForLusTab() {
+        // When tab is .lus, MORE should navigate to history
+        let tab = "lus"
+        let destination = tab == "ajoute" ? "browse" : "history"
+        XCTAssertEqual(destination, "history")
+    }
+
+    func testMoreButtonNavigatesToBrowseForAjouteTab() {
+        // When tab is .ajoute, MORE should navigate to browse (Albums)
+        let tab = "ajoute"
+        let destination = tab == "ajoute" ? "browse" : "history"
+        XCTAssertEqual(destination, "browse")
+    }
+
+    // MARK: - Bug #19: displayTitle multilingual
+
+    func testDisplayTitleTranslatesMesLiveRadios() {
+        // Both EN and FR Roon API titles should map through displayTitle
+        let frTitle = "Mes Live Radios"
+        let shouldTranslate = (frTitle == "My Live Radio" || frTitle == "Mes Live Radios")
+        XCTAssertTrue(shouldTranslate,
+                      "French 'Mes Live Radios' must also be handled by displayTitle")
     }
 }

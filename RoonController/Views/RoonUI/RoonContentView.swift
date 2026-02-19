@@ -105,7 +105,7 @@ struct RoonContentView: View {
                 }
 
                 // Dernierement (recently played / recently added)
-                if !activeTiles.isEmpty {
+                if !recentPlayedTiles.isEmpty || !recentlyAddedTiles.isEmpty {
                     dernierementSection
                         .padding(.bottom, sectionSpacing)
                 }
@@ -178,12 +178,12 @@ struct RoonContentView: View {
 
     // MARK: - Library Stats Row
 
-    // Mapping from countKey to possible Roon category titles (FR/EN)
+    // Mapping from countKey to possible Roon category titles (all languages)
     private static let categoryTitlesForKey: [String: [String]] = [
-        "artists": ["Artistes", "Artists"],
-        "albums": ["Albums"],
-        "tracks": ["Morceaux", "Tracks"],
-        "composers": ["Compositeurs", "Composers"]
+        "artists": ["Artistes", "Artists", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트"],
+        "albums": ["Albums", "Alben", "アルバム", "앨범"],
+        "tracks": ["Morceaux", "Tracks", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙"],
+        "composers": ["Compositeurs", "Composers", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"]
     ]
 
     private func browseCategoryTitle(forKey key: String) -> String? {
@@ -299,7 +299,13 @@ struct RoonContentView: View {
 
                 // PLUS button
                 Button {
-                    selectedSection = .history
+                    if dernierementTab == .ajoute,
+                       let albumTitle = browseCategoryTitle(forKey: "albums") {
+                        roonService.browseToCategory(title: albumTitle)
+                        selectedSection = .browse
+                    } else {
+                        selectedSection = .history
+                    }
                 } label: {
                     Text("MORE")
                         .font(.latoBold(11))
@@ -370,7 +376,7 @@ struct RoonContentView: View {
 
     // #4: Open a tile — both tabs navigate to album detail
     private func openTile(_ tile: HomeTile) {
-        roonService.browseToAlbum(title: tile.title, artist: tile.subtitle)
+        roonService.browseToAlbum(title: tile.album ?? tile.title, artist: tile.subtitle)
         selectedSection = .browse
     }
 

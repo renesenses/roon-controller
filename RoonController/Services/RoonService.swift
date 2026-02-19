@@ -439,6 +439,7 @@ class RoonService: ObservableObject {
         guard let zoneId = currentZone?.zone_id else { return }
         objectWillChange.send()
         seekPosition = position
+        updateNowPlayingInfo()
         Task { try? await transportService?.seek(zoneId: zoneId, how: "absolute", seconds: position) }
     }
 
@@ -1282,39 +1283,50 @@ class RoonService: ObservableObject {
     ])
 
     /// Fetch the active Roon profile name via the browse "settings" hierarchy.
+    /// Retries up to 3 times with increasing delay (0s, 2s, 4s) using distinct
+    /// session keys, since the Browse API may not be ready at connection time.
     func fetchProfileName() {
         Task {
-            do {
-                let decoder = JSONDecoder()
-                let session = RoonBrowseService(connection: connection, sessionKey: "profile")
-                let zoneId = currentZone?.zone_id
+            let delays: [UInt64] = [0, 2_000_000_000, 4_000_000_000]
+            for (attempt, delay) in delays.enumerated() {
+                if delay > 0 { try? await Task.sleep(nanoseconds: delay) }
+                guard !Task.isCancelled else { return }
+                // Already fetched by a previous attempt
+                if profileName != nil { return }
 
-                // Browse root to find Settings
-                let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
-                let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
-                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-                    return try? decoder.decode(BrowseItem.self, from: data)
-                }
+                do {
+                    let decoder = JSONDecoder()
+                    let session = RoonBrowseService(connection: connection, sessionKey: "profile_\(attempt)")
+                    let zoneId = currentZone?.zone_id
 
-                guard let settingsItem = rootItems.first(where: { Self.settingsTitles.contains($0.title ?? "") }),
-                      let settingsKey = settingsItem.item_key else { return }
-
-                // Navigate into Settings
-                let settingsResponse = try await session.browse(zoneId: zoneId, itemKey: settingsKey)
-                let settingsItems: [BrowseItem] = settingsResponse.items.compactMap { dict in
-                    guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
-                    return try? decoder.decode(BrowseItem.self, from: data)
-                }
-
-                // The active profile is shown as subtitle of the "Profile" item
-                if let profileItem = settingsItems.first(where: { Self.profileTitles.contains($0.title ?? "") }),
-                   let name = profileItem.subtitle, !name.isEmpty {
-                    await MainActor.run {
-                        self.profileName = name
+                    // Browse root to find Settings
+                    let rootResponse = try await session.browse(zoneId: zoneId, popAll: true)
+                    let rootItems: [BrowseItem] = rootResponse.items.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
                     }
+
+                    guard let settingsItem = rootItems.first(where: { Self.settingsTitles.contains($0.title ?? "") }),
+                          let settingsKey = settingsItem.item_key else { continue }
+
+                    // Navigate into Settings
+                    let settingsResponse = try await session.browse(zoneId: zoneId, itemKey: settingsKey)
+                    let settingsItems: [BrowseItem] = settingsResponse.items.compactMap { dict in
+                        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return nil }
+                        return try? decoder.decode(BrowseItem.self, from: data)
+                    }
+
+                    // The active profile is shown as subtitle of the "Profile" item
+                    if let profileItem = settingsItems.first(where: { Self.profileTitles.contains($0.title ?? "") }),
+                       let name = profileItem.subtitle, !name.isEmpty {
+                        await MainActor.run {
+                            self.profileName = name
+                        }
+                        return
+                    }
+                } catch {
+                    // Retry on next attempt
                 }
-            } catch {
-                // Profile fetch failed silently — greeting will fall back to macOS username
             }
         }
     }
@@ -1429,15 +1441,16 @@ class RoonService: ObservableObject {
 
     private static let playlistTitles = Set(["Listes de lecture", "Playlists"])
 
-    // Mapping from Roon titles (FR/EN) to normalized keys for libraryCounts
+    // Mapping from Roon titles (all languages) to normalized keys for libraryCounts
     private static let countKeyMap: [String: String] = [
-        "Albums": "albums", "Artistes": "artists", "Artists": "artists",
-        "Morceaux": "tracks", "Tracks": "tracks",
-        "Compositeurs": "composers", "Composers": "composers"
+        "Albums": "albums", "Alben": "albums", "アルバム": "albums", "앨범": "albums",
+        "Artistes": "artists", "Artists": "artists", "Künstler": "artists", "Artisti": "artists", "Artistas": "artists", "アーティスト": "artists", "아티스트": "artists",
+        "Morceaux": "tracks", "Tracks": "tracks", "Titel": "tracks", "Brani": "tracks", "Canciones": "tracks", "Faixas": "tracks", "Spår": "tracks", "Nummers": "tracks", "トラック": "tracks", "트랙": "tracks",
+        "Compositeurs": "composers", "Composers": "composers", "Komponisten": "composers", "Compositori": "composers", "Compositores": "composers", "Kompositörer": "composers", "Componisten": "composers", "作曲家": "composers", "작곡가": "composers"
     ]
 
-    private static let libraryTitles = Set(["Library", "Bibliothèque"])
-    private static let hiddenTitles = Set(["Settings", "Paramètres"])
+    private static let libraryTitles = Set(["Library", "Bibliothèque", "Bibliothek", "Libreria", "Biblioteca"])
+    private static let hiddenTitles = Set(["Settings", "Paramètres", "Einstellungen", "Impostazioni", "Configuración"])
     private static let streamingServiceTitles: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
 
     func fetchSidebarCategories() {

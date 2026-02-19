@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RoonLayoutView: View {
     @EnvironmentObject var roonService: RoonService
-    @SceneStorage("roonSelectedSection") private var selectedSection: RoonSection = .home
+    @AppStorage("roonSelectedSection") private var selectedSection: RoonSection = .home
     @State private var sidebarVisible = true
 
     var body: some View {

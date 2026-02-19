@@ -384,7 +384,8 @@ struct RoonSidebarView: View {
     /// Display name override for API titles that need translation
     private func displayTitle(_ title: String) -> String {
         switch title {
-        case "My Live Radio": return "Mes radios live"
+        case "My Live Radio": return String(localized: "My Live Radio")
+        case "Mes Live Radios": return String(localized: "My Live Radio")
         default: return title
         }
     }
@@ -401,10 +402,18 @@ struct RoonSidebarView: View {
     // MARK: - Open Settings
 
     private func openSettings() {
+        var opened = false
         if #available(macOS 14, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         } else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+            opened = NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+        if !opened {
+            // Fallback: open via menu bar item (Cmd+,)
+            if let appMenu = NSApp.mainMenu?.items.first?.submenu,
+               let settingsItem = appMenu.items.first(where: { $0.keyEquivalent == "," }) {
+                settingsItem.target?.perform(settingsItem.action, with: settingsItem)
+            }
         }
         NSApp.activate(ignoringOtherApps: true)
     }

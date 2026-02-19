@@ -61,8 +61,10 @@ struct RoonBrowseContentView: View {
     /// Genre view: root grid OR genre detail (sub-genres + actions)
     /// At depth 3+, excludes Artists/Albums sub-views which should use normal dispatch
     private static let genreExitTitles: Set<String> = [
-        "Artists", "Artistes", "Albums", "Tracks", "Morceaux",
-        "Composers", "Compositeurs"
+        "Artists", "Artistes", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트",
+        "Albums", "Alben", "アルバム", "앨범",
+        "Tracks", "Morceaux", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙",
+        "Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"
     ]
 
     private var isGenreView: Bool {
@@ -241,7 +243,9 @@ struct RoonBrowseContentView: View {
     @ViewBuilder
     private var genreNavBreadcrumb: some View {
         let stack = roonService.browseStack
-        if let cat = roonService.browseCategory, Self.genreTitles.contains(cat), stack.count >= 2 {
+        let isGenreBrowse = (roonService.browseCategory.map { Self.genreTitles.contains($0) } ?? false)
+            || (stack.first.map { Self.genreTitles.contains($0) } ?? false)
+        if isGenreBrowse, stack.count >= 2 {
             // Show genre breadcrumb: Bibliothèque / Jazz / Jazz Instrument
             let segments = Array(stack.dropFirst()) // e.g. ["Jazz", "Jazz Instrument"]
             HStack(spacing: 0) {

@@ -661,10 +661,17 @@ struct SidebarView: View {
     // MARK: - Open Settings
 
     private func openSettings() {
+        var opened = false
         if #available(macOS 14, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         } else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+            opened = NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+        if !opened {
+            if let appMenu = NSApp.mainMenu?.items.first?.submenu,
+               let settingsItem = appMenu.items.first(where: { $0.keyEquivalent == "," }) {
+                settingsItem.target?.perform(settingsItem.action, with: settingsItem)
+            }
         }
         NSApp.activate(ignoringOtherApps: true)
     }
