@@ -2249,6 +2249,54 @@
           }
         }
       }
+    },
+    "Add to Library": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter à la bibliothèque"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zur Bibliothek hinzufügen"
+          }
+        }
+      }
+    },
+    "Add to Playlist": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter à la playlist"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zur Playlist hinzufügen"
+          }
+        }
+      }
+    },
+    "Remove from Library": {
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer de la bibliothèque"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus der Bibliothek entfernen"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

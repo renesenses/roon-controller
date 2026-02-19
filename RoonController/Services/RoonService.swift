@@ -693,13 +693,20 @@ class RoonService: ObservableObject {
     }
 
     func browseBack() {
+        browsePopLevels(1)
+    }
+
+    /// Pop back multiple levels at once (single API call).
+    func browsePopLevels(_ count: Int) {
+        guard count > 0 else { return }
         pendingBrowseKey = nil
-        guard !browseStack.isEmpty else { return }
-        browseStack.removeLast()
+        let actual = min(count, browseStack.count)
+        guard actual > 0 else { return }
+        browseStack.removeLast(actual)
         if streamingAlbumDepth > 0 {
-            streamingAlbumDepth -= 1
+            streamingAlbumDepth = max(0, streamingAlbumDepth - actual)
         }
-        browse(popLevels: 1)
+        browse(popLevels: actual)
     }
 
     /// Pop back one level, then navigate into a sibling item (for streaming service tab switching)
