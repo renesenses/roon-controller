@@ -381,11 +381,15 @@ struct RoonSidebarView: View {
         return "music.note.list"
     }
 
-    /// Display name override for API titles that need translation
+    /// Display name override for API titles that need translation.
+    /// Roon Core may send English titles even when macOS is in another language.
     private func displayTitle(_ title: String) -> String {
         switch title {
-        case "My Live Radio": return String(localized: "My Live Radio")
-        case "Mes Live Radios": return String(localized: "My Live Radio")
+        case "My Live Radio", "Mes Live Radios": return String(localized: "My Live Radio")
+        case "Tags": return String(localized: "Tags")
+        case "Artists": return String(localized: "Artists")
+        case "Tracks": return String(localized: "Tracks")
+        case "Composers": return String(localized: "Composers")
         default: return title
         }
     }

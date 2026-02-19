@@ -29,6 +29,17 @@ struct RoonBrowseContentView: View {
     ]
     private static let radioTitles: Set<String> = ["My Live Radio", "Mes Live Radios"]
 
+    /// Translate known Roon API browse titles to the user's locale
+    private static let translatableTitles: Set<String> = [
+        "Play Genre", "Play Artist", "Play Album", "Play Now", "Play Composer",
+        "Start Radio", "Shuffle", "Artists", "Albums", "Tracks", "Composers",
+        "Add to Library", "Add to Playlist", "Remove from Library"
+    ]
+
+    private func displayBrowseTitle(_ title: String) -> String {
+        Self.translatableTitles.contains(title) ? String(localized: String.LocalizationValue(title)) : title
+    }
+
     private var filteredBrowseItems: [BrowseItem] {
         guard let result = roonService.browseResult else { return [] }
         let items = result.items
@@ -1032,7 +1043,7 @@ struct RoonBrowseContentView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "play.fill")
                                         .font(.system(size: 11))
-                                    Text(item.title ?? "")
+                                    Text(displayBrowseTitle(item.title ?? ""))
                                         .font(.latoBold(13))
                                 }
                                 .foregroundStyle(.white)
@@ -1047,7 +1058,7 @@ struct RoonBrowseContentView: View {
                                 handleBrowseItemTap(item)
                             } label: {
                                 HStack(spacing: 6) {
-                                    Text(item.title ?? "")
+                                    Text(displayBrowseTitle(item.title ?? ""))
                                         .font(.latoBold(13))
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 10))
@@ -1081,7 +1092,7 @@ struct RoonBrowseContentView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "play.fill")
                                         .font(.system(size: 11))
-                                    Text(item.title ?? "")
+                                    Text(displayBrowseTitle(item.title ?? ""))
                                         .font(.latoBold(13))
                                 }
                                 .foregroundStyle(.white)
@@ -1140,7 +1151,7 @@ struct RoonBrowseContentView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 16))
-                Text(title)
+                Text(displayBrowseTitle(title))
                     .font(.grifoM(18))
             }
             .foregroundStyle(.white)
