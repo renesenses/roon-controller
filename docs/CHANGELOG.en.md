@@ -53,9 +53,101 @@ timeline
                 : +/- repeat-on-hold buttons
                 : Default Home screen
                 : 293 tests
+    2026-02-17 : v1.1.1
+                : Community feedback (Roland)
+                : Roon favorites (heart)
+                : Profile, seek sync, layout
+                : +27 tests (326)
+    2026-02-17 : v1.2.0
+                : Genre grid + breadcrumb
+                : Extension auth message
+                : Sidebar reorganization
+    2026-02-18 : v1.2.1
+                : Fix release (DMG + Cask)
+                : Changelog v1.1.1 + v1.2.0
+                : Runtime/build prerequisites
+    2026-02-19 : v1.2.3 beta
+                : 10 Roland bugs (post #38)
+                : Multilingual DE/IT/ES
+                : +16 tests (371)
 ```
 
 ## [Unreleased]
+
+## [1.2.3-beta] - 2026-02-19
+
+### Fixed
+
+- #1 — Profile: retry (3x with delay) for `fetchProfileName` when Browse API not ready at connection (`a70b5d6`)
+- #2 — "Dernierement" section visible when at least one tab (LUS/AJOUTES) has content (`a70b5d6`)
+- #3 — Settings gear: fallback via app menu (Cmd+,) when `NSApp.sendAction` silently fails (`a70b5d6`)
+- #4 — Stat boxes: `countKeyMap`, `libraryTitles`, `hiddenTitles` extended with DE/IT/ES/SV/NL/JA/KO (`a70b5d6`)
+- #5 — Seek: call `updateNowPlayingInfo()` after seek to sync macOS Media Center (`a70b5d6`)
+- #9 — Album click: use `tile.album` instead of `tile.title` to navigate to correct album (`a70b5d6`)
+- #12 — Startup view: `@SceneStorage` replaced with `@AppStorage` to respect user setting (`a70b5d6`)
+- #13 — Genre breadcrumb: alternative condition via `stack.first` + DE/IT translations in `genreExitTitles` (`a70b5d6`)
+- #17 — MORE button: navigates to Albums (browse) when AJOUTES tab is active (`a70b5d6`)
+- #19 — "My Live Radio": uses `String(localized:)` with DE/IT/ES/FR translations in Localizable.xcstrings (`a70b5d6`)
+
+### Technical
+
+- 16 new tests (355 → 371) covering all 10 fixes
+- `categoryTitlesForKey` extended to all Roon-supported languages
+- `genreExitTitles` extended with multilingual titles (DE/IT/ES/SV/NL/JA/KO)
+
+## [1.2.1] - 2026-02-18
+
+### Fixed
+
+- GitHub release DMG rebuilt with v1.2.0 binary (old one contained v1.0.2)
+- Homebrew Cask updated to v1.2.0: version, sha256, depends_on Monterey, caveats xattr (`654265b`)
+
+### Documentation
+
+- Prerequisites split into "To use the app" and "To build from source" in README and INSTALL (`654265b`)
+- Xcode version corrected: 16 (was "26" in READMEs) (`654265b`)
+- Usage section: "Launch from Applications" instead of "from Xcode (Cmd+R)" (`654265b`)
+- Changelog caught up for v1.1.1 and v1.2.0
+
+## [1.2.0] - 2026-02-17
+
+### Added
+
+- Genre grid view with breadcrumb navigation and leaf genre cards (`92110aa`)
+- Full breadcrumb path in genre navigation bar (`05f6182`)
+- Explicit message when extension is not authorized in Roon Core (`d8aaedf`)
+
+### Changed
+
+- Genres moved to Library section in sidebar (`77f1588`)
+- My Live Radio moved to Explorer section in sidebar (`77f1588`)
+- "My Live Radio" translated to French in sidebar (`750b770`)
+
+## [1.1.1] - 2026-02-17
+
+### Added
+
+- Heart toggle for Roon library favorites via Browse API (`a246c80`)
+- Mouse back button support for browse navigation (`607afd9`)
+- Settings gear icon in Player mode toolbar (Cmd+,) (`ef3d3b3`)
+- Volume 0-100 scale option and startup view setting (`e74e12c`)
+- 27 new unit tests (326 total) (`9d033e7`)
+
+### Changed
+
+- Favorites section renamed to "Radio Favorites" for clarity (`0586287`)
+- Volume repeat speed increased from 200ms to 100ms (`124d7a4`)
+- Extension `displayVersion` updated to 1.1.0 (`c4073bd`)
+
+### Fixed
+
+- Profile switching: use title matching instead of stale session keys (`4af4a6b`)
+- Browse dedup guard blocking re-navigation after action responses (`f24da12`)
+- Transport bar and player view made responsive to window resize (`96e1f42`)
+- Seek sync: prioritize server updates over local timer (`9d71c00`)
+- Recently played albums: navigate to album detail instead of playing (`594061c`)
+- Layout detection for Tracks/Composers/Album column (multilingual) (`3b8e87e`)
+- Unsigned app install instructions corrected across all docs (`c24ae37`)
 
 ## [1.1.0] - 2026-02-16
 

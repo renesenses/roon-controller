@@ -10,6 +10,19 @@
 - [x] Favoris Roon (coeur/toggle) pour les albums de la bibliotheque
 - [x] Corriger la version extension envoyee au Roon Core (etait bloquee a 1.1.1)
 
+## Fait (v1.2.3-beta)
+
+- [x] #1 — Profil : retry fetchProfileName (3x avec delai) si Browse API pas pret
+- [x] #2 — Section Dernierement visible quand au moins un onglet a du contenu
+- [x] #3 — Engrenage Settings : fallback via menu app si sendAction echoue
+- [x] #4 — Stat boxes multilingues (DE/IT/ES/SV/NL/JA/KO)
+- [x] #5 — Seek : mise a jour du Media Center macOS apres seek
+- [x] #9 — Clic album : utilise le champ album au lieu du titre du morceau
+- [x] #12 — Vue de demarrage : @AppStorage au lieu de @SceneStorage
+- [x] #13 — Breadcrumb genre : condition alternative via stack.first + traductions
+- [x] #17 — Bouton MORE conditionnel selon l'onglet actif
+- [x] #19 — "My Live Radio" traduit via String(localized:) (DE/IT/ES/FR)
+
 ## Limitations API Roon (points bloquants)
 
 ### Playlists
@@ -27,7 +40,7 @@
 ### Transport / Lecture
 
 - **Radio non seekable** : les flux radio ont `is_seek_allowed == false`. Le seek est desactive, et le replay radio utilise la hierarchie `internet_radio` (pas la recherche textuelle).
-- **Seek macOS Now Playing** : le Media Center macOS (Now Playing dans la barre de menu) n'est pas notifie apres un seek manuel dans l'app.
+- ~~**Seek macOS Now Playing**~~ : corrige en v1.2.3-beta (`updateNowPlayingInfo()` appele apres seek).
 
 ### Reseau / Distribution
 
@@ -45,13 +58,4 @@
 
 ### Bugs remontes par Roland (v1.2.0 — post #38)
 
-- [ ] #1 — Profil affiche le username macOS au lieu du profil Roon (possible pb de localisation allemande des titres Settings/Profile)
-- [ ] #2 — Recently played vide : la boite violette disparait au clic
-- [ ] #3 — Icone Settings (engrenage) : clic ne fonctionne pas (cmd+, marche)
-- [ ] #4 — Stat boxes : Tracks et Composers ouvrent le mauvais layout (localisation ?)
-- [ ] #5 — Seek : Now Playing macOS ne se met pas a jour apres un seek manuel
-- [ ] #9 — Recently played → clic album ouvre la derniere vue Library au lieu de l'album
-- [ ] #12 — Vue de demarrage ignore le reglage utilisateur (force toujours home)
-- [ ] #13 — Breadcrumb genre partiel : fonctionne depuis la vue cartes mais disparait en vue liste
-- [ ] #17 — Bouton MORE ouvre toujours l'historique meme si "recently added" est selectionne
-- [ ] #19 — "My Live Radio" pas traduit en allemand
+Tous corriges en v1.2.3-beta (voir section "Fait" ci-dessus).

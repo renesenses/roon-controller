@@ -66,9 +66,34 @@ timeline
                 : Fix release (DMG + Cask)
                 : Changelog v1.1.1 + v1.2.0
                 : Prerequis runtime/build
+    2026-02-19 : v1.2.3 beta
+                : 10 bugs Roland (post #38)
+                : Support multilingue DE/IT/ES
+                : +16 tests (371)
 ```
 
 ## [Unreleased]
+
+## [1.2.3-beta] - 2026-02-19
+
+### Corrections
+
+- #1 — Profil : retry (3x avec delai) pour `fetchProfileName` si le Browse API n'est pas pret a la connexion (`a70b5d6`)
+- #2 — Section "Dernierement" visible quand au moins un onglet (LUS/AJOUTES) a du contenu (`a70b5d6`)
+- #3 — Engrenage Settings : fallback via le menu app (Cmd+,) si `NSApp.sendAction` echoue silencieusement (`a70b5d6`)
+- #4 — Stat boxes : `countKeyMap`, `libraryTitles`, `hiddenTitles` etendus avec DE/IT/ES/SV/NL/JA/KO (`a70b5d6`)
+- #5 — Seek : appel de `updateNowPlayingInfo()` apres seek pour synchroniser le Media Center macOS (`a70b5d6`)
+- #9 — Clic album : utilise `tile.album` au lieu de `tile.title` pour naviguer vers le bon album (`a70b5d6`)
+- #12 — Vue de demarrage : `@SceneStorage` remplace par `@AppStorage` pour respecter le reglage utilisateur (`a70b5d6`)
+- #13 — Breadcrumb genre : condition alternative via `stack.first` + traductions DE/IT dans `genreExitTitles` (`a70b5d6`)
+- #17 — Bouton MORE : navigue vers Albums (browse) quand l'onglet AJOUTES est actif (`a70b5d6`)
+- #19 — "My Live Radio" : utilise `String(localized:)` avec traductions DE/IT/ES/FR dans Localizable.xcstrings (`a70b5d6`)
+
+### Technique
+
+- 16 nouveaux tests (355 → 371) couvrant les 10 corrections
+- `categoryTitlesForKey` etendu a toutes les langues supportees par Roon
+- `genreExitTitles` etendu avec les titres multilingues (DE/IT/ES/SV/NL/JA/KO)
 
 ## [1.2.1] - 2026-02-18
 
