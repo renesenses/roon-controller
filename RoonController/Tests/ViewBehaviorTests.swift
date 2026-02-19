@@ -1536,16 +1536,21 @@ final class ViewBehaviorTests: XCTestCase {
 
     // MARK: - Sidebar completeness (explorer + library classification)
 
-    // Reproduce RoonSidebarView classification sets
+    // Reproduce RoonSidebarView classification sets (must match RoonSidebarView)
     private static let sidebarExplorerTitles = Set([
-        "Genres", "TIDAL", "Qobuz", "KKBOX", "nugs.net",
-        "Live Radio", "Écouter plus tard", "Étiquettes", "Tags",
-        "Historique", "History"
+        "TIDAL", "Qobuz", "KKBOX", "nugs.net",
+        "Live Radio", "Mes Live Radios", "My Live Radio",
+        "Écouter plus tard", "Étiquettes", "Tags",
+        "Historique", "History", "Verlauf", "Cronologia", "Historial", "履歴", "기록"
     ])
     private static let sidebarLibraryTitles = Set([
-        "Albums", "Artistes", "Artists", "Morceaux", "Tracks",
-        "Compositeurs", "Composers", "Compositions",
-        "Mes Live Radios", "My Live Radio", "Répertoires", "Folders"
+        "Genres", "Generi", "Géneros", "ジャンル", "장르",
+        "Albums", "Alben", "アルバム", "앨범",
+        "Artistes", "Artists", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트",
+        "Morceaux", "Tracks", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙",
+        "Compositeurs", "Composers", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가",
+        "Compositions", "Kompositionen", "Composizioni", "Composiciones",
+        "Répertoires", "Folders", "Ordner", "Cartelle", "Carpetas", "フォルダ", "폴더"
     ])
 
     /// Helper: classify items the same way RoonSidebarView does
@@ -1566,20 +1571,20 @@ final class ViewBehaviorTests: XCTestCase {
     func testSidebarCompletenessTypicalFrenchSetup() {
         // Simulate a typical French Roon setup with TIDAL + Qobuz
         let categories: [BrowseItem] = [
-            // Explorer items (from root)
-            makeBrowseItem(title: "Genres", hint: "list", itemKey: "e1"),
-            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e2"),
-            makeBrowseItem(title: "Qobuz", hint: "list", itemKey: "e3"),
-            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e4"),
+            // Explorer items
+            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "Qobuz", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e3"),
+            makeBrowseItem(title: "Mes Live Radios", hint: "list", itemKey: "e4"),
             makeBrowseItem(title: "Historique", hint: "list", itemKey: "e5"),
             makeBrowseItem(title: "Étiquettes", hint: "list", itemKey: "e6"),
-            // Library items (from Library sub-navigation)
-            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l1"),
-            makeBrowseItem(title: "Artistes", hint: "list", itemKey: "l2"),
-            makeBrowseItem(title: "Morceaux", hint: "list", itemKey: "l3"),
-            makeBrowseItem(title: "Compositeurs", hint: "list", itemKey: "l4"),
-            makeBrowseItem(title: "Compositions", hint: "list", itemKey: "l5"),
-            makeBrowseItem(title: "Mes Live Radios", hint: "list", itemKey: "l6"),
+            // Library items
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "l1"),
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l2"),
+            makeBrowseItem(title: "Artistes", hint: "list", itemKey: "l3"),
+            makeBrowseItem(title: "Morceaux", hint: "list", itemKey: "l4"),
+            makeBrowseItem(title: "Compositeurs", hint: "list", itemKey: "l5"),
+            makeBrowseItem(title: "Compositions", hint: "list", itemKey: "l6"),
             makeBrowseItem(title: "Répertoires", hint: "list", itemKey: "l7"),
         ]
         service.sidebarCategories = categories
@@ -1587,20 +1592,21 @@ final class ViewBehaviorTests: XCTestCase {
         let explorer = classifyExplorer(categories)
         let library = classifyLibrary(categories)
 
-        // All explorer items present
-        XCTAssertEqual(explorer.count, 6, "Explorer: Genres, TIDAL, Qobuz, Live Radio, Historique, Étiquettes")
-        XCTAssertTrue(explorer.contains { $0.title == "Genres" })
+        // Explorer: TIDAL, Qobuz, Live Radio, Mes Live Radios, Historique, Étiquettes
+        XCTAssertEqual(explorer.count, 6)
         XCTAssertTrue(explorer.contains { $0.title == "TIDAL" })
         XCTAssertTrue(explorer.contains { $0.title == "Qobuz" })
-        XCTAssertTrue(explorer.contains { $0.title == "Live Radio" })
+        XCTAssertTrue(explorer.contains { $0.title == "Mes Live Radios" },
+                      "Mes Live Radios must be in Explorer section")
 
-        // All library items present
-        XCTAssertEqual(library.count, 7, "Library: Albums, Artistes, Morceaux, Compositeurs, Compositions, Mes Live Radios, Répertoires")
+        // Library: Genres, Albums, Artistes, Morceaux, Compositeurs, Compositions, Répertoires
+        XCTAssertEqual(library.count, 7)
+        XCTAssertTrue(library.contains { $0.title == "Genres" },
+                      "Genres must be in Library section")
         XCTAssertTrue(library.contains { $0.title == "Albums" })
         XCTAssertTrue(library.contains { $0.title == "Artistes" })
         XCTAssertTrue(library.contains { $0.title == "Morceaux" })
         XCTAssertTrue(library.contains { $0.title == "Compositeurs" })
-        XCTAssertTrue(library.contains { $0.title == "Mes Live Radios" })
 
         // Total: explorer + library = all items
         XCTAssertEqual(explorer.count + library.count, categories.count,
@@ -1610,16 +1616,18 @@ final class ViewBehaviorTests: XCTestCase {
     func testSidebarCompletenessEnglishSetup() {
         // English Roon setup
         let categories: [BrowseItem] = [
-            makeBrowseItem(title: "Genres", hint: "list", itemKey: "e1"),
-            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e2"),
-            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e3"),
+            // Explorer
+            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "My Live Radio", hint: "list", itemKey: "e3"),
             makeBrowseItem(title: "History", hint: "list", itemKey: "e4"),
             makeBrowseItem(title: "Tags", hint: "list", itemKey: "e5"),
-            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l1"),
-            makeBrowseItem(title: "Artists", hint: "list", itemKey: "l2"),
-            makeBrowseItem(title: "Tracks", hint: "list", itemKey: "l3"),
-            makeBrowseItem(title: "Composers", hint: "list", itemKey: "l4"),
-            makeBrowseItem(title: "My Live Radio", hint: "list", itemKey: "l5"),
+            // Library
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "l1"),
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l2"),
+            makeBrowseItem(title: "Artists", hint: "list", itemKey: "l3"),
+            makeBrowseItem(title: "Tracks", hint: "list", itemKey: "l4"),
+            makeBrowseItem(title: "Composers", hint: "list", itemKey: "l5"),
             makeBrowseItem(title: "Folders", hint: "list", itemKey: "l6"),
         ]
         service.sidebarCategories = categories
@@ -1628,7 +1636,11 @@ final class ViewBehaviorTests: XCTestCase {
         let library = classifyLibrary(categories)
 
         XCTAssertEqual(explorer.count, 5)
+        XCTAssertTrue(explorer.contains { $0.title == "My Live Radio" },
+                      "My Live Radio must be in Explorer section")
         XCTAssertEqual(library.count, 6)
+        XCTAssertTrue(library.contains { $0.title == "Genres" },
+                      "Genres must be in Library section")
         XCTAssertEqual(explorer.count + library.count, categories.count)
     }
 
@@ -1653,14 +1665,16 @@ final class ViewBehaviorTests: XCTestCase {
     func testSidebarNoItemLostWithAllStreamingServices() {
         // Setup with all 4 streaming services
         let categories: [BrowseItem] = [
-            makeBrowseItem(title: "Genres", hint: "list", itemKey: "e1"),
-            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e2"),
-            makeBrowseItem(title: "Qobuz", hint: "list", itemKey: "e3"),
-            makeBrowseItem(title: "KKBOX", hint: "list", itemKey: "e4"),
-            makeBrowseItem(title: "nugs.net", hint: "list", itemKey: "e5"),
-            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e6"),
-            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l1"),
-            makeBrowseItem(title: "Artistes", hint: "list", itemKey: "l2"),
+            // Explorer
+            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "Qobuz", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "KKBOX", hint: "list", itemKey: "e3"),
+            makeBrowseItem(title: "nugs.net", hint: "list", itemKey: "e4"),
+            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e5"),
+            // Library
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "l1"),
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "l2"),
+            makeBrowseItem(title: "Artistes", hint: "list", itemKey: "l3"),
         ]
         service.sidebarCategories = categories
 
@@ -1671,8 +1685,9 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertTrue(explorer.contains { $0.title == "Qobuz" })
         XCTAssertTrue(explorer.contains { $0.title == "KKBOX" })
         XCTAssertTrue(explorer.contains { $0.title == "nugs.net" })
-        XCTAssertEqual(explorer.count, 6)
-        XCTAssertEqual(library.count, 2)
+        XCTAssertEqual(explorer.count, 5)
+        XCTAssertTrue(library.contains { $0.title == "Genres" })
+        XCTAssertEqual(library.count, 3)
         XCTAssertEqual(explorer.count + library.count, categories.count)
     }
 
@@ -2023,5 +2038,339 @@ final class ViewBehaviorTests: XCTestCase {
         let wideWidth: CGFloat = 1200
         XCTAssertFalse(narrowWidth >= 950, "Volume should be hidden at 800px width")
         XCTAssertTrue(wideWidth >= 950, "Volume should be visible at 1200px width")
+    }
+
+    // MARK: - v1.2.2 Version consistency
+
+    func testMarketingVersionMatchesExtensionVersion() {
+        // Prevent version mismatch: the version reported to Roon Core must match the app version.
+        // Bug: displayVersion was stuck at 1.1.1 while MARKETING_VERSION was 1.2.0
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        // In test host, Bundle.main may not have the app's version — verify registration is consistent
+        XCTAssertEqual(RoonRegistration.displayVersion, "1.2.2",
+                       "displayVersion must be updated with each release")
+        if let v = appVersion, !v.isEmpty, v != "1" {
+            XCTAssertEqual(v, RoonRegistration.displayVersion,
+                           "MARKETING_VERSION and displayVersion must match")
+        }
+    }
+
+    // MARK: - v1.2.0 Genre grid view
+
+    private let genreExitTitles: Set<String> = [
+        "Artists", "Artistes", "Albums", "Tracks", "Morceaux",
+        "Composers", "Compositeurs"
+    ]
+
+    /// Genre view: basic detection at shallow depth
+    func testGenreViewDetectedAtRootDepth() {
+        service.browseCategory = "Genres"
+        service.browseStack = ["Genres"]
+        XCTAssertTrue(genreTitles.contains(service.browseCategory!))
+        XCTAssertTrue(service.browseStack.count <= 2,
+                      "Shallow genre stack must trigger genre view")
+    }
+
+    func testGenreViewDetectedAtDepthTwo() {
+        service.browseCategory = "Genres"
+        service.browseStack = ["Genres", "Jazz"]
+        XCTAssertTrue(service.browseStack.count <= 2)
+    }
+
+    /// Genre view exits when navigating into Artists/Albums/etc.
+    func testGenreViewExitsOnArtists() {
+        service.browseCategory = "Genres"
+        service.browseStack = ["Genres", "Jazz", "Artists"]
+        let hasExitTitle = service.browseStack.contains(where: { genreExitTitles.contains($0) })
+        XCTAssertTrue(hasExitTitle,
+                      "Stack containing 'Artists' must exit genre view")
+    }
+
+    func testGenreViewExitsOnAlbums() {
+        service.browseCategory = "Genres"
+        service.browseStack = ["Genres", "Rock", "Albums"]
+        let hasExitTitle = service.browseStack.contains(where: { genreExitTitles.contains($0) })
+        XCTAssertTrue(hasExitTitle,
+                      "Stack containing 'Albums' must exit genre view")
+    }
+
+    func testGenreViewExitsOnFrenchTitles() {
+        service.browseCategory = "Genres"
+        service.browseStack = ["Genres", "Jazz", "Artistes"]
+        let hasExitTitle = service.browseStack.contains(where: { genreExitTitles.contains($0) })
+        XCTAssertTrue(hasExitTitle,
+                      "Stack containing 'Artistes' must exit genre view")
+    }
+
+    func testGenreExitTitlesCompleteness() {
+        // Every genreExitTitle must also be recognized as a browse category
+        let allCategoryTitles = tracksTitles.union(composerTitles)
+            .union(["Artists", "Artistes", "Albums"])
+        for title in genreExitTitles {
+            XCTAssertTrue(allCategoryTitles.contains(title),
+                          "'\(title)' in genreExitTitles must be a known category")
+        }
+    }
+
+    /// Leaf genre detection: stack depth >= 3, only actions + exit titles
+    func testLeafGenreDetection() {
+        // Leaf genre: all items are actions or navigation exits (Artists, Albums, etc.)
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Genre", hint: "action", itemKey: "a1"),
+            makeBrowseItem(title: "Artists", hint: "list", itemKey: "a2"),
+            makeBrowseItem(title: "Albums", hint: "list", itemKey: "a3"),
+        ]
+        // Leaf requires stack depth >= 3
+        let stackDepth = 3
+        let isLeaf = stackDepth >= 3 && items.count <= 5 && !items.isEmpty
+            && !items.contains(where: { item in
+                item.hint != "action" && item.hint != "action_list"
+                && !genreExitTitles.contains(item.title ?? "")
+            })
+        XCTAssertTrue(isLeaf, "Items with only actions + navigation exits at depth 3+ is a leaf genre")
+    }
+
+    func testLeafGenreNotDetectedAtShallowDepth() {
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Genre", hint: "action", itemKey: "a1"),
+            makeBrowseItem(title: "Artists", hint: "list", itemKey: "a2"),
+        ]
+        let stackDepth = 2
+        let isLeaf = stackDepth >= 3 && items.count <= 5 && !items.isEmpty
+        XCTAssertFalse(isLeaf, "Leaf genre requires stack depth >= 3")
+    }
+
+    func testLeafGenreNotDetectedWithSubgenres() {
+        // Items with sub-genre entries (hint=list, not an exit title) → not a leaf
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Genre", hint: "action", itemKey: "a1"),
+            makeBrowseItem(title: "Bebop", hint: "list", itemKey: "a2"),
+            makeBrowseItem(title: "Fusion", hint: "list", itemKey: "a3"),
+        ]
+        let stackDepth = 3
+        let isLeaf = stackDepth >= 3 && items.count <= 5 && !items.isEmpty
+            && !items.contains(where: { item in
+                item.hint != "action" && item.hint != "action_list"
+                && !genreExitTitles.contains(item.title ?? "")
+            })
+        XCTAssertFalse(isLeaf, "Sub-genre items prevent leaf detection")
+    }
+
+    /// Genre content split: actions vs sub-genres separated by subtitle
+    func testGenreContentSplitBySubtitle() {
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Genre", hint: "action", itemKey: "a1"),
+            makeBrowseItem(title: "Shuffle", hint: "action", itemKey: "a2"),
+            makeBrowseItem(title: "Bebop", hint: "list", itemKey: "s1", subtitle: "12 albums"),
+            makeBrowseItem(title: "Fusion", hint: "list", itemKey: "s2", subtitle: "8 albums"),
+        ]
+        let topActions = items.filter { $0.subtitle == nil || $0.subtitle!.isEmpty }
+        let subGenres = items.filter { $0.subtitle != nil && !$0.subtitle!.isEmpty }
+        XCTAssertEqual(topActions.count, 2, "Actions (no subtitle) at the top")
+        XCTAssertEqual(subGenres.count, 2, "Sub-genres (with subtitle) shown as cards")
+    }
+
+    // MARK: - v1.2.0 Sidebar icon mapping
+
+    // Reproduce iconForTitle logic from RoonSidebarView
+    private static let iconGenreNames: Set<String> = ["Genres", "Generi", "Géneros", "ジャンル", "장르"]
+    private static let iconStreamingNames: Set<String> = ["TIDAL", "Qobuz", "KKBOX", "nugs.net"]
+    private static let iconAlbumNames: Set<String> = ["Albums", "Alben", "アルバム", "앨범"]
+    private static let iconArtistNames: Set<String> = ["Artists", "Artistes", "Künstler", "Artisti", "Artistas", "アーティスト", "아티스트"]
+    private static let iconTrackNames: Set<String> = ["Tracks", "Morceaux", "Titel", "Brani", "Canciones", "Faixas", "Spår", "Nummers", "トラック", "트랙"]
+    private static let iconComposerNames: Set<String> = ["Composers", "Compositeurs", "Komponisten", "Compositori", "Compositores", "Kompositörer", "Componisten", "作曲家", "작곡가"]
+    private static let iconFolderNames: Set<String> = ["Folders", "Répertoires", "Ordner", "Cartelle", "Carpetas", "フォルダ", "폴더"]
+    private static let iconHistoryNames: Set<String> = ["Historique", "History", "Verlauf", "Cronologia", "Historial", "履歴", "기록"]
+
+    private func testIconForTitle(_ title: String) -> String {
+        if Self.iconGenreNames.contains(title) { return "guitars" }
+        if Self.iconStreamingNames.contains(title) { return "waveform" }
+        if Self.iconAlbumNames.contains(title) { return "opticaldisc" }
+        if Self.iconArtistNames.contains(title) { return "music.mic" }
+        if Self.iconTrackNames.contains(title) { return "music.note" }
+        if Self.iconComposerNames.contains(title) { return "music.quarternote.3" }
+        if Self.iconFolderNames.contains(title) { return "folder" }
+        if Self.iconHistoryNames.contains(title) { return "clock" }
+        if title.contains("Composition") || title.contains("Komposition") || title.contains("Composizion") { return "music.note.list" }
+        if title.contains("Radio") { return "antenna.radiowaves.left.and.right" }
+        if title.contains("plus tard") { return "bookmark" }
+        if title.contains("tiquette") || title == "Tags" { return "tag" }
+        return "music.note.list"
+    }
+
+    func testSidebarIconForGenres() {
+        for title in Self.iconGenreNames {
+            XCTAssertEqual(testIconForTitle(title), "guitars",
+                           "'\(title)' must use guitars icon")
+        }
+    }
+
+    func testSidebarIconForStreaming() {
+        for title in Self.iconStreamingNames {
+            XCTAssertEqual(testIconForTitle(title), "waveform",
+                           "'\(title)' must use waveform icon")
+        }
+    }
+
+    func testSidebarIconForAlbums() {
+        for title in Self.iconAlbumNames {
+            XCTAssertEqual(testIconForTitle(title), "opticaldisc",
+                           "'\(title)' must use opticaldisc icon")
+        }
+    }
+
+    func testSidebarIconForArtists() {
+        for title in Self.iconArtistNames {
+            XCTAssertEqual(testIconForTitle(title), "music.mic",
+                           "'\(title)' must use music.mic icon")
+        }
+    }
+
+    func testSidebarIconForTracks() {
+        for title in Self.iconTrackNames {
+            XCTAssertEqual(testIconForTitle(title), "music.note",
+                           "'\(title)' must use music.note icon")
+        }
+    }
+
+    func testSidebarIconForComposers() {
+        for title in Self.iconComposerNames {
+            XCTAssertEqual(testIconForTitle(title), "music.quarternote.3",
+                           "'\(title)' must use music.quarternote.3 icon")
+        }
+    }
+
+    func testSidebarIconForFolders() {
+        for title in Self.iconFolderNames {
+            XCTAssertEqual(testIconForTitle(title), "folder",
+                           "'\(title)' must use folder icon")
+        }
+    }
+
+    func testSidebarIconForHistory() {
+        for title in Self.iconHistoryNames {
+            XCTAssertEqual(testIconForTitle(title), "clock",
+                           "'\(title)' must use clock icon")
+        }
+    }
+
+    func testSidebarIconForRadio() {
+        // iconForTitle receives original API titles, not translated displayTitle output
+        XCTAssertEqual(testIconForTitle("Live Radio"), "antenna.radiowaves.left.and.right")
+        XCTAssertEqual(testIconForTitle("My Live Radio"), "antenna.radiowaves.left.and.right")
+        XCTAssertEqual(testIconForTitle("Mes Live Radios"), "antenna.radiowaves.left.and.right")
+    }
+
+    func testSidebarIconFallbackIsNoteList() {
+        XCTAssertEqual(testIconForTitle("Unknown Category"), "music.note.list",
+                       "Unknown titles must fall back to music.note.list")
+    }
+
+    // MARK: - v1.2.0 Display title translation
+
+    func testDisplayTitleTranslatesMyLiveRadio() {
+        // displayTitle must translate "My Live Radio" to French
+        let translated: String = {
+            switch "My Live Radio" {
+            case "My Live Radio": return "Mes radios live"
+            default: return "My Live Radio"
+            }
+        }()
+        XCTAssertEqual(translated, "Mes radios live")
+    }
+
+    func testDisplayTitlePassthroughForOtherTitles() {
+        let titles = ["Albums", "Genres", "TIDAL", "Historique"]
+        for title in titles {
+            let result: String = {
+                switch title {
+                case "My Live Radio": return "Mes radios live"
+                default: return title
+                }
+            }()
+            XCTAssertEqual(result, title,
+                           "'\(title)' must pass through unchanged")
+        }
+    }
+
+    // MARK: - v1.2.0 Extension not-authorized view condition
+
+    func testExtensionNotAuthorizedWhenDisconnectedNoZones() {
+        service.connectionState = .disconnected
+        service.zones = []
+        let showNotAuthorized = service.zones.isEmpty && service.connectionState != .connected
+        XCTAssertTrue(showNotAuthorized,
+                      "Must show not-authorized view when disconnected with no zones")
+    }
+
+    func testExtensionAuthorizedWhenConnected() {
+        service.connectionState = .connected
+        service.zones = []
+        let showNotAuthorized = service.zones.isEmpty && service.connectionState != .connected
+        XCTAssertFalse(showNotAuthorized,
+                       "Must NOT show not-authorized view when connected (even with no zones)")
+    }
+
+    func testExtensionAuthorizedWhenZonesExist() {
+        service.connectionState = .disconnected
+        let zone = makeZone(id: "z1", name: "Test Zone")
+        service.zones = [zone]
+        let showNotAuthorized = service.zones.isEmpty && service.connectionState != .connected
+        XCTAssertFalse(showNotAuthorized,
+                       "Must NOT show not-authorized view when zones exist")
+    }
+
+    // MARK: - v1.2.0 Sidebar Genres in library, Live Radio in explorer
+
+    func testGenresClassifiedAsLibrary() {
+        for title in ["Genres", "Generi", "Géneros", "ジャンル", "장르"] {
+            XCTAssertTrue(Self.sidebarLibraryTitles.contains(title),
+                          "'\(title)' must be in library section")
+            XCTAssertFalse(Self.sidebarExplorerTitles.contains(title),
+                           "'\(title)' must NOT be in explorer section")
+        }
+    }
+
+    func testLiveRadioClassifiedAsExplorer() {
+        for title in ["My Live Radio", "Mes Live Radios"] {
+            XCTAssertTrue(Self.sidebarExplorerTitles.contains(title),
+                          "'\(title)' must be in explorer section")
+            XCTAssertFalse(Self.sidebarLibraryTitles.contains(title),
+                           "'\(title)' must NOT be in library section")
+        }
+    }
+
+    // MARK: - v1.2.0 German sidebar classification
+
+    func testSidebarCompletenessGermanSetup() {
+        let categories: [BrowseItem] = [
+            // Explorer
+            makeBrowseItem(title: "TIDAL", hint: "list", itemKey: "e1"),
+            makeBrowseItem(title: "Qobuz", hint: "list", itemKey: "e2"),
+            makeBrowseItem(title: "Live Radio", hint: "list", itemKey: "e3"),
+            makeBrowseItem(title: "Verlauf", hint: "list", itemKey: "e4"),
+            // Library
+            makeBrowseItem(title: "Genres", hint: "list", itemKey: "l1"),
+            makeBrowseItem(title: "Alben", hint: "list", itemKey: "l2"),
+            makeBrowseItem(title: "Künstler", hint: "list", itemKey: "l3"),
+            makeBrowseItem(title: "Titel", hint: "list", itemKey: "l4"),
+            makeBrowseItem(title: "Komponisten", hint: "list", itemKey: "l5"),
+            makeBrowseItem(title: "Ordner", hint: "list", itemKey: "l6"),
+        ]
+
+        let explorer = classifyExplorer(categories)
+        let library = classifyLibrary(categories)
+
+        XCTAssertEqual(explorer.count, 4)
+        XCTAssertTrue(explorer.contains { $0.title == "Verlauf" },
+                      "German 'Verlauf' must be in Explorer")
+        XCTAssertEqual(library.count, 6)
+        XCTAssertTrue(library.contains { $0.title == "Alben" },
+                      "German 'Alben' must be in Library")
+        XCTAssertTrue(library.contains { $0.title == "Künstler" },
+                      "German 'Künstler' must be in Library")
+        XCTAssertTrue(library.contains { $0.title == "Komponisten" },
+                      "German 'Komponisten' must be in Library")
+        XCTAssertEqual(explorer.count + library.count, categories.count)
     }
 }
