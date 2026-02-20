@@ -54,6 +54,12 @@ struct RoonBrowseContentView: View {
         }
     }
 
+    /// Detect Roon Settings browse items — always force list layout
+    private var isSettingsView: Bool {
+        guard let title = roonService.browseResult?.list?.title else { return false }
+        return RoonService.settingsTitles.contains(title)
+    }
+
     /// Detect playlist/album detail view: most items are tracks (action or action_list)
     /// Excludes the root Tracks category (flat track list without album context)
     private var isPlaylistView: Bool {
@@ -220,6 +226,8 @@ struct RoonBrowseContentView: View {
                     composerContent(items: items)
                 } else if isRadioStationsView {
                     radioStationsContent(items: items)
+                } else if isSettingsView {
+                    listContent(items: items)
                 } else if isPlaylistView && searchText.isEmpty {
                     playlistContent(items: items)
                 } else if isArtistDetailView && searchText.isEmpty {
@@ -746,24 +754,47 @@ struct RoonBrowseContentView: View {
                         .foregroundStyle(Color.roonSecondary)
                 }
 
-                // "Play now" button
-                if let firstItem = items.first, let itemKey = firstItem.item_key {
-                    Button {
-                        roonService.playInCurrentSession(itemKey: itemKey)
-                    } label: {
-                        Text("Play now")
-                            .font(.latoBold(13))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
-                            .background(
-                                Capsule()
-                                    .fill(Color.roonAccent)
-                            )
+                // "Play now" button + library heart
+                HStack(spacing: 16) {
+                    if let firstItem = items.first, let itemKey = firstItem.item_key {
+                        Button {
+                            roonService.playInCurrentSession(itemKey: itemKey)
+                        } label: {
+                            Text("Play now")
+                                .font(.latoBold(13))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.roonAccent)
+                                )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.top, 4)
+
+                    // Heart toggle: detect library status from browse items
+                    let isInLibrary = items.contains { RoonService.removeFromLibraryTitles.contains($0.title ?? "") }
+                    let hasLibraryAction = isInLibrary || items.contains { RoonService.addToLibraryTitles.contains($0.title ?? "") }
+                    if hasLibraryAction {
+                        Button {
+                            let albumTitle = list?.title ?? ""
+                            roonService.toggleAlbumLibraryFavorite(albumTitle: albumTitle, wasInLibrary: isInLibrary)
+                            // Refresh browse to update action items
+                            roonService.browseBack()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                roonService.browse(itemKey: items.first?.item_key ?? "")
+                            }
+                        } label: {
+                            Image(systemName: isInLibrary ? "heart.fill" : "heart")
+                                .font(.system(size: 20))
+                                .foregroundStyle(isInLibrary ? Color.red : Color.roonSecondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help(isInLibrary ? "Remove from Library" : "Add to Library")
+                    }
                 }
+                .padding(.top, 4)
 
                 Spacer()
             }
@@ -1554,7 +1585,10 @@ struct RoonBrowseContentView: View {
     // MARK: - Track List Content (flat track list without album header)
 
     private func trackListContent(items: [BrowseItem]) -> some View {
-        ScrollView {
+        // Hide album column when no track has album data
+        let hasAlbumData = items.prefix(20).contains { !parseSubtitle($0.subtitle).album.isEmpty }
+
+        return ScrollView {
             // Lightweight header
             HStack(spacing: 10) {
                 Image(systemName: "music.note")
@@ -1571,7 +1605,7 @@ struct RoonBrowseContentView: View {
             .padding(.top, 12)
             .padding(.bottom, 4)
 
-            trackTableHeader()
+            trackTableHeader(showAlbumColumn: hasAlbumData)
 
             Divider()
                 .overlay(Color.roonSeparator.opacity(0.3))
@@ -1579,7 +1613,7 @@ struct RoonBrowseContentView: View {
 
             LazyVStack(spacing: 0) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    playlistTrackRow(item, index: index, showAlbumColumn: true)
+                    playlistTrackRow(item, index: index, showAlbumColumn: hasAlbumData)
                         .onAppear { prefetchCovers(items: items, from: index, ahead: 100) }
                 }
             }

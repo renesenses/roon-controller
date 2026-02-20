@@ -6,32 +6,31 @@ struct RoonLayoutView: View {
     @State private var sidebarVisible = true
 
     var body: some View {
-        GeometryReader { geo in
-            VStack(spacing: 0) {
-                // Main area: sidebar + content
-                HStack(spacing: 0) {
-                    if sidebarVisible {
-                        RoonSidebarView(selectedSection: $selectedSection)
+        VStack(spacing: 0) {
+            // Main area: sidebar + content (fills remaining space)
+            HStack(spacing: 0) {
+                if sidebarVisible {
+                    RoonSidebarView(selectedSection: $selectedSection)
 
-                        Divider()
-                            .overlay(Color.roonSeparator.opacity(0.5))
-                    }
-
-                    RoonContentView(
-                        selectedSection: $selectedSection,
-                        toggleSidebar: { sidebarVisible.toggle() }
-                    )
+                    Divider()
+                        .overlay(Color.roonSeparator.opacity(0.5))
                 }
-                .frame(height: geo.size.height - 90)
-                .clipped()
-                .animation(.easeInOut(duration: 0.2), value: sidebarVisible)
 
-                // Footer transport bar (explicit height, never compressed)
-                RoonTransportBarView {
-                    selectedSection = .nowPlaying
-                }
-                .frame(height: 90)
+                RoonContentView(
+                    selectedSection: $selectedSection,
+                    toggleSidebar: { sidebarVisible.toggle() }
+                )
             }
+            .frame(maxHeight: .infinity)
+            .clipped()
+            .animation(.easeInOut(duration: 0.2), value: sidebarVisible)
+
+            // Footer transport bar (explicit height, never compressed)
+            RoonTransportBarView {
+                selectedSection = .nowPlaying
+            }
+            .frame(height: 90)
+            .layoutPriority(1)
         }
         .background(Color.roonBackground)
     }

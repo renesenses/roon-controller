@@ -100,19 +100,35 @@ struct SidebarView: View {
 
                 Spacer()
 
-                Button {
-                    openSettings()
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.roonSecondary)
-                        .padding(6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 5)
-                                .fill(Color.roonGrey2.opacity(0.5))
-                        )
+                Group {
+                    if #available(macOS 14, *) {
+                        SettingsLink {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.roonSecondary)
+                                .padding(6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .fill(Color.roonGrey2.opacity(0.5))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button {
+                            openSettingsLegacy()
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.roonSecondary)
+                                .padding(6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .fill(Color.roonGrey2.opacity(0.5))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
                 .help("Settings")
 
                 Button {
@@ -660,7 +676,7 @@ struct SidebarView: View {
 
     // MARK: - Open Settings
 
-    private func openSettings() {
+    private func openSettingsLegacy() {
         var opened = false
         if #available(macOS 14, *) {
             opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)

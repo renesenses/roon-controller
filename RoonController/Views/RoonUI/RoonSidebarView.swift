@@ -62,19 +62,35 @@ struct RoonSidebarView: View {
                         sectionHeader("BROWSE")
                         Spacer()
 
-                        Button {
-                            openSettings()
-                        } label: {
-                            Image(systemName: "gearshape")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Color.roonSecondary)
-                                .padding(5)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.roonGrey2.opacity(0.5))
-                                )
+                        Group {
+                            if #available(macOS 14, *) {
+                                SettingsLink {
+                                    Image(systemName: "gearshape")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Color.roonSecondary)
+                                        .padding(5)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color.roonGrey2.opacity(0.5))
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                Button {
+                                    openSettingsLegacy()
+                                } label: {
+                                    Image(systemName: "gearshape")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Color.roonSecondary)
+                                        .padding(5)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color.roonGrey2.opacity(0.5))
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
                         .help("Settings")
 
                         Button {
@@ -405,7 +421,7 @@ struct RoonSidebarView: View {
 
     // MARK: - Open Settings
 
-    private func openSettings() {
+    private func openSettingsLegacy() {
         var opened = false
         if #available(macOS 14, *) {
             opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)

@@ -312,11 +312,12 @@ class RoonService: ObservableObject {
             let defaultName = UserDefaults.standard.string(forKey: "default_zone_name") ?? ""
             let target = zones.first(where: { $0.display_name == defaultName }) ?? zones.first!
             selectZone(target)
+            // Always fetch profile name on connection (not gated by cache)
+            fetchProfileName()
             // Fetch sidebar categories now that we have a zone for the browse API
             if sidebarCategories.isEmpty {
                 fetchSidebarCategories()
                 fetchRecentlyAdded()
-                fetchProfileName()
                 prefetchStreamingServices()
             }
         }
@@ -598,10 +599,12 @@ class RoonService: ObservableObject {
         objectWillChange.send()
         currentZone = zone
         seekPosition = zone.seek_position ?? 0
+        lastServerSeekTime = .distantPast
         currentTrackIdentity = trackIdentity(zone.now_playing)
         queueItems = []
         historyPlaybackIndex = nil
         subscribeQueue()
+        updateNowPlayingInfo()
     }
 
     // MARK: - Queue
@@ -862,7 +865,7 @@ class RoonService: ObservableObject {
 
         pendingBrowseKey = nil
         browseStack.removeAll()
-        browseCategory = nil
+        browseCategory = title
         streamingAlbumDepth = 0
         streamingSections = []
         browseLoading = true
@@ -1281,7 +1284,7 @@ class RoonService: ObservableObject {
 
     // MARK: - Profile Name
 
-    private static let settingsTitles = Set([
+    static let settingsTitles = Set([
         "Settings", "Paramètres", "Einstellungen", "Impostazioni", "Configuración",
         "Inställningar", "Instellingen", "設定", "설정"
     ])
@@ -2769,6 +2772,40 @@ class RoonService: ObservableObject {
                 }
             } catch {
                 // Favorite toggle failed silently
+            }
+        }
+    }
+
+    /// Toggle library favorite for any album by title (used from browse album header).
+    /// Uses a dedicated browse session so the main browse view is not affected.
+    func toggleAlbumLibraryFavorite(albumTitle: String, wasInLibrary: Bool) {
+        guard let zoneId = currentZone?.zone_id, !albumTitle.isEmpty else { return }
+        Task {
+            do {
+                let session = RoonBrowseService(connection: connection, sessionKey: "album_fav_toggle")
+                let searchRoot = try await session.browse(hierarchy: "search", zoneId: zoneId, popAll: true)
+                guard let searchKey = searchRoot.items.first?["item_key"] as? String else { return }
+                _ = try await session.browse(hierarchy: "search", zoneId: zoneId, itemKey: searchKey, input: albumTitle)
+                let loadResult = try await session.load(hierarchy: "search", offset: 0, count: 20)
+                let target = loadResult.items.first { item in
+                    let hint = item["hint"] as? String
+                    let title = item["title"] as? String ?? ""
+                    return (hint == "action_list" || hint == "list") && title.lowercased() == albumTitle.lowercased()
+                } ?? loadResult.items.first { item in
+                    let hint = item["hint"] as? String
+                    return hint == "action_list" || hint == "list"
+                }
+                guard let targetKey = target?["item_key"] as? String else { return }
+                let actionResult = try await session.browse(hierarchy: "search", zoneId: zoneId, itemKey: targetKey)
+                let expectedTitles = wasInLibrary ? Self.removeFromLibraryTitles : Self.addToLibraryTitles
+                let favAction = actionResult.items.first { item in
+                    let title = item["title"] as? String ?? ""
+                    return item["hint"] as? String == "action" && expectedTitles.contains(title)
+                }
+                guard let favKey = favAction?["item_key"] as? String else { return }
+                _ = try await session.browse(hierarchy: "search", zoneId: zoneId, itemKey: favKey)
+            } catch {
+                // Album favorite toggle failed silently
             }
         }
     }

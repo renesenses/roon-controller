@@ -39,14 +39,24 @@ struct PlayerView: View {
                 .keyboardShortcut("\\", modifiers: .command)
             }
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    openSettings()
-                } label: {
-                    Image(systemName: "gearshape")
-                        .foregroundStyle(Color.roonSecondary)
+                Group {
+                    if #available(macOS 14, *) {
+                        SettingsLink {
+                            Image(systemName: "gearshape")
+                                .foregroundStyle(Color.roonSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button {
+                            openSettingsLegacy()
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .foregroundStyle(Color.roonSecondary)
+                        }
+                        .keyboardShortcut(",", modifiers: .command)
+                    }
                 }
                 .help("Settings")
-                .keyboardShortcut(",", modifiers: .command)
             }
         }
     }
@@ -84,7 +94,7 @@ struct PlayerView: View {
         return nil
     }
 
-    private func openSettings() {
+    private func openSettingsLegacy() {
         var opened = false
         if #available(macOS 14, *) {
             opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)

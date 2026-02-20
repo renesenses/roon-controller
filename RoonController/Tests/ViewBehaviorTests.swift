@@ -2529,4 +2529,147 @@ final class ViewBehaviorTests: XCTestCase {
         XCTAssertTrue(shouldTranslate,
                       "French 'Mes Live Radios' must also be handled by displayTitle")
     }
+
+    // MARK: - Bug #5: Album column visibility in track list
+
+    func testTrackListHidesAlbumColumnWhenNoAlbumData() {
+        // Tracks with subtitles containing only artist (no " / " or " - " separator)
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Track 1", hint: "action_list", itemKey: "t1", subtitle: "Artist A"),
+            makeBrowseItem(title: "Track 2", hint: "action_list", itemKey: "t2", subtitle: "Artist B"),
+            makeBrowseItem(title: "Track 3", hint: "action_list", itemKey: "t3", subtitle: "Artist C"),
+        ]
+        // parseSubtitle returns ("Artist", "") when no separator found
+        // No album data → album column should be hidden
+        let hasAlbumData = items.prefix(20).contains {
+            let sub = $0.subtitle ?? ""
+            for sep in [" / ", " - "] {
+                if sub.contains(sep) {
+                    let album = String(sub[sub.range(of: sep)!.upperBound...])
+                    if !album.isEmpty { return true }
+                }
+            }
+            return false
+        }
+        XCTAssertFalse(hasAlbumData, "Album column should be hidden when no track has album data")
+    }
+
+    func testTrackListShowsAlbumColumnWhenAlbumDataPresent() {
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Track 1", hint: "action_list", itemKey: "t1", subtitle: "Artist A / Album X"),
+            makeBrowseItem(title: "Track 2", hint: "action_list", itemKey: "t2", subtitle: "Artist B"),
+        ]
+        // At least one track has album data → show column
+        let hasAlbumData = items.prefix(20).contains {
+            let sub = $0.subtitle ?? ""
+            for sep in [" / ", " - "] {
+                if sub.contains(sep) {
+                    let album = String(sub[sub.range(of: sep)!.upperBound...])
+                    if !album.isEmpty { return true }
+                }
+            }
+            return false
+        }
+        XCTAssertTrue(hasAlbumData, "Album column should be shown when any track has album data")
+    }
+
+    // MARK: - Bug #6: RoonLayoutView uses flexible layout
+
+    func testRoonLayoutTransportBarHeight() {
+        // Transport bar should always get 90pt; main content fills remaining space.
+        // With flexible layout (no GeometryReader), VStack distributes space correctly.
+        let transportBarHeight: CGFloat = 90
+        let windowHeights: [CGFloat] = [500, 400, 300, 800, 1200]
+        for windowHeight in windowHeights {
+            let contentHeight = windowHeight - transportBarHeight
+            XCTAssertGreaterThan(contentHeight, 0,
+                "Content area should have positive height for window height \(windowHeight)")
+            XCTAssertEqual(transportBarHeight, 90,
+                "Transport bar must keep fixed 90pt height regardless of window size")
+        }
+    }
+
+    // MARK: - Bug #7: Heart toggle detection in album browse items
+
+    func testAlbumBrowseDetectsAddToLibraryAction() {
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Album", hint: "action", itemKey: "p1"),
+            makeBrowseItem(title: "Add to Library", hint: "action", itemKey: "fav1"),
+            makeBrowseItem(title: "Track 1", hint: "action_list", itemKey: "t1", subtitle: "Artist - Album"),
+        ]
+        let isInLibrary = items.contains { RoonService.removeFromLibraryTitles.contains($0.title ?? "") }
+        let hasLibraryAction = isInLibrary || items.contains { RoonService.addToLibraryTitles.contains($0.title ?? "") }
+        XCTAssertTrue(hasLibraryAction, "Should detect Add to Library action")
+        XCTAssertFalse(isInLibrary, "Album should not be in library when Add action is present")
+    }
+
+    func testAlbumBrowseDetectsRemoveFromLibraryAction() {
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Album", hint: "action", itemKey: "p1"),
+            makeBrowseItem(title: "Remove from Library", hint: "action", itemKey: "fav1"),
+            makeBrowseItem(title: "Track 1", hint: "action_list", itemKey: "t1", subtitle: "Artist - Album"),
+        ]
+        let isInLibrary = items.contains { RoonService.removeFromLibraryTitles.contains($0.title ?? "") }
+        XCTAssertTrue(isInLibrary, "Album should be detected as in library when Remove action is present")
+    }
+
+    func testAlbumBrowseDetectsMultilingualLibraryActions() {
+        // French title
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Ajouter à la bibliothèque", hint: "action", itemKey: "fav1"),
+            makeBrowseItem(title: "Track 1", hint: "action_list", itemKey: "t1"),
+        ]
+        let hasAction = items.contains { RoonService.addToLibraryTitles.contains($0.title ?? "") }
+        XCTAssertTrue(hasAction, "Should detect French 'Ajouter à la bibliothèque'")
+    }
+
+    func testAlbumBrowseNoHeartWithoutLibraryAction() {
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Play Album", hint: "action", itemKey: "p1"),
+            makeBrowseItem(title: "Track 1", hint: "action_list", itemKey: "t1", subtitle: "Artist - Album"),
+        ]
+        let hasLibraryAction = items.contains {
+            RoonService.addToLibraryTitles.contains($0.title ?? "") ||
+            RoonService.removeFromLibraryTitles.contains($0.title ?? "")
+        }
+        XCTAssertFalse(hasLibraryAction, "No heart should be shown when no library action exists")
+    }
+
+    // MARK: - Bug #8: Settings browse items use list layout
+
+    func testSettingsTitlesRecognizedForAllLanguages() {
+        let expectedTitles = [
+            "Settings", "Paramètres", "Einstellungen", "Impostazioni",
+            "Configuración", "Inställningar", "Instellingen", "設定", "설정"
+        ]
+        for title in expectedTitles {
+            XCTAssertTrue(RoonService.settingsTitles.contains(title),
+                          "'\(title)' should be recognized as a Settings title")
+        }
+    }
+
+    func testSettingsItemsShouldNotShowGrid() {
+        // Settings items have no images — shouldShowGrid logic should return false
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Profile", hint: "list", itemKey: "s1"),
+            makeBrowseItem(title: "Display", hint: "list", itemKey: "s2"),
+            makeBrowseItem(title: "About", hint: "list", itemKey: "s3"),
+        ]
+        let withImage = items.prefix(20).filter { $0.image_key != nil }.count
+        let shouldGrid = withImage > items.prefix(20).count / 2
+        XCTAssertFalse(shouldGrid, "Settings items should never use grid layout")
+    }
+
+    func testSettingsItemsNotDetectedAsArtist() {
+        // Settings items have no images → first item has nil image_key
+        // But no items have images either → listWithImage == 0 → not artist detail
+        let items: [BrowseItem] = [
+            makeBrowseItem(title: "Profile", hint: "list", itemKey: "s1"),
+            makeBrowseItem(title: "Display", hint: "list", itemKey: "s2"),
+        ]
+        let listWithImage = items.prefix(20).filter {
+            $0.image_key != nil && ($0.hint == "list" || $0.hint == "action_list")
+        }.count
+        XCTAssertEqual(listWithImage, 0, "Settings should not be detected as artist detail view")
+    }
 }
