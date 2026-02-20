@@ -304,6 +304,7 @@ struct PlayerView: View {
                     .foregroundStyle(Color.roonText)
             }
             .buttonStyle(.plain)
+            .help("Previous")
             .disabled(!(zone.is_previous_allowed ?? true))
             .opacity((zone.is_previous_allowed ?? true) ? 1 : 0.3)
 
@@ -313,6 +314,7 @@ struct PlayerView: View {
                     .foregroundStyle(Color.roonText)
             }
             .buttonStyle(.plain)
+            .help(zone.state == "playing" ? "Pause" : "Play")
 
             Button { roonService.next() } label: {
                 Image(systemName: "chevron.forward")
@@ -320,6 +322,7 @@ struct PlayerView: View {
                     .foregroundStyle(Color.roonText)
             }
             .buttonStyle(.plain)
+            .help("Next")
             .disabled(!(zone.is_next_allowed ?? true))
             .opacity((zone.is_next_allowed ?? true) ? 1 : 0.3)
         }
@@ -339,6 +342,7 @@ struct PlayerView: View {
                     .foregroundStyle((zone.settings?.shuffle ?? false) ? Color.roonAccent : Color.roonTertiary)
             }
             .buttonStyle(.plain)
+            .help("Shuffle")
 
             Button {
                 let current = zone.settings?.loop ?? "disabled"
@@ -355,6 +359,7 @@ struct PlayerView: View {
                     .foregroundStyle(loop != "disabled" ? Color.roonAccent : Color.roonTertiary)
             }
             .buttonStyle(.plain)
+            .help("Repeat")
 
             Button {
                 let current = zone.settings?.auto_radio ?? false
@@ -364,6 +369,7 @@ struct PlayerView: View {
                     .foregroundStyle((zone.settings?.auto_radio ?? false) ? Color.roonAccent : Color.roonTertiary)
             }
             .buttonStyle(.plain)
+            .help("Roon Radio")
 
             if zone.is_seek_allowed == false {
                 Button { roonService.saveRadioFavorite() } label: {
@@ -406,10 +412,12 @@ struct PlayerView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .help((volume.is_muted ?? false) ? "Unmute" : "Mute")
 
                 VolumeRepeatButton(
                     systemName: "minus.circle.fill",
-                    color: Color.roonSecondary
+                    color: Color.roonSecondary,
+                    tooltip: "Volume down"
                 ) {
                     roonService.adjustVolume(outputId: outputId, delta: Double(-step))
                 }
@@ -440,7 +448,8 @@ struct PlayerView: View {
 
                 VolumeRepeatButton(
                     systemName: "plus.circle.fill",
-                    color: Color.roonSecondary
+                    color: Color.roonSecondary,
+                    tooltip: "Volume up"
                 ) {
                     roonService.adjustVolume(outputId: outputId, delta: Double(step))
                 }
@@ -516,6 +525,7 @@ struct PlayerView: View {
 private struct VolumeRepeatButton: View {
     let systemName: String
     let color: Color
+    var tooltip: String = ""
     let action: () -> Void
 
     @State private var repeatTask: Task<Void, Never>?
@@ -528,6 +538,7 @@ private struct VolumeRepeatButton: View {
             .opacity(pressing ? 0.5 : 1.0)
             .frame(width: 36, height: 36)
             .contentShape(Circle())
+            .help(tooltip)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in

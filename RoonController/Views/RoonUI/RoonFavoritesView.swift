@@ -64,6 +64,7 @@ struct RoonFavoritesView: View {
                 )
             }
             .buttonStyle(.plain)
+            .help("Export CSV")
 
             Button {
                 roonService.clearRadioFavorites()
@@ -79,6 +80,7 @@ struct RoonFavoritesView: View {
                     )
             }
             .buttonStyle(.plain)
+            .help("Clear all favorites")
         }
         .padding(.horizontal, 24)
         .padding(.top, 40)
@@ -224,6 +226,7 @@ private struct DeleteButton: View {
                 .animation(.easeOut(duration: 0.12), value: isHovered)
         }
         .buttonStyle(.plain)
+        .help("Delete")
         .onHover { isHovered = $0 }
     }
 }

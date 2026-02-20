@@ -27,6 +27,11 @@
 - [x] Grille affichee des 1 item avec image (seuil abaisse de 3)
 - [x] Transport bar centree verticalement
 
+## Fait (v1.2.4)
+
+- [x] Infobulles (tooltips) sur tous les boutons icones (~35 boutons, 7 fichiers)
+- [x] Version bumpee 1.2.3 → 1.2.4
+
 ## Limitations API Roon (points bloquants)
 
 ### Playlists
@@ -57,7 +62,7 @@
 ### UI
 
 - [x] ~~Augmenter la hauteur de la zone en bas (transport bar / now playing)~~ — contenu centre verticalement
-- [ ] Badge des sources (Tidal/Qobuz/Bibliotheque) dans la section Dernierement de l'accueil
+- ~~Badge des sources (Tidal/Qobuz/Bibliotheque) dans la section Dernierement de l'accueil~~ — **Limitation API** : l'API Roon n'expose aucun champ `source`/`provider` dans BrowseItem, NowPlaying ou PlaybackHistoryItem
 
 ### Bugs remontes par Roland (v1.2.0 — post #38)
 

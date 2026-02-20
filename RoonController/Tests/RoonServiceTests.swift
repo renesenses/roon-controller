@@ -1282,7 +1282,7 @@ final class RoonServiceTests: XCTestCase {
     }
 
     func testRegistrationDisplayVersion() {
-        XCTAssertEqual(RoonRegistration.displayVersion, "1.2.3")
+        XCTAssertEqual(RoonRegistration.displayVersion, "1.2.4")
     }
 
     func testRegistrationExtensionId() {
@@ -1679,7 +1679,7 @@ final class RoonServiceTests: XCTestCase {
 
     func testVersionNumberMatchesRelease() {
         // Fix: version number was stuck at 1.0.3
-        XCTAssertEqual(RoonRegistration.displayVersion, "1.2.3",
+        XCTAssertEqual(RoonRegistration.displayVersion, "1.2.4",
                        "displayVersion must match the current release")
     }
 

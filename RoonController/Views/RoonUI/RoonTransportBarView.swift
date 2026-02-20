@@ -145,6 +145,7 @@ struct RoonTransportBarView: View {
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(.plain)
+            .help("Previous")
             .disabled(!(zone.is_previous_allowed ?? true))
             .opacity((zone.is_previous_allowed ?? true) ? 1 : 0.3)
 
@@ -161,6 +162,7 @@ struct RoonTransportBarView: View {
                 }
             }
             .buttonStyle(.plain)
+            .help(zone.state == "playing" ? "Pause" : "Play")
 
             Button { roonService.next() } label: {
                 Image(systemName: "forward.end.fill")
@@ -169,6 +171,7 @@ struct RoonTransportBarView: View {
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(.plain)
+            .help("Next")
             .disabled(!(zone.is_next_allowed ?? true))
             .opacity((zone.is_next_allowed ?? true) ? 1 : 0.3)
         }
@@ -283,6 +286,7 @@ struct RoonTransportBarView: View {
                         .frame(width: 20)
                 }
                 .buttonStyle(.plain)
+                .help((volume.is_muted ?? false) ? "Unmute" : "Mute")
 
                 Slider(
                     value: Binding(
@@ -352,6 +356,7 @@ struct RoonTransportBarView: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
+        .help("Select zone")
     }
 
     // MARK: - Helpers

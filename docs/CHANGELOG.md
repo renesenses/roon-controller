@@ -72,9 +72,32 @@ timeline
                 : Breadcrumb genre + traductions browse
                 : Transport bar centree
                 : +16 tests (371)
+    2026-02-20 : v1.2.4
+                : Tooltips sur tous les boutons
+                : Retour Nepherte (post #20)
 ```
 
 ## [Unreleased]
+
+## [1.2.4] - 2026-02-20
+
+### Ajouts
+
+- Infobulles (tooltips) sur tous les boutons icones de l'application (~35 boutons, 7 fichiers)
+  - Barre de transport : Previous, Play/Pause, Next, Mute/Unmute, Select zone
+  - Page d'accueil : fleches de defilement, bouton MORE, overlay Play
+  - Navigation bibliotheque : Back, Library home, Clear search, Play now, overlays Play (grille, liste, streaming, radio)
+  - Vue Player : Previous, Play/Pause, Next, Shuffle, Repeat, Roon Radio, Mute/Unmute, Volume down/up
+  - Vue Now Playing : Shuffle, Repeat, Roon Radio, favoris radio/bibliotheque
+  - Favoris radio : Export CSV, Clear all favorites, Delete
+  - Historique : Clear history
+- Pattern `.help("...")` avec localisation automatique via xcstrings
+
+### Technique
+
+- `settingButton()` dans `RoonNowPlayingView` accepte un parametre `tooltip`
+- `VolumeRepeatButton` dans `PlayerView` accepte un parametre `tooltip`
+- Version bumpee de 1.2.3 a 1.2.4 (registration, pbxproj, tests)
 
 ## [1.2.3-beta] - 2026-02-19
 
@@ -377,7 +400,9 @@ timeline
 - CI/CD GitHub Actions avec integration Claude Code
 - Documentation technique bilingue
 
-[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/renesenses/roon-controller/compare/v1.2.4...HEAD
+[1.2.4]: https://github.com/renesenses/roon-controller/compare/v1.2.3...v1.2.4
+[1.2.3-beta]: https://github.com/renesenses/roon-controller/compare/v1.2.1...v1.2.3
 [1.2.1]: https://github.com/renesenses/roon-controller/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/renesenses/roon-controller/compare/v1.1.0...v1.2.0
 [1.1.1]: https://github.com/renesenses/roon-controller/compare/v1.1.0...v1.1.1

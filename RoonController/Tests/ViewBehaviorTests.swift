@@ -2047,7 +2047,7 @@ final class ViewBehaviorTests: XCTestCase {
         // Bug: displayVersion was stuck at 1.1.1 while MARKETING_VERSION was 1.2.0
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         // In test host, Bundle.main may not have the app's version — verify registration is consistent
-        XCTAssertEqual(RoonRegistration.displayVersion, "1.2.3",
+        XCTAssertEqual(RoonRegistration.displayVersion, "1.2.4",
                        "displayVersion must be updated with each release")
         if let v = appVersion, !v.isEmpty, v != "1" {
             XCTAssertEqual(v, RoonRegistration.displayVersion,

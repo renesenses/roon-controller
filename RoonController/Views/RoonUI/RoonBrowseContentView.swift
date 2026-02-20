@@ -355,6 +355,7 @@ struct RoonBrowseContentView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .help("Back")
             }
 
             genreNavBreadcrumb
@@ -384,6 +385,7 @@ struct RoonBrowseContentView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .help("Library home")
             }
         }
         .padding(.leading, 52)  // clear the sidebar toggle burger overlay
@@ -411,6 +413,7 @@ struct RoonBrowseContentView: View {
                         .foregroundStyle(Color.roonTertiary)
                 }
                 .buttonStyle(.plain)
+                .help("Clear search")
             }
         }
         .padding(.horizontal, 12)
@@ -480,6 +483,7 @@ struct RoonBrowseContentView: View {
                             .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
+                    .help("Play")
                     .padding(6)
                 }
             }
@@ -627,6 +631,7 @@ struct RoonBrowseContentView: View {
                         .foregroundStyle(Color.roonAccent)
                 }
                 .buttonStyle(.plain)
+                .help("Play")
             }
 
             if item.hint == "list" || item.hint == "action_list" {
@@ -771,6 +776,7 @@ struct RoonBrowseContentView: View {
                                 )
                         }
                         .buttonStyle(.plain)
+                        .help("Play now")
                     }
 
                     // Heart toggle: detect library status from browse items
@@ -1279,6 +1285,7 @@ struct RoonBrowseContentView: View {
                     )
             }
             .buttonStyle(.plain)
+            .help("Back")
 
             Text(roonService.browseCategory ?? "")
                 .font(.inter(28))
@@ -1309,6 +1316,7 @@ struct RoonBrowseContentView: View {
                     )
             }
             .buttonStyle(.plain)
+            .help("Library home")
         }
         .padding(.leading, 52)
         .padding(.trailing, 24)
@@ -1455,6 +1463,7 @@ struct RoonBrowseContentView: View {
                             .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
+                    .help("Play")
                     .padding(6)
                 }
             }
@@ -1557,6 +1566,7 @@ struct RoonBrowseContentView: View {
                             .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
+                    .help("Play")
                     .padding(6)
                 }
             }

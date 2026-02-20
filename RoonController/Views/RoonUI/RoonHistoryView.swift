@@ -45,6 +45,7 @@ struct RoonHistoryView: View {
                     )
             }
             .buttonStyle(.plain)
+            .help("Clear history")
         }
         .padding(.horizontal, 24)
         .padding(.top, 40)

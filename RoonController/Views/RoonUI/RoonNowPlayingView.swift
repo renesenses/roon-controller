@@ -261,12 +261,14 @@ struct RoonNowPlayingView: View {
             settingButton(
                 icon: "shuffle",
                 isActive: zone.settings?.shuffle ?? false,
+                tooltip: "Shuffle",
                 action: { roonService.setShuffle(!(zone.settings?.shuffle ?? false)) }
             )
 
             settingButton(
                 icon: (zone.settings?.loop ?? "disabled") == "loop_one" ? "repeat.1" : "repeat",
                 isActive: (zone.settings?.loop ?? "disabled") != "disabled",
+                tooltip: "Repeat",
                 action: {
                     let current = zone.settings?.loop ?? "disabled"
                     let next: String
@@ -282,6 +284,7 @@ struct RoonNowPlayingView: View {
             settingButton(
                 icon: "antenna.radiowaves.left.and.right",
                 isActive: zone.settings?.auto_radio ?? false,
+                tooltip: "Roon Radio",
                 action: { roonService.setAutoRadio(!(zone.settings?.auto_radio ?? false)) }
             )
 
@@ -290,6 +293,7 @@ struct RoonNowPlayingView: View {
                     icon: roonService.isCurrentTrackFavorite() ? "heart.fill" : "heart",
                     isActive: roonService.isCurrentTrackFavorite(),
                     activeColor: Color.roonRed,
+                    tooltip: "Save to radio favorites",
                     action: { roonService.saveRadioFavorite() }
                 )
             } else {
@@ -297,13 +301,14 @@ struct RoonNowPlayingView: View {
                     icon: roonService.isCurrentTrackInLibrary ? "heart.fill" : "heart",
                     isActive: roonService.isCurrentTrackInLibrary,
                     activeColor: Color.roonRed,
+                    tooltip: roonService.isCurrentTrackInLibrary ? "Remove from library" : "Add to library",
                     action: { roonService.toggleRoonFavorite() }
                 )
             }
         }
     }
 
-    private func settingButton(icon: String, isActive: Bool, activeColor: Color = Color.roonAccent, action: @escaping () -> Void) -> some View {
+    private func settingButton(icon: String, isActive: Bool, activeColor: Color = Color.roonAccent, tooltip: String = "", action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 16))
@@ -315,6 +320,7 @@ struct RoonNowPlayingView: View {
                 )
         }
         .buttonStyle(.plain)
+        .help(tooltip)
     }
 
     // MARK: - Up Next

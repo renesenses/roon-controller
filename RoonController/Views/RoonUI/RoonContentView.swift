@@ -284,6 +284,7 @@ struct RoonContentView: View {
                             .background(Circle().fill(.white.opacity(0.15)))
                     }
                     .buttonStyle(.plain)
+                    .help("Scroll left")
 
                     Button {
                         scrollByStep(forward: true)
@@ -295,6 +296,7 @@ struct RoonContentView: View {
                             .background(Circle().fill(.white.opacity(0.15)))
                     }
                     .buttonStyle(.plain)
+                    .help("Scroll right")
                 }
 
                 // PLUS button
@@ -316,6 +318,7 @@ struct RoonContentView: View {
                         .background(Capsule().fill(.white.opacity(0.15)))
                 }
                 .buttonStyle(.plain)
+                .help("Show all")
             }
             .padding(.horizontal, 24)
 
@@ -434,6 +437,7 @@ struct RoonContentView: View {
                             .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
+                    .help("Play")
                     .padding(6)
                 }
             }
